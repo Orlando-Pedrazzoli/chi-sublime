@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+/*
+ * Sprint 0 vai adicionar:
+ *   - Design tokens (verde profundo + dourado champanhe)
+ *   - Fontes Cormorant Garamond + Manrope
+ *   - Reset CSS e body styling
+ */
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: #faf7f2;
+  color: #1a1a1a;
+}
