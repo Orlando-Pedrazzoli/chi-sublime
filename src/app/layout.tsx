@@ -1,20 +1,128 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import './globals.css';
 
+/* ============================================================
+   FONTES — Carregadas via next/font (otimização automática)
+   - Cormorant Garamond: serifa display elegante para títulos
+   - Manrope: sans-serif moderna para corpo de texto
+   ============================================================ */
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
+  display: 'swap',
+});
+
+const manrope = Manrope({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-manrope',
+  display: 'swap',
+});
+
+/* ============================================================
+   METADATA SEO + Open Graph
+   ============================================================ */
+
 export const metadata: Metadata = {
-  title: 'Chi Sublime — Hair Style & Beauty | Cascais',
+  metadataBase: new URL('https://www.chisublime.pt'),
+  title: {
+    default: 'Chi Sublime — Hair Style & Beauty | Cascais',
+    template: '%s | Chi Sublime',
+  },
   description:
-    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabelereiro, maquilhagem, sobrancelhas, unhas e depilação.',
+    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabelereiro, maquilhagem, sobrancelhas, unhas e depilação com a equipa de Jean Pierre, Matias e Ana Rita.',
+  keywords: [
+    'salão de beleza Cascais',
+    'cabelereiro Cascais',
+    'Quinta da Bicuda',
+    'hair salon Cascais',
+    'beauty salon Cascais',
+    'maquilhagem noiva Cascais',
+    'brow lamination Cascais',
+    'extensão fio a fio Cascais',
+  ],
+  authors: [{ name: 'Pedrazzoli Digital' }],
+  creator: 'Pedrazzoli Digital',
+  publisher: 'Chi Sublime',
+
+  openGraph: {
+    type: 'website',
+    locale: 'pt_PT',
+    alternateLocale: 'en_US',
+    url: 'https://www.chisublime.pt',
+    siteName: 'Chi Sublime',
+    title: 'Chi Sublime — Hair Style & Beauty | Cascais',
+    description: 'Um refúgio de beleza premium em Quinta da Bicuda, Cascais.',
+    images: [
+      {
+        url: '/images/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Chi Sublime — Hair Style & Beauty',
+      },
+    ],
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Chi Sublime — Hair Style & Beauty | Cascais',
+    description: 'Um refúgio de beleza premium em Cascais.',
+    images: ['/images/logo.png'],
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+
+  alternates: {
+    canonical: '/',
+    languages: {
+      'pt-PT': '/pt',
+      'en-US': '/en',
+    },
+  },
+
+  category: 'beauty',
 };
 
-/**
- * Root Layout — aplica-se a TODAS as páginas.
- * No Sprint 0 vamos adicionar fontes (Cormorant + Manrope) e design tokens.
- */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FAF7F2' },
+    { media: '(prefers-color-scheme: dark)', color: '#1F3D2E' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+/* ============================================================
+   ROOT LAYOUT
+   Aplica-se a TODAS as páginas (público, admin, auth, etc.)
+   ============================================================ */
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="pt">
-      <body>{children}</body>
+    <html
+      lang="pt"
+      className={`${cormorant.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="bg-chi-cream text-chi-charcoal antialiased">{children}</body>
     </html>
   );
 }

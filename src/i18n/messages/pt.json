@@ -1,0 +1,195 @@
+{
+  "common": {
+    "loading": "A carregar...",
+    "error": "Ocorreu um erro",
+    "retry": "Tentar novamente",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Voltar",
+    "next": "Continuar",
+    "close": "Fechar",
+    "search": "Pesquisar",
+    "viewAll": "Ver tudo",
+    "learnMore": "Saber mais"
+  },
+
+  "nav": {
+    "home": "Início",
+    "services": "Serviços",
+    "team": "Equipa",
+    "gallery": "Galeria",
+    "about": "Sobre",
+    "contact": "Contacto",
+    "book": "Reservar",
+    "myAccount": "A minha conta",
+    "login": "Entrar",
+    "register": "Registar",
+    "logout": "Sair"
+  },
+
+  "home": {
+    "hero": {
+      "eyebrow": "Hair Style & Beauty · Cascais",
+      "title": "Beleza que respira o tempo",
+      "subtitle": "Um espaço de cuidado refinado em Quinta da Bicuda, onde cada gesto é pensado para revelar a sua essência.",
+      "ctaPrimary": "Reservar Online",
+      "ctaSecondary": "Descobrir"
+    },
+    "philosophy": {
+      "eyebrow": "A nossa filosofia",
+      "title": "Onde o cuidado encontra a arte.",
+      "quote": "Acreditamos que a verdadeira beleza vive na atenção aos pequenos detalhes — no toque, no tempo, na escuta.",
+      "body": "No coração de Cascais, o Chi Sublime é mais do que um salão. É um refúgio sensorial onde cada visita é uma celebração da sua individualidade."
+    },
+    "services": {
+      "eyebrow": "Os nossos serviços",
+      "title": "Cinco universos de cuidado.",
+      "description": "Desde tratamentos capilares de excelência a maquilhagem de noiva e design de sobrancelhas — cada serviço é executado com a precisão de quem trata cada cliente como única.",
+      "viewServices": "Ver serviços"
+    },
+    "team": {
+      "eyebrow": "A nossa equipa",
+      "title": "Mãos que cuidam.",
+      "description": "Três profissionais. Uma paixão partilhada pela arte da beleza."
+    },
+    "gallery": {
+      "eyebrow": "O nosso espaço",
+      "title": "Um refúgio em Cascais."
+    },
+    "contact": {
+      "eyebrow": "Visite-nos",
+      "title": "Estamos à sua espera.",
+      "description": "No coração da Quinta da Bicuda, num espaço pensado ao detalhe para receber quem procura mais do que um serviço — uma experiência."
+    }
+  },
+
+  "services": {
+    "title": "Serviços",
+    "categories": {
+      "cabelereiro": "Cabelereiro",
+      "sobrancelhas": "Sobrancelhas",
+      "maquilhagem": "Maquilhagem",
+      "unhas": "Unhas",
+      "depilacao": "Depilação"
+    },
+    "duration": "Duração",
+    "price": "Preço",
+    "minutes": "min",
+    "bookThis": "Reservar este serviço"
+  },
+
+  "booking": {
+    "title": "Reservar",
+    "step1": "Escolher serviço",
+    "step2": "Escolher horário",
+    "step3": "Confirmar",
+    "selectService": "Que serviço pretende?",
+    "selectDate": "Escolha a data",
+    "selectTime": "Escolha a hora",
+    "selectStaff": "Escolha o profissional",
+    "anyStaff": "Qualquer profissional disponível",
+    "yourDetails": "Os seus dados",
+    "name": "Nome",
+    "email": "Email",
+    "phone": "Telefone",
+    "notes": "Observações (opcional)",
+    "totalDuration": "Duração total",
+    "totalPrice": "Total",
+    "confirmBooking": "Confirmar reserva",
+    "bookingConfirmed": "Reserva confirmada!",
+    "confirmationSent": "Enviámos um email de confirmação para",
+    "bookingNumber": "Número de reserva"
+  },
+
+  "contact": {
+    "address": "Morada",
+    "phone": "Telefone",
+    "email": "Email",
+    "hours": "Horário",
+    "monday": "Segunda-feira",
+    "tuesday": "Terça-feira",
+    "wednesday": "Quarta-feira",
+    "thursday": "Quinta-feira",
+    "friday": "Sexta-feira",
+    "saturday": "Sábado",
+    "sunday": "Domingo",
+    "weekdays": "Segunda — Sexta",
+    "closed": "Encerrado",
+    "directions": "Como chegar"
+  },
+
+  "footer": {
+    "tagline": "Hair Style & Beauty\nUm refúgio sensorial em Cascais.",
+    "navigation": "Navegação",
+    "bookings": "Reservas",
+    "legal": "Legal",
+    "bookOnline": "Reservar Online",
+    "myAccount": "A minha conta",
+    "cancellationPolicy": "Política de Cancelamento",
+    "vouchers": "Vouchers",
+    "privacy": "Privacidade",
+    "terms": "Termos",
+    "cookies": "Cookies",
+    "rgpd": "RGPD",
+    "rights": "Todos os direitos reservados",
+    "developedBy": "Desenvolvido por"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Entrar",
+      "subtitle": "Aceda à sua conta",
+      "email": "Email",
+      "password": "Palavra-passe",
+      "forgotPassword": "Esqueceu-se da palavra-passe?",
+      "submit": "Entrar",
+      "noAccount": "Ainda não tem conta?",
+      "registerHere": "Registe-se aqui"
+    },
+    "register": {
+      "title": "Registar",
+      "subtitle": "Crie a sua conta Chi Sublime",
+      "name": "Nome completo",
+      "email": "Email",
+      "phone": "Telefone",
+      "password": "Palavra-passe",
+      "passwordConfirm": "Confirmar palavra-passe",
+      "submit": "Criar conta",
+      "hasAccount": "Já tem conta?",
+      "loginHere": "Entre aqui",
+      "marketingConsent": "Aceito receber comunicações promocionais"
+    }
+  },
+
+  "errors": {
+    "generic": "Algo correu mal. Tente novamente.",
+    "network": "Erro de ligação. Verifique a sua internet.",
+    "notFound": "Página não encontrada",
+    "notFoundDescription": "A página que procura não existe ou foi movida.",
+    "backHome": "Voltar ao início",
+    "invalidEmail": "Email inválido",
+    "invalidPhone": "Telefone inválido",
+    "invalidNif": "NIF inválido",
+    "required": "Campo obrigatório",
+    "passwordTooShort": "A palavra-passe deve ter pelo menos 8 caracteres",
+    "passwordsDontMatch": "As palavras-passe não coincidem"
+  },
+
+  "cookies": {
+    "title": "Este site utiliza cookies",
+    "description": "Usamos cookies para melhorar a sua experiência. Pode aceitar todos ou personalizar as suas preferências.",
+    "acceptAll": "Aceitar tudo",
+    "rejectAll": "Rejeitar tudo",
+    "customize": "Personalizar",
+    "savePreferences": "Guardar preferências",
+    "necessary": "Necessários",
+    "necessaryDescription": "Essenciais para o funcionamento do site.",
+    "analytics": "Análise",
+    "analyticsDescription": "Ajudam-nos a entender como o site é utilizado.",
+    "marketing": "Marketing",
+    "marketingDescription": "Permitem mostrar conteúdo personalizado."
+  }
+}

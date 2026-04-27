@@ -1,17 +1,293 @@
+/* ============================================================
+   CHI SUBLIME — Global Styles
+   Tailwind CSS v4 + Design Tokens
+   ============================================================ */
+
 @import 'tailwindcss';
 
-/*
- * Sprint 0 vai adicionar:
- *   - Design tokens (verde profundo + dourado champanhe)
- *   - Fontes Cormorant Garamond + Manrope
- *   - Reset CSS e body styling
- */
+/* ============================================================
+   DESIGN TOKENS — Chi Sublime brand
+   ============================================================ */
+
+@theme {
+  /* === CORES PRIMÁRIAS — Verde profundo === */
+  --color-chi-green-deep: #1f3d2e;
+  --color-chi-green-soft: #2d5440;
+  --color-chi-green-darker: #142820;
+
+  /* === CORES SECUNDÁRIAS — Dourado champanhe === */
+  --color-chi-gold: #d4af6e;
+  --color-chi-gold-soft: #e8d5a8;
+  --color-chi-gold-deep: #b8924a;
+
+  /* === NEUTROS — Creme e areia === */
+  --color-chi-cream: #faf7f2;
+  --color-chi-sand: #efe9dd;
+  --color-chi-sand-deep: #d9d2c2;
+
+  /* === TEXTO === */
+  --color-chi-charcoal: #1a1a1a;
+  --color-chi-charcoal-soft: #5a5a5a;
+  --color-chi-charcoal-light: #9a9a9a;
+
+  /* === ESTADOS SEMÂNTICOS === */
+  --color-chi-success: #2d7a55;
+  --color-chi-success-bg: #e8f5ef;
+  --color-chi-danger: #b23c3c;
+  --color-chi-danger-bg: #fbeded;
+  --color-chi-warning: #c4861e;
+  --color-chi-warning-bg: #fbf3e2;
+  --color-chi-info: #2c5f8a;
+  --color-chi-info-bg: #e8f0f7;
+
+  /* === BORDAS E DIVISÓRIAS === */
+  --color-chi-border: #e8e4da;
+  --color-chi-border-light: #f1eee6;
+
+  /* === TIPOGRAFIA === */
+  --font-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-manrope), 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', Consolas, monospace;
+
+  /* === ESCALAS DE TEXTO === */
+  --text-display-xl: 5rem; /* Hero gigante */
+  --text-display-lg: 4rem; /* Hero secundário */
+  --text-display-md: 3rem; /* Page titles */
+  --text-display-sm: 2.25rem; /* Section titles */
+
+  /* === ESPAÇAMENTOS PREMIUM === */
+  --spacing-section: 8rem; /* Padding vertical de secções */
+  --spacing-section-sm: 5rem; /* Para mobile */
+
+  /* === RAIOS === */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* === SOMBRAS === */
+  --shadow-soft: 0 4px 12px rgba(31, 61, 46, 0.08);
+  --shadow-medium: 0 8px 24px rgba(31, 61, 46, 0.12);
+  --shadow-strong: 0 16px 40px rgba(31, 61, 46, 0.16);
+  --shadow-gold: 0 10px 30px rgba(212, 175, 110, 0.3);
+}
+
+/* ============================================================
+   RESET E BASE
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  background: #faf7f2;
-  color: #1a1a1a;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-chi-charcoal);
+  background-color: var(--color-chi-cream);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tipografia premium para títulos por defeito */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--color-chi-charcoal);
+}
+
+/* Links sem decoração por defeito (vamos dar styling individual) */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Botões sem estilos default */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* Imagens responsivas por defeito */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Inputs herdam tipografia */
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ============================================================
+   SELEÇÃO DE TEXTO — paleta da marca
+   ============================================================ */
+
+::selection {
+  background-color: var(--color-chi-gold);
+  color: var(--color-chi-green-deep);
+}
+
+::-moz-selection {
+  background-color: var(--color-chi-gold);
+  color: var(--color-chi-green-deep);
+}
+
+/* ============================================================
+   SCROLLBAR — discreto e premium
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-chi-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-chi-sand-deep);
+  border-radius: 5px;
+  border: 2px solid var(--color-chi-cream);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-chi-gold);
+}
+
+/* Scrollbar especial para sidebars escuros (admin) */
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: var(--color-chi-green-deep);
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background: var(--color-chi-green-soft);
+  border-color: var(--color-chi-green-deep);
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background: var(--color-chi-gold);
+}
+
+/* ============================================================
+   FOCUS STATES — acessibilidade
+   ============================================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--color-chi-gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   UTILITÁRIOS CUSTOM
+   ============================================================ */
+
+/* Text balance para títulos longos */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Animação Ken Burns para hero */
+@keyframes ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 20s ease-out infinite alternate;
+}
+
+/* Animação fade-up para entradas */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 1s ease forwards;
+  opacity: 0;
+}
+
+/* Delays para fade-up em cascata */
+.animate-fade-up-delay-1 {
+  animation-delay: 0.3s;
+}
+.animate-fade-up-delay-2 {
+  animation-delay: 0.6s;
+}
+.animate-fade-up-delay-3 {
+  animation-delay: 0.9s;
+}
+.animate-fade-up-delay-4 {
+  animation-delay: 1.2s;
+}
+
+/* Pulse suave para indicadores */
+@keyframes scroll-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.animate-scroll-pulse {
+  animation: scroll-pulse 2s ease infinite;
+}
+
+/* ============================================================
+   PRINT — para faturas e relatórios PDF
+   ============================================================ */
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

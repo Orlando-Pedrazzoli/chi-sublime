@@ -1,0 +1,195 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Continue",
+    "close": "Close",
+    "search": "Search",
+    "viewAll": "View all",
+    "learnMore": "Learn more"
+  },
+
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "team": "Team",
+    "gallery": "Gallery",
+    "about": "About",
+    "contact": "Contact",
+    "book": "Book",
+    "myAccount": "My account",
+    "login": "Sign in",
+    "register": "Sign up",
+    "logout": "Sign out"
+  },
+
+  "home": {
+    "hero": {
+      "eyebrow": "Hair Style & Beauty · Cascais",
+      "title": "Beauty that breathes through time",
+      "subtitle": "A refined space of care in Quinta da Bicuda, where every gesture is designed to reveal your essence.",
+      "ctaPrimary": "Book Online",
+      "ctaSecondary": "Discover"
+    },
+    "philosophy": {
+      "eyebrow": "Our philosophy",
+      "title": "Where care meets art.",
+      "quote": "We believe true beauty lives in attention to small details — touch, time, listening.",
+      "body": "In the heart of Cascais, Chi Sublime is more than a salon. It's a sensorial refuge where every visit celebrates your individuality."
+    },
+    "services": {
+      "eyebrow": "Our services",
+      "title": "Five universes of care.",
+      "description": "From exceptional hair treatments to bridal makeup and brow design — each service is delivered with the precision of those who treat each client as unique.",
+      "viewServices": "View services"
+    },
+    "team": {
+      "eyebrow": "Our team",
+      "title": "Hands that care.",
+      "description": "Three professionals. One shared passion for the art of beauty."
+    },
+    "gallery": {
+      "eyebrow": "Our space",
+      "title": "A refuge in Cascais."
+    },
+    "contact": {
+      "eyebrow": "Visit us",
+      "title": "We're waiting for you.",
+      "description": "In the heart of Quinta da Bicuda, in a space designed in detail to welcome those seeking more than a service — an experience."
+    }
+  },
+
+  "services": {
+    "title": "Services",
+    "categories": {
+      "cabelereiro": "Hair",
+      "sobrancelhas": "Brows",
+      "maquilhagem": "Makeup",
+      "unhas": "Nails",
+      "depilacao": "Hair removal"
+    },
+    "duration": "Duration",
+    "price": "Price",
+    "minutes": "min",
+    "bookThis": "Book this service"
+  },
+
+  "booking": {
+    "title": "Book",
+    "step1": "Choose service",
+    "step2": "Choose time",
+    "step3": "Confirm",
+    "selectService": "What service do you want?",
+    "selectDate": "Choose a date",
+    "selectTime": "Choose a time",
+    "selectStaff": "Choose a professional",
+    "anyStaff": "Any available professional",
+    "yourDetails": "Your details",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "notes": "Notes (optional)",
+    "totalDuration": "Total duration",
+    "totalPrice": "Total",
+    "confirmBooking": "Confirm booking",
+    "bookingConfirmed": "Booking confirmed!",
+    "confirmationSent": "We've sent a confirmation email to",
+    "bookingNumber": "Booking number"
+  },
+
+  "contact": {
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "hours": "Hours",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "weekdays": "Monday — Friday",
+    "closed": "Closed",
+    "directions": "Get directions"
+  },
+
+  "footer": {
+    "tagline": "Hair Style & Beauty\nA sensorial refuge in Cascais.",
+    "navigation": "Navigation",
+    "bookings": "Bookings",
+    "legal": "Legal",
+    "bookOnline": "Book Online",
+    "myAccount": "My account",
+    "cancellationPolicy": "Cancellation Policy",
+    "vouchers": "Vouchers",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "rgpd": "GDPR",
+    "rights": "All rights reserved",
+    "developedBy": "Developed by"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Access your account",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Forgot your password?",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account yet?",
+      "registerHere": "Sign up here"
+    },
+    "register": {
+      "title": "Sign up",
+      "subtitle": "Create your Chi Sublime account",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "password": "Password",
+      "passwordConfirm": "Confirm password",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "loginHere": "Sign in here",
+      "marketingConsent": "I agree to receive promotional communications"
+    }
+  },
+
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Connection error. Check your internet.",
+    "notFound": "Page not found",
+    "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
+    "backHome": "Back to home",
+    "invalidEmail": "Invalid email",
+    "invalidPhone": "Invalid phone",
+    "invalidNif": "Invalid VAT number",
+    "required": "Required field",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordsDontMatch": "Passwords don't match"
+  },
+
+  "cookies": {
+    "title": "This site uses cookies",
+    "description": "We use cookies to improve your experience. You can accept all or customize your preferences.",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "customize": "Customize",
+    "savePreferences": "Save preferences",
+    "necessary": "Necessary",
+    "necessaryDescription": "Essential for the site to function.",
+    "analytics": "Analytics",
+    "analyticsDescription": "Help us understand how the site is used.",
+    "marketing": "Marketing",
+    "marketingDescription": "Allow showing personalized content."
+  }
+}
