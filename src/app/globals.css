@@ -109,7 +109,6 @@ h6 {
   font-weight: 400;
   line-height: 1.15;
   letter-spacing: -0.015em;
-  color: var(--color-chi-charcoal);
 }
 
 /* Links sem decoração por defeito (vamos dar styling individual) */

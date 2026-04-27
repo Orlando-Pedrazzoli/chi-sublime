@@ -2,7 +2,7 @@
 
 /**
  * Página de erro global — capturada quando algo falha em runtime.
- * No Sprint 1 vamos estilizar com a paleta verde + dourado do Chi Sublime.
+ * Renderizada DENTRO do RootLayout, por isso não inclui <html>/<body>.
  */
 export default function GlobalError({
   error,
@@ -12,36 +12,17 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html>
-      <body
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, sans-serif',
-          padding: '2rem',
-        }}
+    <main className="bg-chi-cream flex min-h-screen flex-col items-center justify-center px-8 text-center">
+      <h1 className="text-chi-green-deep mb-4 font-serif text-5xl font-light">Algo correu mal</h1>
+      <p className="text-chi-charcoal-soft mb-8 max-w-md">
+        {error.message || 'Ocorreu um erro inesperado.'}
+      </p>
+      <button
+        onClick={reset}
+        className="bg-chi-green-deep text-chi-cream hover:bg-chi-green-soft px-8 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
       >
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Algo correu mal</h1>
-        <p style={{ color: '#666', marginBottom: '2rem' }}>
-          {error.message || 'Ocorreu um erro inesperado.'}
-        </p>
-        <button
-          onClick={reset}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#1F3D2E',
-            color: '#FAF7F2',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          Tentar novamente
-        </button>
-      </body>
-    </html>
+        Tentar novamente
+      </button>
+    </main>
   );
 }
