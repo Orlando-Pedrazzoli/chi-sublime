@@ -22,7 +22,7 @@ const GALLERY_ITEMS = [
     span: 'default',
   },
   {
-    src: '/images/services/sobrancelhas.jpg',
+    src: '/images/services/detalhe8.jpg',
     alt: 'Sobrancelhas',
     span: 'default',
   },
@@ -32,7 +32,7 @@ const GALLERY_ITEMS = [
     span: 'wide',
   },
   {
-    src: '/images/services/unhas.jpg',
+    src: '/images/services/detalhe7.jpg',
     alt: 'Unhas',
     span: 'default',
   },
