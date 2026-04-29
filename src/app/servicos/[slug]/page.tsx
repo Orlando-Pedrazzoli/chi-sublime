@@ -197,11 +197,11 @@ export default async function CategoryDetailPage({
               Pronta para a sua visita?
             </p>
             <Link
-              href="/#contact"
+              href={`/reservar?categoria=${slug}`}
               className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium inline-block px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
               style={{ color: '#FAF7F2' }}
             >
-              Reservar Agora
+              Agendar Agora
             </Link>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default async function CategoryDetailPage({
           className="text-chi-gold-deep hover:text-chi-green-deep inline-flex items-center gap-2 text-xs tracking-[0.25em] uppercase transition-all hover:gap-3"
         >
           <span>←</span>
-          Ver todas as categorias
+          Ver todos os serviços
         </Link>
       </section>
 

@@ -34,6 +34,7 @@ export function NavLinks({ categories }: NavLinksProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
+
   const pathname = usePathname();
   const isHomepage = pathname === '/';
 
@@ -43,17 +44,11 @@ export function NavLinks({ categories }: NavLinksProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fechar mobile menu ao mudar de página
   useEffect(() => {
     setMobileOpen(false);
     setMobileServicesOpen(false);
   }, [pathname]);
 
-  /**
-   * Constrói href inteligente:
-   * - Se estamos na homepage → usa âncora (#services)
-   * - Se estamos noutra página → volta à homepage com âncora (/#services)
-   */
   const getHref = (anchor: string) => {
     if (isHomepage) return anchor;
     return `/${anchor}`;
@@ -63,15 +58,15 @@ export function NavLinks({ categories }: NavLinksProps) {
     <>
       <nav
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-all duration-400',
+          'fixed inset-x-0 top-0 z-50 transition-all duration-500',
           scrolled
-            ? 'bg-chi-green-deep/95 border-chi-gold/15 border-b py-4 backdrop-blur-md'
-            : 'from-chi-green-darker/90 via-chi-green-darker/50 bg-gradient-to-b to-transparent py-6',
+            ? 'bg-chi-green-deep/95 border-chi-gold/10 shadow-medium border-b py-4 backdrop-blur-xl'
+            : 'from-chi-green-darker/90 via-chi-green-darker/60 bg-gradient-to-b to-transparent py-6',
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
-          {/* Logo — sempre vai para a homepage */}
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 transition hover:opacity-80">
             <Image
               src="/images/logo.png"
               alt="Chi Sublime"
@@ -84,14 +79,14 @@ export function NavLinks({ categories }: NavLinksProps) {
               className="font-serif text-xl tracking-wider italic md:text-2xl"
               style={{
                 color: '#FAF7F2',
-                textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
+                textShadow: scrolled ? 'none' : '0 2px 10px rgba(0,0,0,0.6)',
               }}
             >
-              Chi <span style={{ color: '#D4AF6E' }}>Sublime</span>
+              Chi <span className="text-chi-gold">Sublime</span>
             </span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop */}
           <ul className="hidden items-center gap-10 lg:flex">
             {NAV_ITEMS.map((item) => (
               <li
@@ -109,54 +104,63 @@ export function NavLinks({ categories }: NavLinksProps) {
                   }}
                 >
                   {item.label}
-                  {item.hasDropdown && (
-                    <span className="ml-1.5 inline-block translate-y-[-1px] text-[8px]">▾</span>
-                  )}
+                  {item.hasDropdown && <span className="ml-1 text-[8px]">▾</span>}
+
                   <span className="bg-chi-gold absolute -bottom-1.5 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" />
                 </Link>
 
-                {/* Dropdown — apenas para Serviços */}
+                {/* Dropdown */}
                 {item.hasDropdown && (
                   <div
                     className={cn(
                       'absolute top-full left-1/2 z-30 w-64 -translate-x-1/2 pt-4 transition-all duration-200',
                       servicesDropdownOpen
-                        ? 'pointer-events-auto translate-y-0 opacity-100'
+                        ? 'translate-y-0 opacity-100'
                         : 'pointer-events-none translate-y-2 opacity-0',
                     )}
                   >
-                    <div
-                      className="border-chi-gold/30 shadow-strong overflow-hidden border"
-                      style={{ backgroundColor: '#1F3D2E' }}
-                    >
-                      {/* Linha dourada decorativa */}
-                      <div className="via-chi-gold/60 h-px w-full bg-gradient-to-r from-transparent to-transparent" />
+                    <div className="bg-chi-green-deep/95 border-chi-gold/20 shadow-strong overflow-hidden rounded-md border backdrop-blur-xl">
+                      {/* Linha topo */}
+                      <div className="via-chi-gold/60 h-px bg-gradient-to-r from-transparent to-transparent" />
 
                       <ul className="py-2">
                         {categories.map((cat) => (
                           <li key={cat.slug}>
                             <Link
                               href={`/servicos/${cat.slug}`}
-                              className="group hover:bg-chi-gold/10 flex items-center justify-between px-5 py-3 font-serif text-base transition-colors"
+                              className="group flex items-center justify-between px-5 py-3 font-serif text-base transition-all duration-300"
                               style={{ color: '#FAF7F2' }}
                             >
-                              <span>{cat.title}</span>
-                              <span className="text-chi-gold opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100">
+                              {/* Texto */}
+                              <span className="group-hover:text-chi-gold relative z-10 transition-colors duration-300">
+                                {cat.title}
+                              </span>
+
+                              {/* Arrow */}
+                              <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                                 →
                               </span>
+
+                              {/* Hover background suave */}
+                              <span className="from-chi-gold/10 via-chi-gold/5 absolute inset-0 bg-gradient-to-r to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             </Link>
                           </li>
                         ))}
                       </ul>
 
-                      <div className="via-chi-gold/30 h-px w-full bg-gradient-to-r from-transparent to-transparent" />
+                      {/* Divider */}
+                      <div className="via-chi-gold/30 h-px bg-gradient-to-r from-transparent to-transparent" />
 
+                      {/* Footer link */}
                       <Link
                         href={getHref('#services')}
-                        className="block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-colors hover:opacity-80"
+                        className="block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-all duration-300"
                         style={{ color: '#D4AF6E' }}
                       >
-                        Ver todos os serviços
+                        <span className="relative inline-block">
+                          Ver todos os serviços
+                          <span className="bg-chi-gold absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" />
+                        </span>
                       </Link>
                     </div>
                   </div>
@@ -165,37 +169,31 @@ export function NavLinks({ categories }: NavLinksProps) {
             ))}
           </ul>
 
-          {/* CTA Reservar */}
-          <div className="hidden items-center gap-3 lg:flex">
+          {/* CTA */}
+          <div className="hidden lg:flex">
             <Link
               href="/reservar"
-              className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
+              className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker hover:shadow-gold rounded-md px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all duration-300 hover:-translate-y-[2px]"
             >
-              Reservar
+              Agendar
             </Link>
           </div>
 
-          {/* Mobile burger */}
+          {/* Burger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex flex-col gap-1.5 p-2 lg:hidden"
-            aria-label="Menu"
           >
             <span
               className={cn(
-                'bg-chi-cream h-px w-6 transition-transform duration-300',
+                'bg-chi-cream h-px w-6 transition',
                 mobileOpen && 'translate-y-2 rotate-45',
               )}
             />
+            <span className={cn('bg-chi-cream h-px w-6 transition', mobileOpen && 'opacity-0')} />
             <span
               className={cn(
-                'bg-chi-cream h-px w-6 transition-opacity duration-300',
-                mobileOpen && 'opacity-0',
-              )}
-            />
-            <span
-              className={cn(
-                'bg-chi-cream h-px w-6 transition-transform duration-300',
+                'bg-chi-cream h-px w-6 transition',
                 mobileOpen && '-translate-y-2 -rotate-45',
               )}
             />
@@ -203,81 +201,31 @@ export function NavLinks({ categories }: NavLinksProps) {
         </div>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile */}
       <div
         className={cn(
           'bg-chi-green-deep fixed inset-0 z-40 transition-all duration-500 lg:hidden',
-          mobileOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto px-8 py-24">
-          {NAV_ITEMS.map((item, i) => (
-            <div key={item.anchor} className="text-center">
-              {item.hasDropdown ? (
-                <>
-                  <button
-                    onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
-                    className={cn(
-                      'text-chi-cream hover:text-chi-gold flex items-center gap-3 font-serif text-3xl transition-all',
-                      mobileOpen && 'animate-fade-up',
-                    )}
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    {item.label}
-                    <span
-                      className={cn(
-                        'text-base transition-transform duration-300',
-                        mobileServicesOpen && 'rotate-180',
-                      )}
-                    >
-                      ▾
-                    </span>
-                  </button>
-
-                  {/* Sub-lista de categorias */}
-                  <div
-                    className={cn(
-                      'overflow-hidden transition-all duration-300',
-                      mobileServicesOpen ? 'mt-4 max-h-96' : 'max-h-0',
-                    )}
-                  >
-                    <ul className="space-y-3 pt-2">
-                      {categories.map((cat) => (
-                        <li key={cat.slug}>
-                          <Link
-                            href={`/servicos/${cat.slug}`}
-                            onClick={() => setMobileOpen(false)}
-                            className="text-chi-gold/90 hover:text-chi-gold block font-serif text-lg italic"
-                          >
-                            {cat.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              ) : (
-                <Link
-                  href={getHref(item.anchor)}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    'text-chi-cream hover:text-chi-gold font-serif text-3xl transition-all',
-                    mobileOpen && 'animate-fade-up',
-                  )}
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  {item.label}
-                </Link>
-              )}
-            </div>
+        <div className="flex h-full flex-col items-center justify-center gap-6 px-8 py-24">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.anchor}
+              href={getHref(item.anchor)}
+              onClick={() => setMobileOpen(false)}
+              className="text-chi-cream hover:text-chi-gold font-serif text-3xl"
+            >
+              {item.label}
+            </Link>
           ))}
 
           <Link
             href="/reservar"
             onClick={() => setMobileOpen(false)}
-            className="bg-chi-gold text-chi-green-deep mt-4 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
+            className="bg-chi-gold text-chi-green-deep mt-6 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
           >
-            Reservar
+            Agendar
           </Link>
         </div>
       </div>
