@@ -79,7 +79,7 @@ export async function getNextNumber(key: string): Promise<number> {
     { _id: key },
     { $inc: { seq: 1 } },
     {
-      new: true, // devolve o documento DEPOIS do update
+      returnDocument: 'after', // devolve o documento DEPOIS do update
       upsert: true, // cria se não existir
       setDefaultsOnInsert: true,
     },

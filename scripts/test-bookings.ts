@@ -17,6 +17,9 @@ import { resolve } from 'node:path';
 
 config({ path: resolve(process.cwd(), '.env.local') });
 
+// Desligar rate limit em testes (so afeta este script)
+process.env.SKIP_RATE_LIMIT = 'true';
+
 import mongoose from 'mongoose';
 import { Booking, Client, Service, Staff, Counter } from '../src/lib/models';
 import { createBookingAction, cancelBookingAction } from '../src/lib/server-actions/bookings';
@@ -376,12 +379,16 @@ async function scenario10_NumberingSequential() {
   log.info(`  Contador atual: ${startSeq}`);
 
   const serviceIds = await getValidServiceIds(1);
-  const date = getNextThursday(5);
+  const date = getNextThursday(2);
 
-  // Criar 3 bookings consecutivos
+  log.info(`  Data alvo: ${toISODate(date)}`);
+  log.info(`  Service ID: ${serviceIds[0]}`);
+
+  // Criar 3 bookings consecutivos (horarios livres)
   const numbers: string[] = [];
+  const times = ['15:00', '15:30', '16:00'];
   for (let i = 0; i < 3; i++) {
-    const time = `${10 + i}:00`;
+    const time = times[i];
     const result = await createBookingAction({
       serviceIds,
       staffId: 'any',
@@ -399,6 +406,9 @@ async function scenario10_NumberingSequential() {
     });
     if (result.success) {
       numbers.push(result.booking.bookingNumber);
+      log.info(`  Slot ${time}: ${result.booking.bookingNumber}`);
+    } else {
+      log.warn(`  Slot ${time} falhou: ${result.error.code} — ${result.error.message}`);
     }
   }
 

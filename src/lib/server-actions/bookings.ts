@@ -48,6 +48,11 @@ function checkRateLimit(identifier: string): {
   allowed: boolean;
   retryAfter?: number;
 } {
+  // Bypass para testes automatizados (scripts/test-*.ts)
+  if (process.env.SKIP_RATE_LIMIT === 'true') {
+    return { allowed: true };
+  }
+
   const now = Date.now();
   const entry = rateLimitStore.get(identifier);
 
