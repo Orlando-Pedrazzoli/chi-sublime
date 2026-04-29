@@ -168,7 +168,7 @@ export function NavLinks({ categories }: NavLinksProps) {
           {/* CTA Reservar */}
           <div className="hidden items-center gap-3 lg:flex">
             <Link
-              href={getHref('#contact')}
+              href="/reservar"
               className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
             >
               Reservar
@@ -273,7 +273,7 @@ export function NavLinks({ categories }: NavLinksProps) {
           ))}
 
           <Link
-            href={getHref('#contact')}
+            href="/reservar"
             onClick={() => setMobileOpen(false)}
             className="bg-chi-gold text-chi-green-deep mt-4 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
           >

@@ -51,10 +51,7 @@ export function Hero() {
         </p>
 
         <div className="animate-fade-up animate-fade-up-delay-4 flex flex-col justify-center gap-4 sm:flex-row">
-          <Link
-            href="#contact"
-            className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker hover:shadow-gold px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
-          >
+          <Link href="/reservar" className="bg-chi-gold ...">
             Reservar Online
           </Link>
           <Link
