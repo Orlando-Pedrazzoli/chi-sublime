@@ -1,33 +1,34 @@
 import mongoose, { Schema, model, models, type Model } from 'mongoose';
 
-export type UserRole = 'client' | 'staff' | 'admin';
-
-export const USER_ROLES: UserRole[] = ['client', 'staff', 'admin'];
+export type UserRole = 'client' | 'admin';
+export const USER_ROLES: UserRole[] = ['client', 'admin'];
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
+
+  // Identidade
   email: string;
-  passwordHash?: string;
+  passwordHash?: string; // select: false
   name: string;
   phone?: string;
-  birthday?: Date;
+
+  // Autorização
   role: UserRole;
-  staffId?: mongoose.Types.ObjectId;
-  emailVerified: boolean;
-  emailVerificationToken?: string;
-  emailVerificationExpires?: Date;
-  passwordResetToken?: string;
-  passwordResetExpires?: Date;
-  locale: 'pt' | 'en';
-  preferredStaffId?: mongoose.Types.ObjectId;
-  notes?: string;
-  marketingConsent: boolean;
-  newsletter: boolean;
-  totalSpent: number;
-  visitCount: number;
-  loyaltyPoints: number;
+
+  // Vinculação ao Client (ficha do salão)
+  // Sempre presente para role: 'client'.
+  // Ausente para role: 'admin' (Jean Pierre não é cliente).
+  clientId?: mongoose.Types.ObjectId;
+
+  // Recuperação de password
+  passwordResetToken?: string; // select: false
+  passwordResetExpires?: Date; // select: false
+
+  // Estado
   active: boolean;
   lastLoginAt?: Date;
+
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,10 +45,25 @@ const userSchema = new Schema<IUser>(
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       index: true,
     },
-    passwordHash: { type: String, select: false },
-    name: { type: String, required: true, trim: true, maxlength: 120 },
-    phone: { type: String, trim: true, maxlength: 30 },
-    birthday: { type: Date },
+
+    passwordHash: {
+      type: String,
+      select: false,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
+
+    phone: {
+      type: String,
+      trim: true,
+      maxlength: 30,
+    },
+
     role: {
       type: String,
       enum: USER_ROLES,
@@ -55,50 +71,68 @@ const userSchema = new Schema<IUser>(
       required: true,
       index: true,
     },
-    staffId: { type: Schema.Types.ObjectId, ref: 'Staff', sparse: true },
 
-    emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: { type: String, select: false },
-    emailVerificationExpires: { type: Date, select: false },
-
-    passwordResetToken: { type: String, select: false },
-    passwordResetExpires: { type: Date, select: false },
-
-    locale: { type: String, enum: ['pt', 'en'], default: 'pt' },
-    preferredStaffId: { type: Schema.Types.ObjectId, ref: 'Staff', sparse: true },
-    notes: { type: String, trim: true, maxlength: 2000 },
-
-    marketingConsent: { type: Boolean, default: false },
-    newsletter: { type: Boolean, default: false },
-
-    totalSpent: {
-      type: Number,
-      default: 0,
-      min: 0,
-      validate: {
-        validator: Number.isInteger,
-        message: 'totalSpent tem de ser em cêntimos integer',
-      },
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Client',
+      sparse: true,
     },
-    visitCount: { type: Number, default: 0, min: 0 },
-    loyaltyPoints: { type: Number, default: 0, min: 0 },
 
-    active: { type: Boolean, default: true },
-    lastLoginAt: { type: Date },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+
+    active: {
+      type: Boolean,
+      default: true,
+    },
+
+    lastLoginAt: {
+      type: Date,
+    },
   },
-  { timestamps: true, versionKey: false },
+  {
+    timestamps: true,
+    versionKey: false,
+  },
 );
 
+// Indexes compostos para queries comuns
 userSchema.index({ role: 1, active: 1 });
-userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
 userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
+/**
+ * Validações de invariantes de negócio.
+ *
+ * Mongoose 9 workaround: usar pre('save') em vez de pre('validate').
+ * Lançar Error directamente em vez de next(err).
+ */
 userSchema.pre('save', function () {
-  if (this.role === 'staff' && !this.staffId) {
-    throw new Error("Utilizador com role 'staff' tem de ter staffId associado");
+  // Cliente registado tem de ter clientId vinculado
+  if (this.role === 'client' && !this.clientId) {
+    throw new Error("Utilizador com role 'client' tem de ter clientId vinculado");
+  }
+
+  // Admin não deve ter clientId (Jean Pierre não é cliente do salão)
+  if (this.role === 'admin' && this.clientId) {
+    throw new Error("Utilizador com role 'admin' não deve ter clientId");
+  }
+
+  // Garantir que tokens de reset têm sempre data de expiração e vice-versa
+  const hasToken = !!this.passwordResetToken;
+  const hasExpiry = !!this.passwordResetExpires;
+  if (hasToken !== hasExpiry) {
+    throw new Error('passwordResetToken e passwordResetExpires têm de coexistir');
   }
 });
 
+// Virtuals
 userSchema.virtual('initials').get(function (this: IUser) {
   return this.name
     .trim()
@@ -108,23 +142,17 @@ userSchema.virtual('initials').get(function (this: IUser) {
     .join('');
 });
 
-userSchema.virtual('isVerificationTokenValid').get(function (this: IUser) {
-  if (!this.emailVerificationToken || !this.emailVerificationExpires) return false;
-  return this.emailVerificationExpires > new Date();
-});
-
 userSchema.virtual('isResetTokenValid').get(function (this: IUser) {
   if (!this.passwordResetToken || !this.passwordResetExpires) return false;
   return this.passwordResetExpires > new Date();
 });
 
+// Serialização segura — remove sempre campos sensíveis ao converter para JSON
 userSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc, ret) => {
     const obj = ret as unknown as Record<string, unknown>;
     delete obj.passwordHash;
-    delete obj.emailVerificationToken;
-    delete obj.emailVerificationExpires;
     delete obj.passwordResetToken;
     delete obj.passwordResetExpires;
     return obj;

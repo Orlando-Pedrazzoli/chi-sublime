@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { Lock } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Início', href: '#home' },
@@ -176,7 +177,7 @@ export function PublicFooter() {
         {/* Footer bottom */}
         <div className="border-chi-charcoal/10 text-chi-charcoal-light flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:justify-between">
           <span>© {currentYear} Chi Sublime · Todos os direitos reservados</span>
-          <span>
+          <span className="flex items-center gap-2">
             Desenvolvido por{' '}
             <Link
               href="https://pedrazzolidigital.com"
@@ -185,6 +186,14 @@ export function PublicFooter() {
               className="text-chi-gold-deep hover:text-chi-green-deep transition-colors"
             >
               Pedrazzoli Digital
+            </Link>
+            <Link
+              href="/admin/login"
+              aria-label="Painel"
+              title="Painel"
+              className="text-chi-gold-deep/50 hover:text-chi-green-deep ml-1 inline-flex items-center transition-colors"
+            >
+              <Lock size={12} strokeWidth={1.5} />
             </Link>
           </span>
         </div>

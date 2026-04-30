@@ -148,7 +148,6 @@ const clientSchema = new Schema<IClient>(
 
 clientSchema.index({ name: 'text' });
 clientSchema.index({ phone: 1, active: 1 });
-clientSchema.index({ email: 1 }, { sparse: true });
 clientSchema.index({ active: 1, lastVisit: -1 });
 clientSchema.index({ tags: 1, active: 1 });
 clientSchema.index({ totalSpent: -1, active: 1 });

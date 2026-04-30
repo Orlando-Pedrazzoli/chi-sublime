@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+import { User, LogOut, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 export type NavCategory = {
@@ -11,8 +13,14 @@ export type NavCategory = {
   title: string;
 };
 
+export type NavSession = {
+  name: string;
+  role: 'client' | 'admin';
+};
+
 type NavLinksProps = {
   categories: NavCategory[];
+  session: NavSession | null;
 };
 
 type NavItem = {
@@ -29,11 +37,11 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Contacto', anchor: '#contact' },
 ];
 
-export function NavLinks({ categories }: NavLinksProps) {
+export function NavLinks({ categories, session }: NavLinksProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
 
   const pathname = usePathname();
   const isHomepage = pathname === '/';
@@ -46,13 +54,19 @@ export function NavLinks({ categories }: NavLinksProps) {
 
   useEffect(() => {
     setMobileOpen(false);
-    setMobileServicesOpen(false);
   }, [pathname]);
 
   const getHref = (anchor: string) => {
     if (isHomepage) return anchor;
     return `/${anchor}`;
   };
+
+  const firstName = session?.name.split(/\s+/)[0] ?? '';
+
+  async function handleLogout() {
+    await signOut({ redirect: false });
+    window.location.href = '/';
+  }
 
   return (
     <>
@@ -86,7 +100,7 @@ export function NavLinks({ categories }: NavLinksProps) {
             </span>
           </Link>
 
-          {/* Desktop */}
+          {/* Desktop nav */}
           <ul className="hidden items-center gap-10 lg:flex">
             {NAV_ITEMS.map((item) => (
               <li
@@ -105,11 +119,9 @@ export function NavLinks({ categories }: NavLinksProps) {
                 >
                   {item.label}
                   {item.hasDropdown && <span className="ml-1 text-[8px]">▾</span>}
-
                   <span className="bg-chi-gold absolute -bottom-1.5 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" />
                 </Link>
 
-                {/* Dropdown */}
                 {item.hasDropdown && (
                   <div
                     className={cn(
@@ -120,9 +132,7 @@ export function NavLinks({ categories }: NavLinksProps) {
                     )}
                   >
                     <div className="bg-chi-green-deep/95 border-chi-gold/20 shadow-strong overflow-hidden rounded-md border backdrop-blur-xl">
-                      {/* Linha topo */}
                       <div className="via-chi-gold/60 h-px bg-gradient-to-r from-transparent to-transparent" />
-
                       <ul className="py-2">
                         {categories.map((cat) => (
                           <li key={cat.slug}>
@@ -131,36 +141,24 @@ export function NavLinks({ categories }: NavLinksProps) {
                               className="group flex items-center justify-between px-5 py-3 font-serif text-base transition-all duration-300"
                               style={{ color: '#FAF7F2' }}
                             >
-                              {/* Texto */}
                               <span className="group-hover:text-chi-gold relative z-10 transition-colors duration-300">
                                 {cat.title}
                               </span>
-
-                              {/* Arrow */}
                               <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                                 →
                               </span>
-
-                              {/* Hover background suave */}
                               <span className="from-chi-gold/10 via-chi-gold/5 absolute inset-0 bg-gradient-to-r to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             </Link>
                           </li>
                         ))}
                       </ul>
-
-                      {/* Divider */}
                       <div className="via-chi-gold/30 h-px bg-gradient-to-r from-transparent to-transparent" />
-
-                      {/* Footer link */}
                       <Link
                         href={getHref('#services')}
                         className="block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-all duration-300"
                         style={{ color: '#D4AF6E' }}
                       >
-                        <span className="relative inline-block">
-                          Ver todos os serviços
-                          <span className="bg-chi-gold absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" />
-                        </span>
+                        Ver todos os serviços
                       </Link>
                     </div>
                   </div>
@@ -169,8 +167,153 @@ export function NavLinks({ categories }: NavLinksProps) {
             ))}
           </ul>
 
-          {/* CTA */}
-          <div className="hidden lg:flex">
+          {/* Right side: Account + CTA */}
+          <div className="hidden items-center gap-5 lg:flex">
+            {/* Estado: NÃO LOGADO */}
+            {!session && (
+              <Link
+                href="/entrar"
+                className="hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors"
+                style={{
+                  color: '#FAF7F2',
+                  textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
+                }}
+              >
+                <User size={14} strokeWidth={1.5} />
+                Entrar
+              </Link>
+            )}
+
+            {/* Estado: ADMIN */}
+            {session?.role === 'admin' && (
+              <Link
+                href="/admin/dashboard"
+                className="hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors"
+                style={{
+                  color: '#FAF7F2',
+                  textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
+                }}
+              >
+                <User size={14} strokeWidth={1.5} />
+                Painel
+              </Link>
+            )}
+
+            {/* Estado: CLIENTE */}
+            {session?.role === 'client' && (
+              <div
+                className="relative"
+                onMouseEnter={() => setAccountDropdownOpen(true)}
+                onMouseLeave={() => setAccountDropdownOpen(false)}
+              >
+                <button
+                  type="button"
+                  className="hover:text-chi-gold flex items-center gap-2 transition-colors"
+                  style={{
+                    color: '#FAF7F2',
+                    textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
+                  }}
+                >
+                  <User size={14} strokeWidth={1.5} />
+                  <span className="text-sm font-normal" style={{ letterSpacing: '0.03em' }}>
+                    {firstName}
+                  </span>
+                  <ChevronDown
+                    size={12}
+                    strokeWidth={1.5}
+                    className={cn(
+                      'transition-transform duration-200',
+                      accountDropdownOpen && 'rotate-180',
+                    )}
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    'absolute top-full right-0 z-30 w-64 pt-4 transition-all duration-200',
+                    accountDropdownOpen
+                      ? 'translate-y-0 opacity-100'
+                      : 'pointer-events-none translate-y-2 opacity-0',
+                  )}
+                >
+                  <div className="bg-chi-green-deep/95 border-chi-gold/20 shadow-strong overflow-hidden rounded-md border backdrop-blur-xl">
+                    {/* Top accent */}
+                    <div className="via-chi-gold/60 h-px bg-gradient-to-r from-transparent to-transparent" />
+
+                    {/* User header */}
+                    <div
+                      className="px-5 py-3"
+                      style={{ borderBottom: '1px solid rgba(212,175,110,0.1)' }}
+                    >
+                      <p
+                        className="text-[10px] tracking-[0.22em] uppercase"
+                        style={{ color: '#B8924A' }}
+                      >
+                        Sessão iniciada
+                      </p>
+                      <p
+                        className="mt-0.5 truncate font-serif text-base"
+                        style={{ color: '#FAF7F2' }}
+                      >
+                        {session.name}
+                      </p>
+                    </div>
+
+                    {/* Menu links */}
+                    <ul className="py-2">
+                      <li>
+                        <Link
+                          href="/conta"
+                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-all duration-300"
+                          style={{ color: '#FAF7F2' }}
+                        >
+                          <span className="group-hover:text-chi-gold transition-colors">
+                            A minha conta
+                          </span>
+                          <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                            →
+                          </span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/conta/reservas"
+                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-all duration-300"
+                          style={{ color: '#FAF7F2' }}
+                        >
+                          <span className="group-hover:text-chi-gold transition-colors">
+                            As minhas reservas
+                          </span>
+                          <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                            →
+                          </span>
+                        </Link>
+                      </li>
+                    </ul>
+
+                    {/* Divider */}
+                    <div className="via-chi-gold/30 h-px bg-gradient-to-r from-transparent to-transparent" />
+
+                    {/* Logout */}
+                    <div className="p-2">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="group flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-all duration-300 hover:bg-white/5"
+                        style={{ color: 'rgba(250,247,242,0.7)' }}
+                      >
+                        <LogOut size={14} strokeWidth={1.5} />
+                        <span className="group-hover:text-chi-gold transition-colors">
+                          Terminar sessão
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CTA Agendar */}
             <Link
               href="/reservar"
               className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker hover:shadow-gold rounded-md px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all duration-300 hover:-translate-y-[2px]"
@@ -183,6 +326,7 @@ export function NavLinks({ categories }: NavLinksProps) {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex flex-col gap-1.5 p-2 lg:hidden"
+            aria-label="Menu"
           >
             <span
               className={cn(
@@ -201,14 +345,14 @@ export function NavLinks({ categories }: NavLinksProps) {
         </div>
       </nav>
 
-      {/* Mobile */}
+      {/* Mobile menu */}
       <div
         className={cn(
           'bg-chi-green-deep fixed inset-0 z-40 transition-all duration-500 lg:hidden',
           mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        <div className="flex h-full flex-col items-center justify-center gap-6 px-8 py-24">
+        <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto px-8 py-24">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.anchor}
@@ -219,6 +363,62 @@ export function NavLinks({ categories }: NavLinksProps) {
               {item.label}
             </Link>
           ))}
+
+          {/* Account section */}
+          <div className="bg-chi-gold/30 my-4 h-px w-24" />
+
+          {!session && (
+            <Link
+              href="/entrar"
+              onClick={() => setMobileOpen(false)}
+              className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
+            >
+              <User size={18} strokeWidth={1.5} />
+              Entrar
+            </Link>
+          )}
+
+          {session?.role === 'admin' && (
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMobileOpen(false)}
+              className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
+            >
+              <User size={18} strokeWidth={1.5} />
+              Painel
+            </Link>
+          )}
+
+          {session?.role === 'client' && (
+            <>
+              <Link
+                href="/conta"
+                onClick={() => setMobileOpen(false)}
+                className="text-chi-cream hover:text-chi-gold flex items-center gap-2 font-serif text-2xl"
+              >
+                <User size={20} strokeWidth={1.5} />
+                Olá, {firstName}
+              </Link>
+              <Link
+                href="/conta/reservas"
+                onClick={() => setMobileOpen(false)}
+                className="text-chi-cream/80 hover:text-chi-gold text-sm tracking-[0.18em] uppercase"
+              >
+                As minhas reservas
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogout();
+                }}
+                className="text-chi-cream/60 hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase"
+              >
+                <LogOut size={14} strokeWidth={1.5} />
+                Terminar sessão
+              </button>
+            </>
+          )}
 
           <Link
             href="/reservar"

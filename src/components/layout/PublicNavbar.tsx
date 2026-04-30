@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/db/connect';
 import { Category } from '@/lib/models';
-import { NavLinks, type NavCategory } from './NavLinks';
+import { auth } from '@/lib/auth';
+import { NavLinks, type NavCategory, type NavSession } from './NavLinks';
 
 async function getCategoriesForNav(): Promise<NavCategory[]> {
   await connectDB();
@@ -11,7 +12,16 @@ async function getCategoriesForNav(): Promise<NavCategory[]> {
   }));
 }
 
+async function getSession(): Promise<NavSession | null> {
+  const session = await auth();
+  if (!session?.user) return null;
+  return {
+    name: session.user.name,
+    role: session.user.role,
+  };
+}
+
 export async function PublicNavbar() {
-  const categories = await getCategoriesForNav();
-  return <NavLinks categories={categories} />;
+  const [categories, session] = await Promise.all([getCategoriesForNav(), getSession()]);
+  return <NavLinks categories={categories} session={session} />;
 }

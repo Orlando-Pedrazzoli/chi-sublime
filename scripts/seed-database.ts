@@ -2,27 +2,24 @@
  * Chi Sublime — Seed Database
  * ============================================================
  *
- * Popula a database com dados iniciais reais do Chi Sublime:
- * categorias, serviços, staff, horários, conteúdo do site,
- * configuração fiscal.
- *
  * Como correr:
  *   npx tsx scripts/seed-database.ts
- *
- * AVISO: limpa as collections antes de inserir (idempotente).
- * Não correr em produção sem cuidado.
  */
 
-import { config } from 'dotenv';
+import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
 
-config({ path: resolve(process.cwd(), '.env.local') });
+loadEnv({ path: resolve(process.cwd(), '.env.local') });
 
 import mongoose from 'mongoose';
 import {
   Category,
   Service,
   Staff,
+  User,
+  Booking,
+  Counter,
+  AuditLog,
   IncomeCategory,
   ExpenseCategory,
   Schedule,
@@ -31,26 +28,19 @@ import {
   WEEKDAYS,
   slugify,
 } from '../src/lib/models';
-
-// ============================================================
-// Helpers
-// ============================================================
+import { hashPassword } from '../src/lib/auth/password';
 
 const log = (emoji: string, msg: string) => console.log(`${emoji} ${msg}`);
 const eur = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
 
-async function clearCollection(name: string, model: mongoose.Model<unknown>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function clearCollection(name: string, model: mongoose.Model<any>) {
   const result = await model.deleteMany({});
   log('🧹', `${name}: ${result.deletedCount} documentos eliminados`);
 }
 
-// ============================================================
-// 1. CATEGORIAS DE SERVIÇO
-// ============================================================
-
 async function seedCategories() {
   log('📂', 'A criar categorias de serviço...');
-
   const categories = [
     { name: { pt: 'Cabelereiro', en: 'Hair' }, slug: 'cabelereiro', color: '#1F3D2E', order: 1 },
     { name: { pt: 'Sobrancelhas', en: 'Brows' }, slug: 'sobrancelhas', color: '#D4AF6E', order: 2 },
@@ -63,22 +53,15 @@ async function seedCategories() {
       order: 5,
     },
   ];
-
   const created = await Category.insertMany(categories);
   log('✅', `${created.length} categorias criadas`);
   return created;
 }
 
-// ============================================================
-// 2. SERVIÇOS (preços reais do Chi Sublime — vistos nos prints)
-// ============================================================
-
 async function seedServices(categories: Awaited<ReturnType<typeof seedCategories>>) {
   log('💇', 'A criar serviços...');
-
   const catMap = new Map(categories.map((c) => [c.slug, c._id]));
 
-  // ─── DEPILAÇÃO (10 serviços) ───────────────────────────────
   const depilacao = catMap.get('depilacao')!;
   const depServices = [
     { name: 'Axilas', duration: 30, price: 1200 },
@@ -93,14 +76,12 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
     { name: 'Nariz', duration: 60, price: 1000 },
   ];
 
-  // ─── MAQUILHAGEM (2) ───────────────────────────────────────
   const maq = catMap.get('maquilhagem')!;
   const maqServices = [
     { name: 'Maquilhagem Premium', duration: 60, price: 6000 },
     { name: 'Maquilhagem Noiva', duration: 60, price: 10000, popular: true },
   ];
 
-  // ─── SOBRANCELHAS (4) ──────────────────────────────────────
   const sobr = catMap.get('sobrancelhas')!;
   const sobrServices = [
     { name: 'Design de Sobrancelhas', duration: 30, price: 2000, popular: true },
@@ -109,7 +90,6 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
     { name: 'Limpeza Sobrancelhas', duration: 60, price: 1500 },
   ];
 
-  // ─── CABELEREIRO (14) ──────────────────────────────────────
   const cab = catMap.get('cabelereiro')!;
   const cabServices = [
     { name: 'Escova/Brushing', duration: 60, price: 2500 },
@@ -128,7 +108,6 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
     { name: 'Extensões Fita', duration: 120, price: 15000 },
   ];
 
-  // ─── UNHAS (4) ─────────────────────────────────────────────
   const unh = catMap.get('unhas')!;
   const unhServices = [
     { name: 'Manicure Simples', duration: 45, price: 1500 },
@@ -145,8 +124,6 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
     ...unhServices.map((s, i) => ({ ...s, categoryId: unh, order: i + 1 })),
   ];
 
-  // Criar com nome estruturado e slug auto-gerado
-  // Gerar slug explicitamente (não depender do hook pre-save em insertMany)
   const created = await Service.insertMany(
     allServices.map((s) => ({
       ...s,
@@ -170,13 +147,8 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
   return created;
 }
 
-// ============================================================
-// 3. STAFF (Jean Pierre, Matias, Ana Rita)
-// ============================================================
-
 async function seedStaff() {
   log('👥', 'A criar equipa...');
-
   const team = [
     {
       name: 'Jean Pierre',
@@ -206,38 +178,26 @@ async function seedStaff() {
       order: 3,
     },
   ];
-
   const created = await Staff.insertMany(team);
   log('✅', `${created.length} membros da equipa criados`);
   return created;
 }
 
-// ============================================================
-// 4. CATEGORIAS DE RECEITA
-// ============================================================
-
 async function seedIncomeCategories() {
   log('💚', 'A criar categorias de receita...');
-
   const cats = [
     { name: 'Serviços', slug: 'servicos', color: '#1F3D2E', order: 1, isDefault: true },
     { name: 'Produtos retalho', slug: 'produtos-retalho', color: '#D4AF6E', order: 2 },
     { name: 'Vouchers / Gift Cards', slug: 'vouchers', color: '#97C459', order: 3 },
     { name: 'Outros', slug: 'outros', color: '#888780', order: 4 },
   ];
-
   const created = await IncomeCategory.insertMany(cats);
   log('✅', `${created.length} categorias de receita criadas`);
   return created;
 }
 
-// ============================================================
-// 5. CATEGORIAS DE DESPESA
-// ============================================================
-
 async function seedExpenseCategories() {
   log('💸', 'A criar categorias de despesa...');
-
   const cats = [
     {
       name: 'Produtos profissionais',
@@ -264,22 +224,15 @@ async function seedExpenseCategories() {
       isDefault: true,
     },
   ];
-
   const created = await ExpenseCategory.insertMany(cats);
   log('✅', `${created.length} categorias de despesa criadas`);
   return created;
 }
 
-// ============================================================
-// 6. HORÁRIO BASE + FERIADOS PORTUGUESES
-// ============================================================
-
 async function seedSchedule() {
   log('📅', 'A criar horário base e feriados...');
-
-  // Horário regular: Seg-Sex 10h-19h, fim-de-semana fechado
   const regular = WEEKDAYS.map((day, i) => {
-    const dayOfWeek = (i + 1) % 7; // monday=1, ..., sunday=0
+    const dayOfWeek = (i + 1) % 7;
     const isWeekend = day === 'saturday' || day === 'sunday';
     return {
       type: 'regular' as const,
@@ -292,7 +245,6 @@ async function seedSchedule() {
     };
   });
 
-  // Feriados nacionais portugueses (recorrentes)
   const year = new Date().getFullYear();
   const holidays = [
     { date: new Date(year, 0, 1), reason: 'Ano Novo' },
@@ -318,13 +270,8 @@ async function seedSchedule() {
   log('✅', `${regular.length} horários regulares + ${holidays.length} feriados criados`);
 }
 
-// ============================================================
-// 7. CONTEÚDO DO SITE (editável)
-// ============================================================
-
 async function seedSiteContent() {
   log('📝', 'A criar conteúdo do site...');
-
   const contents = [
     {
       key: 'home.hero',
@@ -374,23 +321,17 @@ async function seedSiteContent() {
       },
     },
   ];
-
   const created = await SiteContent.insertMany(contents);
   log('✅', `${created.length} entries de conteúdo criadas`);
 }
 
-// ============================================================
-// 8. CONFIGURAÇÃO FISCAL INICIAL
-// ============================================================
-
 async function seedFiscalSettings() {
   log('🧾', 'A criar configuração fiscal...');
-
   await FiscalSettings.create({
     key: 'default',
     companyName: 'Chi Sublime — Hair Style & Beauty',
     tradingName: 'Chi Sublime',
-    vatNumber: '000000000', // placeholder — Jean Pierre preenche depois
+    vatNumber: '000000000',
     address: 'R. Estorninho, Loja E, Quinta da Bicuda',
     postalCode: '2750-686',
     city: 'Cascais',
@@ -405,13 +346,37 @@ async function seedFiscalSettings() {
     bookingPrefix: 'CHI',
     autoSendInvoiceEmail: true,
   });
-
   log('✅', 'Configuração fiscal inicial criada');
 }
 
-// ============================================================
-// MAIN
-// ============================================================
+async function seedAdminUser() {
+  log('🔐', 'A criar utilizador admin...');
+  const ADMIN_EMAIL = 'jeanpierre@chisublime.pt';
+  const ADMIN_PASSWORD = 'ChiSublime2026!';
+  const ADMIN_NAME = 'Jean Pierre';
+
+  const passwordHash = await hashPassword(ADMIN_PASSWORD);
+
+  await User.create({
+    email: ADMIN_EMAIL,
+    passwordHash,
+    name: ADMIN_NAME,
+    role: 'admin',
+    active: true,
+  });
+
+  log('✅', 'Admin criado com sucesso');
+  console.log('');
+  console.log('   ╔════════════════════════════════════════════════════════╗');
+  console.log('   ║  CREDENCIAIS DO ADMIN                                  ║');
+  console.log('   ╠════════════════════════════════════════════════════════╣');
+  console.log(`   ║  Email:    ${ADMIN_EMAIL.padEnd(44)}║`);
+  console.log(`   ║  Password: ${ADMIN_PASSWORD.padEnd(44)}║`);
+  console.log('   ║                                                        ║');
+  console.log('   ║  ⚠ Mudar password após primeiro login em produção     ║');
+  console.log('   ╚════════════════════════════════════════════════════════╝');
+  console.log('');
+}
 
 async function main() {
   const uri = process.env.MONGODB_URI;
@@ -425,17 +390,20 @@ async function main() {
   log('✅', `Conectado a ${mongoose.connection.name}\n`);
 
   log('🧹', 'A limpar collections existentes...');
-  await clearCollection('Category', Category as mongoose.Model<unknown>);
-  await clearCollection('Service', Service as mongoose.Model<unknown>);
-  await clearCollection('Staff', Staff as mongoose.Model<unknown>);
-  await clearCollection('IncomeCategory', IncomeCategory as mongoose.Model<unknown>);
-  await clearCollection('ExpenseCategory', ExpenseCategory as mongoose.Model<unknown>);
-  await clearCollection('Schedule', Schedule as mongoose.Model<unknown>);
-  await clearCollection('SiteContent', SiteContent as mongoose.Model<unknown>);
-  await clearCollection('FiscalSettings', FiscalSettings as mongoose.Model<unknown>);
+  await clearCollection('Category', Category);
+  await clearCollection('Service', Service);
+  await clearCollection('Staff', Staff);
+  await clearCollection('Booking', Booking);
+  await clearCollection('Counter', Counter);
+  await clearCollection('User', User);
+  await clearCollection('AuditLog', AuditLog);
+  await clearCollection('IncomeCategory', IncomeCategory);
+  await clearCollection('ExpenseCategory', ExpenseCategory);
+  await clearCollection('Schedule', Schedule);
+  await clearCollection('SiteContent', SiteContent);
+  await clearCollection('FiscalSettings', FiscalSettings);
   console.log();
 
-  // Sequência respeita dependências (categorias antes de serviços, etc.)
   const categories = await seedCategories();
   await seedServices(categories);
   await seedStaff();
@@ -444,6 +412,7 @@ async function main() {
   await seedSchedule();
   await seedSiteContent();
   await seedFiscalSettings();
+  await seedAdminUser();
 
   console.log();
   log('🎉', 'SEED COMPLETO!');
