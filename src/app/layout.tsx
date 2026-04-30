@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { SessionProvider } from '@/components/auth/SessionProvider';
 import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -122,7 +123,9 @@ export default function RootLayout({
       className={`${cormorant.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
-      <body className="bg-chi-cream text-chi-charcoal antialiased">{children}</body>
+      <body className="bg-chi-cream text-chi-charcoal antialiased">
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

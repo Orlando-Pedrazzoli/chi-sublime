@@ -1,12 +1,17 @@
 'use client';
 
 /**
- * Chi Sublime — Step 3 Client (Form de confirmacao)
+ * Chi Sublime — Step 3 Client (Form de confirmação)
+ *
+ * REQUER LOGIN. Se não autenticado, mostra gate de login/registo.
+ * Se admin, bloqueia (admin não faz reservas pessoais).
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { User, LogIn, UserPlus } from 'lucide-react';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { createBookingAction } from '@/lib/server-actions/bookings';
 import { cn } from '@/lib/utils/cn';
@@ -14,8 +19,6 @@ import { cn } from '@/lib/utils/cn';
 type FormErrors = Record<string, string>;
 
 type FormState = {
-  name: string;
-  email: string;
   phone: string;
   notes: string;
   requestInvoice: boolean;
@@ -30,8 +33,6 @@ type FormState = {
 };
 
 const INITIAL_FORM: FormState = {
-  name: '',
-  email: '',
   phone: '',
   notes: '',
   requestInvoice: false,
@@ -47,13 +48,38 @@ const INITIAL_FORM: FormState = {
 
 export function Step3Client() {
   const router = useRouter();
-  const { selectedServiceIds, staffId, date, time, clearFlow } = useBookingFlow();
+  const { data: session, status } = useSession();
+  const { selectedServiceIds, staffId, date, time } = useBookingFlow();
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // ============================================================
+  // Estado: a verificar sessão
+  // ============================================================
+  if (status === 'loading') {
+    return <SessionLoadingState />;
+  }
+
+  // ============================================================
+  // Estado: NÃO logado → gate de auth
+  // ============================================================
+  if (!session?.user) {
+    return <AuthGate />;
+  }
+
+  // ============================================================
+  // Estado: logado como ADMIN → bloquear
+  // ============================================================
+  if (session.user.role === 'admin') {
+    return <AdminBlockedState />;
+  }
+
+  // ============================================================
+  // Estado: logado como CLIENTE → form de confirmação
+  // ============================================================
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -85,8 +111,8 @@ export function Step3Client() {
         date,
         time,
         guestInfo: {
-          name: form.name,
-          email: form.email,
+          name: session.user.name,
+          email: session.user.email,
           phone: form.phone,
         },
         notes: form.notes || undefined,
@@ -105,21 +131,16 @@ export function Step3Client() {
         marketingConsent: form.marketingConsent,
         website: form.website,
         source: 'website' as const,
+        // TODO (próxima fase): passar userId/clientId para vincular ao User
+        // userId: session.user.id,
+        // clientId: session.user.clientId,
       };
 
       const result = await createBookingAction(input);
 
       if (result.success) {
-        // Marca como redirecting ANTES de qualquer outra coisa
-        // (impede o BookingFlowGuard de reagir)
-        setIsRedirecting(true);
-
-        // Usa hard navigation para escapar definitivamente do Guard
-        // (window.location é síncrono e não está sujeito ao React state)
+        // Hard navigation para escapar do BookingFlowGuard
         window.location.href = `/reservar/${result.booking.bookingNumber}`;
-
-        // clearFlow só corre depois do navigate (na nova página)
-        // Não chamamos aqui porque a página vai recarregar
         return;
       } else {
         if (result.error.fieldErrors) {
@@ -145,45 +166,16 @@ export function Step3Client() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
+      {/* Sessão activa — confirmação visual de quem está a reservar */}
+      <SessionBanner name={session.user.name} email={session.user.email} />
+
       <div>
-        <h3 className="text-chi-charcoal mb-2 font-serif text-2xl">Os seus dados</h3>
+        <h3 className="text-chi-charcoal mb-2 font-serif text-2xl">Confirmar dados</h3>
         <p className="text-chi-charcoal-soft mb-6 text-sm">
-          Para confirmarmos a sua reserva e enviarmos os detalhes por email.
+          Confirma o teu telefone e adiciona notas se necessário.
         </p>
 
         <div className="space-y-5">
-          <FormField label="Nome completo" htmlFor="name" error={errors['guestInfo.name']} required>
-            <input
-              id="name"
-              type="text"
-              value={form.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="Maria Silva"
-              autoComplete="name"
-              required
-              className={inputClass(errors['guestInfo.name'])}
-            />
-          </FormField>
-
-          <FormField
-            label="Email"
-            htmlFor="email"
-            error={errors['guestInfo.email']}
-            required
-            helper="Vai receber confirmação neste email"
-          >
-            <input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => updateField('email', e.target.value)}
-              placeholder="maria@example.com"
-              autoComplete="email"
-              required
-              className={inputClass(errors['guestInfo.email'])}
-            />
-          </FormField>
-
           <FormField
             label="Telefone"
             htmlFor="phone"
@@ -220,6 +212,7 @@ export function Step3Client() {
         </div>
       </div>
 
+      {/* Faturação com NIF */}
       <div className="border-chi-border border-t pt-6">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -309,6 +302,7 @@ export function Step3Client() {
         )}
       </div>
 
+      {/* Política e marketing */}
       <div className="border-chi-border space-y-4 border-t pt-6">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -355,6 +349,7 @@ export function Step3Client() {
         </label>
       </div>
 
+      {/* Honeypot */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-[9999px] -left-[9999px] opacity-0"
@@ -371,12 +366,14 @@ export function Step3Client() {
         />
       </div>
 
+      {/* Erro de submit */}
       {submitError && (
         <div className="border-chi-danger/30 bg-chi-danger-bg rounded-md border p-4">
           <p className="text-chi-danger text-sm font-medium">{submitError}</p>
         </div>
       )}
 
+      {/* Botões */}
       <div className="border-chi-border flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:gap-4">
         <button
           type="button"
@@ -391,7 +388,7 @@ export function Step3Client() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex flex-1 items-center justify-center gap-2 px-6 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-6 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
           style={{
             backgroundColor: '#1F3D2E',
             color: '#FAF7F2',
@@ -415,11 +412,138 @@ export function Step3Client() {
       </div>
 
       <p className="text-chi-charcoal-light text-center text-xs italic">
-        Os seus dados são tratados com confidencialidade e usados apenas para gerir a sua reserva.
+        Os teus dados são tratados com confidencialidade e usados apenas para gerir a tua reserva.
       </p>
     </form>
   );
 }
+
+// ============================================================
+// SUBCOMPONENTES — Estados auxiliares
+// ============================================================
+
+function SessionLoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16">
+      <span
+        className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+        style={{ borderColor: '#1F3D2E', borderTopColor: 'transparent' }}
+      />
+      <p className="text-chi-charcoal-soft text-sm">A verificar sessão...</p>
+    </div>
+  );
+}
+
+function AuthGate() {
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <p className="mb-3 text-[10px] tracking-[0.3em] uppercase" style={{ color: '#B8924A' }}>
+          Quase lá
+        </p>
+        <h3 className="text-chi-charcoal mb-3 font-serif text-3xl">Falta apenas um passo</h3>
+        <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
+          Para confirmar a tua reserva, entra na tua conta ou cria uma agora. Vai demorar menos de
+          um minuto e poderás gerir todas as tuas reservas num só lugar.
+        </p>
+      </div>
+
+      <div
+        className="mx-auto h-px w-12"
+        style={{
+          background: 'linear-gradient(to right, transparent, rgba(212,175,110,0.6), transparent)',
+        }}
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Link
+          href="/entrar?redirect=/reservar/confirmar"
+          className="group flex flex-1 items-center justify-center gap-2 rounded-md px-6 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
+          style={{
+            backgroundColor: '#1F3D2E',
+            color: '#FAF7F2',
+          }}
+        >
+          <LogIn size={14} strokeWidth={1.5} />
+          Já tenho conta
+        </Link>
+
+        <Link
+          href="/registar?redirect=/reservar/confirmar"
+          className="group flex flex-1 items-center justify-center gap-2 rounded-md border-2 px-6 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
+          style={{
+            borderColor: '#1F3D2E',
+            color: '#1F3D2E',
+            backgroundColor: 'transparent',
+          }}
+        >
+          <UserPlus size={14} strokeWidth={1.5} />
+          Criar conta
+        </Link>
+      </div>
+
+      <div
+        className="rounded-md p-4 text-center text-xs italic"
+        style={{
+          backgroundColor: 'rgba(212,175,110,0.08)',
+          color: '#5A5A5A',
+        }}
+      >
+        Os teus dados de reserva ficam guardados durante este processo.
+      </div>
+    </div>
+  );
+}
+
+function AdminBlockedState() {
+  return (
+    <div className="space-y-4 py-12 text-center">
+      <h3 className="text-chi-charcoal font-serif text-2xl">Conta administrativa</h3>
+      <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
+        Estás autenticado como administrador. As reservas online destinam-se a clientes. Para criar
+        uma reserva no balcão, usa o módulo de Receitas / Caixa no painel administrativo.
+      </p>
+      <Link
+        href="/admin/dashboard"
+        className="inline-block rounded-md px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase"
+        style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+      >
+        Ir para o painel
+      </Link>
+    </div>
+  );
+}
+
+function SessionBanner({ name, email }: { name: string; email: string }) {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-md border p-4"
+      style={{
+        backgroundColor: 'rgba(151,196,89,0.08)',
+        borderColor: 'rgba(151,196,89,0.3)',
+      }}
+    >
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-full"
+        style={{ backgroundColor: 'rgba(31,61,46,0.1)' }}
+      >
+        <User size={18} strokeWidth={1.5} style={{ color: '#1F3D2E' }} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
+          A reservar como
+        </p>
+        <p className="truncate text-sm font-medium" style={{ color: '#1F3D2E' }}>
+          {name} <span className="text-chi-charcoal-light font-normal">· {email}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FormField + helpers (mantido do original)
+// ============================================================
 
 function FormField({
   label,
