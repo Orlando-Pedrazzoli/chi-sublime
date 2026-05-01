@@ -45,7 +45,7 @@
   --color-chi-border-light: #f1eee6;
 
   /* === TIPOGRAFIA === */
-  --font-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-serif: var(--font-fraunces), 'Fraunces', Georgia, serif;
   --font-sans: var(--font-manrope), 'Manrope', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', Consolas, monospace;
 
@@ -106,9 +106,12 @@ h4,
 h5,
 h6 {
   font-family: var(--font-serif);
-  font-weight: 400;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variation-settings:
+    'opsz' 144,
+    'SOFT' 50;
 }
 
 /* Links sem decoração por defeito (vamos dar styling individual) */

@@ -51,7 +51,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
   if (!isHydrated) {
     return (
       <aside className="hidden w-full lg:block">
-        <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-6">
+        <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-8">
           <div className="bg-chi-sand/40 h-32 animate-pulse rounded" />
         </div>
       </aside>
@@ -65,19 +65,19 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
     <>
       {/* DESKTOP — sticky sidebar */}
       <aside className="hidden w-full lg:block">
-        <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-7">
-          <h3 className="text-chi-charcoal mb-5 font-serif text-xl">A sua reserva</h3>
+        <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-8">
+          <h3 className="text-chi-charcoal mb-6 font-serif text-xl">A sua reserva</h3>
 
           {hasServices ? (
             <>
-              <ul className="border-chi-border mb-5 space-y-3 border-b pb-5">
+              <ul className="border-chi-border mb-6 space-y-4 border-b pb-6">
                 {selectedServices.map((service) => (
-                  <li key={service.id} className="group flex items-start justify-between gap-3">
+                  <li key={service.id} className="group flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="text-chi-charcoal font-serif text-base leading-snug">
                         {service.name}
                       </p>
-                      <p className="text-chi-charcoal-light mt-0.5 text-xs">
+                      <p className="text-chi-charcoal-light mt-1 text-xs">
                         {formatDuration(service.duration)}
                       </p>
                     </div>
@@ -107,7 +107,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
                 ))}
               </ul>
 
-              <div className="mb-6 space-y-2">
+              <div className="mb-7 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-chi-charcoal-soft">Duração total</span>
                   <span className="text-chi-charcoal font-medium">
@@ -123,7 +123,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
               </div>
             </>
           ) : (
-            <p className="text-chi-charcoal-light mb-6 text-sm italic">
+            <p className="text-chi-charcoal-light mb-7 text-sm leading-relaxed italic">
               Escolha pelo menos um serviço para continuar.
             </p>
           )}
@@ -131,7 +131,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
           {ctaEnabled ? (
             <Link
               href={ctaHref}
-              className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium block w-full px-6 py-3.5 text-center text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
+              className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium block w-full rounded-md px-6 py-4 text-center text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
               style={{ color: '#FAF7F2' }}
             >
               {ctaLabel}
@@ -140,7 +140,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
           ) : (
             <button
               disabled
-              className="bg-chi-charcoal-light/40 block w-full cursor-not-allowed px-6 py-3.5 text-center text-xs font-semibold tracking-[0.22em] uppercase"
+              className="bg-chi-charcoal-light/40 block w-full cursor-not-allowed rounded-md px-6 py-4 text-center text-xs font-semibold tracking-[0.22em] uppercase"
               style={{ color: '#FAF7F2' }}
             >
               {ctaLabel}
@@ -148,7 +148,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
           )}
 
           {ctaHelper && (
-            <p className="text-chi-charcoal-light mt-3 text-center text-[11px] italic">
+            <p className="text-chi-charcoal-light mt-4 text-center text-[11px] leading-relaxed italic">
               {ctaHelper}
             </p>
           )}
@@ -158,11 +158,11 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
       {/* MOBILE — bottom bar fixa (so aparece se houver servicos) */}
       <div
         className={cn(
-          'bg-chi-cream border-chi-border shadow-strong fixed inset-x-0 bottom-0 z-40 border-t px-4 py-3 transition-transform duration-300 lg:hidden',
+          'bg-chi-cream border-chi-border shadow-strong fixed inset-x-0 bottom-0 z-40 border-t px-5 py-4 transition-transform duration-300 lg:hidden',
           hasServices ? 'translate-y-0' : 'translate-y-full',
         )}
       >
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-chi-charcoal-light text-[10px] tracking-[0.2em] uppercase">
               {totals.count} {totals.count === 1 ? 'serviço' : 'serviços'} ·{' '}
@@ -176,7 +176,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
           {ctaEnabled ? (
             <Link
               href={ctaHref}
-              className="bg-chi-green-deep px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all"
+              className="bg-chi-green-deep rounded-md px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all"
               style={{ color: '#FAF7F2' }}
             >
               {ctaLabel}
@@ -185,7 +185,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
           ) : (
             <button
               disabled
-              className="bg-chi-charcoal-light/40 px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase"
+              className="bg-chi-charcoal-light/40 rounded-md px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase"
               style={{ color: '#FAF7F2' }}
             >
               {ctaLabel}

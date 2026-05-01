@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { X, Phone, Globe, User as UserIcon, Plus } from 'lucide-react';
 import {
   createManualBookingAction,
@@ -26,6 +26,17 @@ type NewBookingModalProps = {
 };
 
 type Source = 'phone' | 'walk-in' | 'instagram' | 'website';
+
+// Ordem e labels das categorias (alinhado com seed-database.ts)
+const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+  cabelereiro: { label: 'Cabelereiro', color: '#1F3D2E' },
+  sobrancelhas: { label: 'Sobrancelhas', color: '#D4AF6E' },
+  maquilhagem: { label: 'Maquilhagem', color: '#97C459' },
+  unhas: { label: 'Unhas', color: '#5DCAA5' },
+  depilacao: { label: 'Depilação', color: '#888780' },
+};
+
+const CATEGORY_ORDER = ['cabelereiro', 'sobrancelhas', 'maquilhagem', 'unhas', 'depilacao'];
 
 export function NewBookingModal({
   staff,
@@ -53,7 +64,35 @@ export function NewBookingModal({
   const [source, setSource] = useState<Source>('phone');
   const [notes, setNotes] = useState('');
 
+  // Tabs de serviços + validação
+  const [activeTab, setActiveTab] = useState<string>(CATEGORY_ORDER[0]);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Agrupar serviços por categoria
+  const servicesByCategory = useMemo(() => {
+    const groups: Record<string, ServiceOption[]> = {};
+    for (const slug of CATEGORY_ORDER) groups[slug] = [];
+    for (const s of services) {
+      const slug = s.categorySlug ?? 'cabelereiro';
+      if (!groups[slug]) groups[slug] = [];
+      groups[slug].push(s);
+    }
+    return groups;
+  }, [services]);
+
+  // Categorias disponíveis (com pelo menos 1 serviço)
+  const availableCategories = useMemo(
+    () => CATEGORY_ORDER.filter((slug) => (servicesByCategory[slug]?.length ?? 0) > 0),
+    [servicesByCategory],
+  );
+
+  // Garantir que a tab activa existe
+  useEffect(() => {
+    if (!availableCategories.includes(activeTab) && availableCategories.length > 0) {
+      setActiveTab(availableCategories[0]);
+    }
+  }, [availableCategories, activeTab]);
 
   const totalDuration = selectedServices.reduce((sum, sid) => {
     const s = services.find((x) => x.id === sid);
@@ -65,24 +104,53 @@ export function NewBookingModal({
     return sum + (s?.price ?? 0);
   }, 0);
 
+  // Contador de serviços seleccionados por categoria
+  const selectedCountByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const sid of selectedServices) {
+      const s = services.find((x) => x.id === sid);
+      const slug = s?.categorySlug ?? 'cabelereiro';
+      counts[slug] = (counts[slug] ?? 0) + 1;
+    }
+    return counts;
+  }, [selectedServices, services]);
+
   function toggleService(id: string) {
     setSelectedServices((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
-  async function doSearch(q: string) {
-    setSearchQuery(q);
-    if (q.trim().length < 2) {
+  // Debounced client search
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    if (value.trim().length < 2) {
       setSearchResults([]);
       return;
     }
-    const result = await searchClientsAction(q);
-    setSearchResults(result.clients);
+
+    searchTimerRef.current = setTimeout(async () => {
+      const result = await searchClientsAction(value);
+      setSearchResults(result.clients);
+    }, 300);
   }
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitAttempted(true);
     setError(null);
 
     if (selectedServices.length === 0) {
@@ -164,7 +232,23 @@ export function NewBookingModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-5">
+        <form onSubmit={handleSubmit} autoComplete="off" noValidate className="space-y-6 p-5">
+          {/* Honeypot oculto para travar autofill agressivo do Chrome */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              width: 0,
+              height: 0,
+              opacity: 0,
+              pointerEvents: 'none',
+            }}
+          />
+
           {/* Origem */}
           <Section label="Origem da reserva">
             <div className="grid grid-cols-3 gap-2">
@@ -223,10 +307,18 @@ export function NewBookingModal({
             {clientMode === 'search' ? (
               <div className="space-y-2">
                 <input
-                  type="text"
+                  type="search"
+                  name="chi-client-search"
                   value={searchQuery}
-                  onChange={(e) => doSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Procura por nome, telefone ou email..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   className="w-full rounded-md border bg-white px-4 py-3 text-sm outline-none focus:ring-2"
                   style={{ borderColor: 'rgba(31,61,46,0.2)' }}
                 />
@@ -283,32 +375,46 @@ export function NewBookingModal({
                     ))}
                   </ul>
                 )}
+                {!selectedClient &&
+                  searchQuery.trim().length >= 2 &&
+                  searchResults.length === 0 && (
+                    <p className="px-3 py-2 text-xs italic" style={{ color: '#5A5A5A' }}>
+                      Nenhum cliente encontrado. Usa "Novo cliente" para registar.
+                    </p>
+                  )}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="text"
+                  name="chi-new-client-name"
                   value={newClientName}
                   onChange={(e) => setNewClientName(e.target.value)}
                   placeholder="Nome completo *"
+                  autoComplete="off"
+                  data-lpignore="true"
                   className="rounded-md border bg-white px-4 py-3 text-sm outline-none focus:ring-2 sm:col-span-2"
                   style={{ borderColor: 'rgba(31,61,46,0.2)' }}
-                  required={clientMode === 'new'}
                 />
                 <input
                   type="tel"
+                  name="chi-new-client-phone"
                   value={newClientPhone}
                   onChange={(e) => setNewClientPhone(e.target.value)}
                   placeholder="Telefone *"
+                  autoComplete="off"
+                  data-lpignore="true"
                   className="rounded-md border bg-white px-4 py-3 text-sm outline-none focus:ring-2"
                   style={{ borderColor: 'rgba(31,61,46,0.2)' }}
-                  required={clientMode === 'new'}
                 />
                 <input
                   type="email"
+                  name="chi-new-client-email"
                   value={newClientEmail}
                   onChange={(e) => setNewClientEmail(e.target.value)}
                   placeholder="Email (opcional)"
+                  autoComplete="off"
+                  data-lpignore="true"
                   className="rounded-md border bg-white px-4 py-3 text-sm outline-none focus:ring-2"
                   style={{ borderColor: 'rgba(31,61,46,0.2)' }}
                 />
@@ -316,20 +422,66 @@ export function NewBookingModal({
             )}
           </Section>
 
-          {/* Serviços */}
+          {/* Serviços com tabs */}
           <Section
             label={`Serviços ${selectedServices.length > 0 ? `(${selectedServices.length})` : ''}`}
           >
+            {/* Tabs de categorias */}
             <div
-              className="max-h-48 overflow-y-auto rounded-md border p-2"
+              className="mb-2 flex gap-1 overflow-x-auto rounded-md border p-1"
+              style={{
+                borderColor: 'rgba(31,61,46,0.15)',
+                backgroundColor: 'rgba(250,247,242,0.5)',
+              }}
+            >
+              {availableCategories.map((slug) => {
+                const meta = CATEGORY_LABELS[slug];
+                const isActive = activeTab === slug;
+                const count = selectedCountByCategory[slug] ?? 0;
+                return (
+                  <button
+                    key={slug}
+                    type="button"
+                    onClick={() => setActiveTab(slug)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide transition-colors"
+                    style={{
+                      backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+                      color: isActive ? meta.color : '#5A5A5A',
+                      boxShadow: isActive ? '0 1px 2px rgba(31,61,46,0.08)' : 'none',
+                      borderLeft: isActive ? `3px solid ${meta.color}` : '3px solid transparent',
+                    }}
+                  >
+                    {meta.label}
+                    {count > 0 && (
+                      <span
+                        className="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: meta.color,
+                          color: '#FAF7F2',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Lista de serviços da tab activa */}
+            <div
+              className="max-h-72 overflow-y-auto rounded-md border p-2"
               style={{ borderColor: 'rgba(31,61,46,0.15)' }}
             >
-              {services.map((s) => {
+              {(servicesByCategory[activeTab] ?? []).map((s) => {
                 const isSelected = selectedServices.includes(s.id);
                 return (
                   <label
                     key={s.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 hover:bg-amber-50/30"
+                    className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-amber-50/30"
+                    style={{
+                      backgroundColor: isSelected ? 'rgba(212,175,110,0.08)' : 'transparent',
+                    }}
                   >
                     <input
                       type="checkbox"
@@ -341,12 +493,20 @@ export function NewBookingModal({
                     <span className="flex-1 text-sm" style={{ color: '#1A1A1A' }}>
                       {s.name}
                     </span>
-                    <span className="font-mono text-xs" style={{ color: '#5A5A5A' }}>
+                    <span
+                      className="font-mono text-xs whitespace-nowrap"
+                      style={{ color: '#5A5A5A' }}
+                    >
                       {s.duration}min · {(s.price / 100).toFixed(2)} €
                     </span>
                   </label>
                 );
               })}
+              {(servicesByCategory[activeTab]?.length ?? 0) === 0 && (
+                <p className="py-6 text-center text-xs italic" style={{ color: '#5A5A5A' }}>
+                  Sem serviços nesta categoria.
+                </p>
+              )}
             </div>
           </Section>
 
@@ -418,8 +578,8 @@ export function NewBookingModal({
             </div>
           )}
 
-          {/* Erro */}
-          {error && (
+          {/* Erro — só após primeira tentativa de submit */}
+          {submitAttempted && error && (
             <div
               className="rounded-md border px-4 py-3 text-sm"
               style={{

@@ -6,14 +6,6 @@
  *
  * Accordion de categorias com lista de servicos para o cliente
  * escolher um ou mais para a reserva.
- *
- * Visual:
- *  - Cada categoria como "row" com nome + numero servicos + chevron
- *  - Click expande para mostrar servicos (animacao smooth)
- *  - Cada servico: checkbox + nome + duracao + preco
- *  - Selecionados: fundo creme escuro + checkbox dourado
- *
- * State management via useBookingFlow hook (sessionStorage).
  */
 
 import { useState } from 'react';
@@ -42,7 +34,6 @@ export type ServiceData = {
 
 type Props = {
   categories: CategoryWithServices[];
-  /** Slug pre-aberto (vindo de query string ?categoria=cabelereiro) */
   initialOpenSlug?: string;
 };
 
@@ -69,7 +60,6 @@ function formatDuration(minutes: number): string {
 export function ServicePicker({ categories, initialOpenSlug }: Props) {
   const { selectedServiceIds, toggleService, isMaxServicesReached } = useBookingFlow();
 
-  // Estado de quais categorias estao expandidas
   const [openSlugs, setOpenSlugs] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (initialOpenSlug) initial.add(initialOpenSlug);
@@ -100,7 +90,7 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {categories.map((category) => {
         const isOpen = openSlugs.has(category.slug);
         const selectedInCategory = category.services.filter((s) =>
@@ -110,29 +100,49 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
         return (
           <div
             key={category.id}
-            className="border-chi-border bg-chi-cream hover:shadow-soft overflow-hidden rounded-lg border transition-shadow"
+            className={cn(
+              'border-chi-border bg-chi-cream overflow-hidden rounded-lg border transition-all',
+              isOpen ? 'shadow-soft' : 'hover:shadow-soft',
+            )}
           >
-            {/* CATEGORY HEADER (clicavel) */}
+            {/* CATEGORY HEADER */}
             <button
               onClick={() => toggleCategory(category.slug)}
-              className="hover:bg-chi-sand/30 flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors"
+              className={cn(
+                'group flex w-full items-center justify-between gap-4 text-left transition-colors',
+                'hover:bg-chi-sand/30',
+                isOpen && 'bg-chi-sand/20',
+              )}
+              style={{ padding: '24px 32px' }}
               aria-expanded={isOpen}
               aria-controls={`category-${category.slug}`}
             >
-              <div className="flex items-center gap-4">
-                <h3 className="text-chi-charcoal font-serif text-2xl font-light md:text-3xl">
+              <div className="flex min-w-0 items-center gap-4">
+                {/* Barra dourada antes do título */}
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full transition-all duration-300',
+                    isOpen ? 'bg-chi-gold' : 'bg-chi-gold/30 group-hover:bg-chi-gold/60',
+                  )}
+                  style={{ width: '3px', height: '32px' }}
+                  aria-hidden="true"
+                />
+                <h3 className="text-chi-charcoal truncate font-serif text-2xl md:text-3xl">
                   {category.name}
                 </h3>
                 {selectedInCategory > 0 && (
-                  <span className="bg-chi-gold text-chi-green-deep rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] uppercase">
+                  <span
+                    className="bg-chi-gold text-chi-green-deep shrink-0 rounded-full text-[10px] font-semibold tracking-[0.18em] uppercase"
+                    style={{ padding: '4px 12px' }}
+                  >
                     {selectedInCategory} selecionado
                     {selectedInCategory > 1 && 's'}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-chi-charcoal-light text-xs tracking-[0.2em] uppercase">
+              <div className="flex shrink-0 items-center gap-4">
+                <span className="text-chi-charcoal-light text-[11px] tracking-[0.22em] uppercase">
                   {category.services.length} serviços
                 </span>
                 <svg
@@ -154,7 +164,7 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
               </div>
             </button>
 
-            {/* SERVICES LIST (expandible) */}
+            {/* SERVICES LIST */}
             <div
               id={`category-${category.slug}`}
               className={cn(
@@ -173,22 +183,27 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
                         onClick={() => handleServiceToggle(service)}
                         disabled={isDisabled}
                         className={cn(
-                          'flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition-all',
+                          'flex w-full items-center justify-between text-left transition-all',
                           isSelected
                             ? 'bg-chi-sand/60 hover:bg-chi-sand/80'
                             : 'hover:bg-chi-sand/30',
                           isDisabled && 'cursor-not-allowed opacity-50',
                         )}
+                        style={{
+                          padding: '20px 32px',
+                          gap: '20px',
+                        }}
                         aria-pressed={isSelected}
                       >
                         {/* Checkbox custom */}
                         <div
                           className={cn(
-                            'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all',
+                            'flex shrink-0 items-center justify-center rounded border-2 transition-all',
                             isSelected
                               ? 'border-chi-gold bg-chi-gold'
                               : 'border-chi-charcoal-light/40 bg-transparent',
                           )}
+                          style={{ width: '20px', height: '20px' }}
                           aria-hidden="true"
                         >
                           {isSelected && (
@@ -207,24 +222,30 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
                           )}
                         </div>
 
-                        {/* Nome + popular badge */}
+                        {/* Nome + popular badge + duracao */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2.5">
                             <span
                               className={cn(
-                                'font-serif text-base font-normal md:text-lg',
+                                'font-serif text-base md:text-lg',
                                 isSelected ? 'text-chi-green-deep' : 'text-chi-charcoal',
                               )}
                             >
                               {service.name}
                             </span>
                             {service.popular && (
-                              <span className="text-chi-gold-deep border-chi-gold/40 rounded border px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.2em] uppercase">
+                              <span
+                                className="text-chi-gold-deep border-chi-gold/40 rounded border text-[9px] font-semibold tracking-[0.2em] uppercase"
+                                style={{ padding: '2px 8px' }}
+                              >
                                 Popular
                               </span>
                             )}
                           </div>
-                          <span className="text-chi-charcoal-light mt-0.5 block text-xs">
+                          <span
+                            className="text-chi-charcoal-light block text-xs tracking-wide"
+                            style={{ marginTop: '6px' }}
+                          >
                             {formatDuration(service.duration)}
                           </span>
                         </div>
@@ -250,7 +271,7 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
 
       {/* Aviso de limite */}
       {isMaxServicesReached && (
-        <p className="text-chi-charcoal-light pt-4 text-center text-sm italic">
+        <p className="text-chi-charcoal-light pt-4 text-center text-sm leading-relaxed italic">
           Atingiu o máximo de 5 serviços por reserva. Para escolher outro, remova um dos
           selecionados.
         </p>

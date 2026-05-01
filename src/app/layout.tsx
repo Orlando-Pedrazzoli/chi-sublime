@@ -1,20 +1,21 @@
 import type { Metadata, Viewport } from 'next';
 import { SessionProvider } from '@/components/auth/SessionProvider';
-import { Cormorant_Garamond, Manrope } from 'next/font/google';
+import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
 /* ============================================================
    FONTES — Carregadas via next/font (otimização automática)
-   - Cormorant Garamond: serifa display elegante para títulos
+   - Fraunces: serifa display moderna com optical sizing
+     (substitui Cormorant Garamond — melhor legibilidade)
    - Manrope: sans-serif moderna para corpo de texto
    ============================================================ */
 
-const cormorant = Cormorant_Garamond({
+const fraunces = Fraunces({
   subsets: ['latin', 'latin-ext'],
-  weight: ['300', '400', '500', '600'],
   style: ['normal', 'italic'],
-  variable: '--font-cormorant',
+  variable: '--font-fraunces',
   display: 'swap',
+  axes: ['SOFT', 'opsz'],
 });
 
 const manrope = Manrope({
@@ -118,11 +119,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt"
-      className={`${cormorant.variable} ${manrope.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang="pt" className={`${fraunces.variable} ${manrope.variable}`} suppressHydrationWarning>
       <body className="bg-chi-cream text-chi-charcoal antialiased">
         <SessionProvider>{children}</SessionProvider>
       </body>
