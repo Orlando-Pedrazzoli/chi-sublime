@@ -341,3 +341,87 @@ export async function changePassword(input: ChangePasswordInput): Promise<Action
 
   return { success: true };
 }
+
+// ============================================================================
+// UPDATE PROFILE
+// ============================================================================
+
+export async function updateProfileAction(input: {
+  name: string;
+  phone?: string;
+}): Promise<ActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: 'Não autenticado' };
+  }
+
+  const name = input.name?.trim();
+  const phone = input.phone?.trim() || undefined;
+
+  if (!name || name.length < 2 || name.length > 120) {
+    return {
+      success: false,
+      error: 'Nome com pelo menos 2 caracteres',
+      field: 'name',
+    };
+  }
+
+  if (phone) {
+    const phoneRegex = /^(?:(?:\+|00)351)?\s?[29]\d{8}$/;
+    const cleanPhone = phone.replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      return {
+        success: false,
+        error: 'Telefone português inválido',
+        field: 'phone',
+      };
+    }
+  }
+
+  await connectDB();
+
+  const user = await User.findById(session.id);
+  if (!user) {
+    return { success: false, error: 'Utilizador não encontrado' };
+  }
+
+  const oldName = user.name;
+  user.name = name;
+  if (phone !== undefined) {
+    user.phone = phone;
+  }
+
+  await user.save();
+
+  // Sincronizar com Client (ficha do salão)
+  if (user.clientId) {
+    await Client.updateOne(
+      { _id: user.clientId },
+      {
+        $set: {
+          name,
+          ...(phone ? { phone } : {}),
+        },
+      },
+    );
+  }
+
+  await logAudit({
+    action: 'update',
+    resource: 'user',
+    resourceId: user._id.toString(),
+    resourceLabel: user.name,
+    userId: user._id,
+    userName: user.name,
+    userEmail: user.email,
+    userRole: user.role,
+    message: `Perfil actualizado: ${user.email}`,
+    severity: 'info',
+    metadata: {
+      changedName: oldName !== name,
+      changedPhone: !!phone,
+    },
+  });
+
+  return { success: true };
+}

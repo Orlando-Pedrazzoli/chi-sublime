@@ -1,36 +1,72 @@
-import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+'use client';
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s · Chi Sublime Admin',
-    default: 'Painel · Chi Sublime',
-  },
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+import { useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
+import { AdminTopbar } from '@/components/admin/layout/AdminTopbar';
+import { QuickActionsFab } from '@/components/admin/layout/QuickActionsFab';
 
 /**
  * Layout das páginas de administração.
  *
- * Sprint 4 (actual):
- *   - Apenas isola o admin do site público (sem navbar/footer públicos).
- *   - Background uniforme cream da paleta.
+ * Sprint 5: Sidebar + Topbar profissionais.
  *
- * Sprint 5 (futuro):
- *   - Adicionar AdminSidebar + AdminTopbar + AdminNotifications + QuickActionsFab.
- *   - Os componentes já estão scaffolded em src/components/admin/layout/.
- *
- * Nota sobre protecção:
- *   - Não usar requireAdmin() aqui porque /admin/login também usa este layout.
- *   - Protecção feita em (a) middleware proxy.ts, (b) cada página individual.
+ * Notas:
+ *   - /admin/login NÃO usa este layout (escapa via condição abaixo).
+ *   - Protecção real é feita em proxy.ts middleware + cada página.
+ *   - Client component porque precisa de useState para mobile drawer.
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Página de login não tem chrome admin
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  // Sem sessão (a redirecionar) — fallback minimalista
+  if (!session?.user) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: '#FAF7F2' }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <span
+            className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+            style={{ borderColor: '#1F3D2E', borderTopColor: 'transparent' }}
+          />
+          <p className="text-sm" style={{ color: '#5A5A5A' }}>
+            A verificar sessão...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const user = {
+    name: session.user.name,
+    email: session.user.email,
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FAF7F2' }}>
-      {children}
+      <AdminSidebar
+        user={user}
+        isMobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
+
+      <div className="lg:pl-[260px]">
+        <AdminTopbar user={user} onMobileMenuClick={() => setMobileSidebarOpen(true)} />
+
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
+
+      <QuickActionsFab />
     </div>
   );
 }
