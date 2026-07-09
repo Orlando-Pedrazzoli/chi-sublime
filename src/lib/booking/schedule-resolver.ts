@@ -14,8 +14,15 @@
  * estrutura uniforme.
  */
 
+import { formatInTimeZone } from 'date-fns-tz';
 import { Schedule, type ISchedule } from '@/lib/models';
-import { getWeekDay, toISODate, type WeekDay } from '@/lib/utils/time-utils';
+import {
+  combineDateAndTime,
+  getWeekDay,
+  SALON_TIMEZONE,
+  toISODate,
+  type WeekDay,
+} from '@/lib/utils/time-utils';
 
 const WEEKDAY_TO_NUMBER: Record<WeekDay, number> = {
   sunday: 0,
@@ -52,12 +59,11 @@ export type ResolvedSchedule = {
  * @returns Estrutura uniforme com { open, start, end, breaks, ... }
  */
 export async function resolveSchedule(date: Date): Promise<ResolvedSchedule> {
-  const isoDate = toISODate(date);
   const weekday = getWeekDay(date);
   const dayOfWeek = WEEKDAY_TO_NUMBER[weekday];
 
   // PASSO 1 — Procurar exception para esta data exata
-  const exception = await findExceptionForDate(isoDate);
+  const exception = await findExceptionForDate(date);
   if (exception) {
     if (!exception.open) {
       return {
@@ -78,7 +84,7 @@ export async function resolveSchedule(date: Date): Promise<ResolvedSchedule> {
   }
 
   // PASSO 2 — Procurar holiday (com recurringYearly aplicado)
-  const holiday = await findHolidayForDate(isoDate);
+  const holiday = await findHolidayForDate(date);
   if (holiday) {
     return {
       open: false,
@@ -116,12 +122,15 @@ export async function resolveSchedule(date: Date): Promise<ResolvedSchedule> {
 
 /**
  * Procura uma exception para a data exata.
- * Compara so a parte da data, ignora hora.
+ *
+ * Os limites do dia são calculados no fuso de Lisboa (combineDateAndTime),
+ * não com literais "...Z" (UTC). Assim, uma exceção gravada à meia-noite
+ * local no horário de verão (= 23:00Z do dia anterior) continua a cair
+ * dentro da janela correta e não é ignorada.
  */
-async function findExceptionForDate(isoDate: string): Promise<ISchedule | null> {
-  // Buscar exceptions que correspondam ao dia especifico (start..end)
-  const startOfDay = new Date(`${isoDate}T00:00:00Z`);
-  const endOfDay = new Date(`${isoDate}T23:59:59Z`);
+async function findExceptionForDate(date: Date): Promise<ISchedule | null> {
+  const startOfDay = combineDateAndTime(date, '00:00');
+  const endOfDay = combineDateAndTime(date, '23:59');
 
   return Schedule.findOne({
     type: 'exception',
@@ -131,32 +140,37 @@ async function findExceptionForDate(isoDate: string): Promise<ISchedule | null> 
 
 /**
  * Procura um holiday para a data.
- * Suporta recurringYearly: se holiday for de 25 dez 2025 e
- * recurringYearly=true, aplica-se a 25 dez de qualquer ano.
+ * Suporta recurringYearly: se holiday for de 25 dez e recurringYearly=true,
+ * aplica-se a 25 dez de qualquer ano.
+ *
+ * CRÍTICO: o mês/dia do feriado gravado são extraídos no fuso de Lisboa
+ * (formatInTimeZone), NUNCA com getUTC*(). Um feriado gravado em horário
+ * de verão (ex: 10/jun às 00:00 Lisboa = 09/jun 23:00Z) lido com getUTCDate()
+ * devolveria dia 9 e o salão apareceria aberto no feriado no ano seguinte.
  */
-async function findHolidayForDate(isoDate: string): Promise<ISchedule | null> {
-  // ISO format: "YYYY-MM-DD"
-  const [, monthStr, dayStr] = isoDate.split('-');
-  const month = parseInt(monthStr, 10);
-  const day = parseInt(dayStr, 10);
+async function findHolidayForDate(date: Date): Promise<ISchedule | null> {
+  const isoDate = toISODate(date);
+  const month = formatInTimeZone(date, SALON_TIMEZONE, 'MM');
+  const day = formatInTimeZone(date, SALON_TIMEZONE, 'dd');
 
-  // Procurar todos os holidays
   const holidays = await Schedule.find({ type: 'holiday' }).lean();
 
   for (const h of holidays) {
     if (!h.date) continue;
     const hDate = new Date(h.date);
-    const hMonth = hDate.getUTCMonth() + 1;
-    const hDay = hDate.getUTCDate();
 
-    // Match exato (mesmo dia/mes/ano)
+    // Match exato (mesmo dia/mês/ano, no fuso de Lisboa)
     if (toISODate(hDate) === isoDate) {
       return h;
     }
 
-    // Match recurringYearly (mesmo dia e mes)
-    if (h.recurringYearly && hMonth === month && hDay === day) {
-      return h;
+    // Match recurringYearly (mesmo dia e mês, no fuso de Lisboa)
+    if (h.recurringYearly) {
+      const hMonth = formatInTimeZone(hDate, SALON_TIMEZONE, 'MM');
+      const hDay = formatInTimeZone(hDate, SALON_TIMEZONE, 'dd');
+      if (hMonth === month && hDay === day) {
+        return h;
+      }
     }
   }
 

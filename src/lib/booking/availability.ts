@@ -41,15 +41,16 @@ import {
   type ExistingBooking,
 } from './conflicts';
 import { pickLeastOccupiedStaff } from './staff-allocator';
+import { BOOKING_RULES } from '@/lib/constants/business';
 
 // ============================================================
-// Constantes
+// Constantes (single source of truth em constants/business.ts)
 // ============================================================
 
-const SLOT_INTERVAL_MINUTES = 30;
-const MIN_ADVANCE_HOURS = 1;
-const MAX_ADVANCE_DAYS = 30;
-const DEFAULT_BUFFER_MINUTES = 5;
+const SLOT_INTERVAL_MINUTES = BOOKING_RULES.slotIntervalMinutes;
+const MIN_ADVANCE_HOURS = BOOKING_RULES.minAdvanceHours;
+const MAX_ADVANCE_DAYS = BOOKING_RULES.maxAdvanceDays;
+const DEFAULT_BUFFER_MINUTES = BOOKING_RULES.defaultBufferMinutes;
 
 // ============================================================
 // Tipos
@@ -248,10 +249,12 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
     status: { $in: ['pending', 'confirmed', 'in-progress'] },
     startTime: { $gte: dayStart, $lte: dayEnd },
   })
-    .select('_id staffId startTime endTime')
+    .select('_id staffId startTime endTime bufferAfter')
     .lean();
 
-  // Agrupar reservas por staffId
+  // Agrupar reservas por staffId. Usa o bufferAfter REAL gravado em cada
+  // reserva (não um valor fixo) — assim o buffer de limpeza configurado
+  // no serviço é respeitado na deteção de conflito.
   const bookingsByStaff = new Map<string, ExistingBooking[]>();
   for (const b of allBookingsToday) {
     const sid = String(b.staffId);
@@ -260,7 +263,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
       id: String(b._id),
       startTime: new Date(b.startTime),
       endTime: new Date(b.endTime),
-      bufferAfter: DEFAULT_BUFFER_MINUTES,
+      bufferAfter: b.bufferAfter ?? DEFAULT_BUFFER_MINUTES,
     });
     bookingsByStaff.set(sid, existing);
   }

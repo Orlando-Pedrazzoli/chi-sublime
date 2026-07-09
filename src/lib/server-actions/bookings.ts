@@ -179,7 +179,13 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const serviceItems = data.serviceIds.map((sid) => {
     const s = services.find((srv) => String(srv._id) === sid)!;
-    return { serviceId: s._id, name: s.name.pt, price: s.price, duration: s.duration };
+    return {
+      serviceId: s._id,
+      name: s.name.pt,
+      price: s.price,
+      duration: s.duration,
+      bufferAfter: s.bufferAfter ?? 0,
+    };
   });
 
   const totalPrice = serviceItems.reduce((sum, item) => sum + item.price, 0);
@@ -293,12 +299,33 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       },
     };
   } catch (err) {
+    // E11000 = índice único anti-double-booking disparou: dois pedidos
+    // simultâneos apanharam o mesmo slot e este perdeu a corrida.
+    if (isDuplicateKeyError(err)) {
+      return {
+        success: false,
+        error: {
+          code: 'slot-taken',
+          message: 'Este horario foi reservado por outro cliente. Por favor escolha outro.',
+        },
+      };
+    }
     console.error('[createBookingAction] Falha:', err);
     return {
       success: false,
       error: { code: 'internal', message: 'Erro ao criar reserva. Por favor tente novamente.' },
     };
   }
+}
+
+/** Deteta o erro de chave duplicada do MongoDB (código 11000), venha de onde vier. */
+function isDuplicateKeyError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: number }).code === 11000
+  );
 }
 
 // ============================================================

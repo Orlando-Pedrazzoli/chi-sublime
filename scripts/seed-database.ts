@@ -29,6 +29,16 @@ import {
   slugify,
 } from '../src/lib/models';
 import { hashPassword } from '../src/lib/auth/password';
+import { fromZonedTime } from 'date-fns-tz';
+import { SALON_TIMEZONE } from '../src/lib/constants/business';
+
+/** Grava um feriado ao MEIO-DIA de Lisboa — meio-dia nunca cruza fronteira de
+ *  horário de verão, garantindo que o dia/mês lidos (no fuso de Lisboa) são estáveis. */
+function holidayDate(year: number, month1to12: number, day: number): Date {
+  const mm = String(month1to12).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return fromZonedTime(`${year}-${mm}-${dd}T12:00:00`, SALON_TIMEZONE);
+}
 
 const log = (emoji: string, msg: string) => console.log(`${emoji} ${msg}`);
 const eur = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
@@ -229,6 +239,44 @@ async function seedExpenseCategories() {
   return created;
 }
 
+/**
+ * Liga cada serviço aos profissionais que o prestam (skill-based filtering).
+ * Sem esta ligação, `service.staffIds` fica vazio e QUALQUER staff pode ser
+ * alocado a QUALQUER serviço (ex.: o Matias em "Maquilhagem"). O Jean Pierre
+ * pode refinar isto por serviço no admin (Fase 4).
+ */
+async function linkServicesToStaff(
+  categories: Awaited<ReturnType<typeof seedCategories>>,
+  staff: Awaited<ReturnType<typeof seedStaff>>,
+) {
+  log('🔗', 'A ligar serviços aos profissionais (skill-filtering)...');
+  const catId = (slug: string) => categories.find((c) => c.slug === slug)?._id;
+  const staffId = (name: string) => staff.find((s) => s.name === name)?._id;
+
+  const jean = staffId('Jean Pierre');
+  const matias = staffId('Matias');
+  const anaRita = staffId('Ana Rita');
+
+  // categoria (slug) → profissionais que a executam
+  const map: { slug: string; ids: (typeof jean)[] }[] = [
+    { slug: 'cabelereiro', ids: [jean, matias] },
+    { slug: 'sobrancelhas', ids: [anaRita] },
+    { slug: 'maquilhagem', ids: [anaRita] },
+    { slug: 'unhas', ids: [anaRita] },
+    { slug: 'depilacao', ids: [anaRita] },
+  ];
+
+  let updated = 0;
+  for (const { slug, ids } of map) {
+    const cid = catId(slug);
+    const staffIds = ids.filter(Boolean);
+    if (!cid || staffIds.length === 0) continue;
+    const res = await Service.updateMany({ categoryId: cid }, { $set: { staffIds } });
+    updated += res.modifiedCount ?? 0;
+  }
+  log('✅', `${updated} serviços ligados aos profissionais`);
+}
+
 async function seedSchedule() {
   log('📅', 'A criar horário base e feriados...');
   const regular = WEEKDAYS.map((day, i) => {
@@ -247,16 +295,16 @@ async function seedSchedule() {
 
   const year = new Date().getFullYear();
   const holidays = [
-    { date: new Date(year, 0, 1), reason: 'Ano Novo' },
-    { date: new Date(year, 3, 25), reason: 'Dia da Liberdade' },
-    { date: new Date(year, 4, 1), reason: 'Dia do Trabalhador' },
-    { date: new Date(year, 5, 10), reason: 'Dia de Portugal' },
-    { date: new Date(year, 7, 15), reason: 'Assunção de Nossa Senhora' },
-    { date: new Date(year, 9, 5), reason: 'Implantação da República' },
-    { date: new Date(year, 10, 1), reason: 'Dia de Todos os Santos' },
-    { date: new Date(year, 11, 1), reason: 'Restauração da Independência' },
-    { date: new Date(year, 11, 8), reason: 'Imaculada Conceição' },
-    { date: new Date(year, 11, 25), reason: 'Natal' },
+    { date: holidayDate(year, 1, 1), reason: 'Ano Novo' },
+    { date: holidayDate(year, 4, 25), reason: 'Dia da Liberdade' },
+    { date: holidayDate(year, 5, 1), reason: 'Dia do Trabalhador' },
+    { date: holidayDate(year, 6, 10), reason: 'Dia de Portugal' },
+    { date: holidayDate(year, 8, 15), reason: 'Assunção de Nossa Senhora' },
+    { date: holidayDate(year, 10, 5), reason: 'Implantação da República' },
+    { date: holidayDate(year, 11, 1), reason: 'Dia de Todos os Santos' },
+    { date: holidayDate(year, 12, 1), reason: 'Restauração da Independência' },
+    { date: holidayDate(year, 12, 8), reason: 'Imaculada Conceição' },
+    { date: holidayDate(year, 12, 25), reason: 'Natal' },
   ].map((h) => ({
     type: 'holiday' as const,
     date: h.date,
@@ -406,7 +454,8 @@ async function main() {
 
   const categories = await seedCategories();
   await seedServices(categories);
-  await seedStaff();
+  const staff = await seedStaff();
+  await linkServicesToStaff(categories, staff);
   await seedIncomeCategories();
   await seedExpenseCategories();
   await seedSchedule();

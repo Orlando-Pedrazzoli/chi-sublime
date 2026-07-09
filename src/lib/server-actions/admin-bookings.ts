@@ -341,7 +341,26 @@ export async function createManualBookingAction(
 
   const dateObj = parseDate(input.date);
   const startTime = combineDateAndTime(dateObj, input.time);
-  const totalDuration = services.reduce((sum: number, s: any) => sum + s.duration, 0);
+
+  // Itens na ordem escolhida — a ordem define os buffers ENTRE serviços.
+  const serviceItems = input.serviceIds.map((sid: string) => {
+    const s: any = services.find((srv: any) => String(srv._id) === sid)!;
+    return {
+      serviceId: s._id,
+      name: s.name.pt,
+      price: s.price,
+      duration: s.duration,
+      bufferAfter: s.bufferAfter ?? 0,
+    };
+  });
+
+  // totalDuration = durações + buffers ENTRE serviços (coerente com o fluxo
+  // online e com o pre-validate do model, evitando divergência admin/site).
+  let totalDuration = 0;
+  for (let i = 0; i < serviceItems.length; i++) {
+    totalDuration += serviceItems[i].duration;
+    if (i < serviceItems.length - 1) totalDuration += serviceItems[i].bufferAfter ?? 0;
+  }
   const endTime = combineDateAndTime(
     dateObj,
     minutesToTime(timeToMinutes(input.time) + totalDuration),
@@ -364,16 +383,6 @@ export async function createManualBookingAction(
     };
   }
 
-  const serviceItems = input.serviceIds.map((sid: string) => {
-    const s: any = services.find((srv: any) => String(srv._id) === sid)!;
-    return {
-      serviceId: s._id,
-      name: s.name.pt,
-      price: s.price,
-      duration: s.duration,
-    };
-  });
-
   const totalPrice = serviceItems.reduce(
     (sum: number, item: { price: number }) => sum + item.price,
     0,
@@ -382,21 +391,38 @@ export async function createManualBookingAction(
 
   const bookingNumber = await generateBookingNumber();
 
-  await Booking.create({
-    bookingNumber,
-    clientId: clientDoc._id,
-    staffId: input.staffId,
-    services: serviceItems,
-    totalDuration,
-    totalPrice,
-    startTime,
-    endTime,
-    status: input.initialStatus ?? 'confirmed',
-    source: input.source,
-    notes: input.notes,
-    remindersSent: { confirmation: false, dayBefore: false, hourBefore: false },
-    internalNotes: `Criado pelo admin: ${admin.name}`,
-  });
+  try {
+    await Booking.create({
+      bookingNumber,
+      clientId: clientDoc._id,
+      staffId: input.staffId,
+      services: serviceItems,
+      totalDuration,
+      totalPrice,
+      startTime,
+      endTime,
+      status: input.initialStatus ?? 'confirmed',
+      source: input.source,
+      notes: input.notes,
+      remindersSent: { confirmation: false, dayBefore: false, hourBefore: false },
+      internalNotes: `Criado pelo admin: ${admin.name}`,
+    });
+  } catch (err) {
+    // E11000 = índice único anti-double-booking: o staff já ficou ocupado
+    // neste instante entre o conflict-check e o create.
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code?: number }).code === 11000
+    ) {
+      return {
+        success: false,
+        error: `Conflito: ${staff.name} já tem reserva neste horário.`,
+      };
+    }
+    throw err;
+  }
 
   await logAudit({
     action: 'create',

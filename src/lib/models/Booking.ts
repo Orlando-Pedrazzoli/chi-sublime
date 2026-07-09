@@ -1,4 +1,5 @@
 import mongoose, { Schema, model, models, type Model } from 'mongoose';
+import { BOOKING_RULES } from '@/lib/constants/business';
 
 export type BookingStatus =
   | 'pending'
@@ -27,11 +28,21 @@ export const BOOKING_SOURCES: BookingSource[] = [
   'admin',
 ];
 
+/**
+ * Estados que efetivamente OCUPAM a agenda do staff. Só estas reservas
+ * bloqueiam um slot (usado no índice único anti-double-booking via
+ * `blocksSlot`, e na deteção de conflitos).
+ */
+export const SLOT_BLOCKING_STATUSES: BookingStatus[] = ['pending', 'confirmed', 'in-progress'];
+
 export interface BookingServiceItem {
   serviceId: mongoose.Types.ObjectId;
   name: string;
   price: number;
+  /** Duração do serviço em minutos (tempo de cadeira) */
   duration: number;
+  /** Buffer após este serviço (gap para o próximo serviço da mesma reserva) */
+  bufferAfter: number;
 }
 
 export interface GuestInfo {
@@ -53,10 +64,15 @@ export interface IBooking {
   guestInfo?: GuestInfo;
   staffId: mongoose.Types.ObjectId;
   services: BookingServiceItem[];
+  /** Tempo total de cadeira (durações + buffers ENTRE serviços). endTime = startTime + isto */
   totalDuration: number;
   totalPrice: number;
+  /** Buffer APÓS a reserva inteira (limpeza/preparação antes do próximo cliente). Só entra na deteção de conflito, não no endTime. */
+  bufferAfter: number;
   startTime: Date;
   endTime: Date;
+  /** true quando o status ocupa a agenda. Suporta o índice único parcial anti-double-booking. */
+  blocksSlot: boolean;
   status: BookingStatus;
   source: BookingSource;
   notes?: string;
@@ -89,6 +105,7 @@ const bookingServiceItemSchema = new Schema<BookingServiceItem>(
       },
     },
     duration: { type: Number, required: true, min: 5, max: 600 },
+    bufferAfter: { type: Number, required: true, default: 0, min: 0, max: 120 },
   },
   { _id: false },
 );
@@ -160,9 +177,18 @@ const bookingSchema = new Schema<IBooking>(
         message: 'totalPrice tem de ser em cêntimos integer',
       },
     },
+    bufferAfter: {
+      type: Number,
+      required: true,
+      default: BOOKING_RULES.defaultBufferMinutes,
+      min: 0,
+      max: 120,
+    },
 
     startTime: { type: Date, required: true, index: true },
     endTime: { type: Date, required: true },
+
+    blocksSlot: { type: Boolean, required: true, default: true },
 
     status: {
       type: String,
@@ -212,7 +238,16 @@ const bookingSchema = new Schema<IBooking>(
   { timestamps: true, versionKey: false },
 );
 
-bookingSchema.index({ staffId: 1, startTime: 1 });
+// Índice único ANTI-DOUBLE-BOOKING: garante que não existem 2 reservas
+// ativas para o mesmo staff no mesmo instante de início. Como a grelha
+// mostrada ao cliente alinha sempre os starts (grelha de 30min), dois
+// clientes a apanhar o mesmo slot colidem no mesmo startTime → E11000,
+// que as server actions traduzem em "slot ocupado". Parcial via blocksSlot
+// para que reservas canceladas/no-show/concluídas NÃO bloqueiem o slot.
+bookingSchema.index(
+  { staffId: 1, startTime: 1 },
+  { unique: true, partialFilterExpression: { blocksSlot: true } },
+);
 bookingSchema.index({ staffId: 1, status: 1, startTime: 1, endTime: 1 });
 bookingSchema.index({ clientId: 1, startTime: -1 });
 bookingSchema.index({ startTime: 1, status: 1 });
@@ -223,7 +258,14 @@ bookingSchema.index({
 });
 bookingSchema.index({ source: 1, startTime: -1 });
 
-bookingSchema.pre('save', function () {
+/**
+ * Normalização + validação ANTES da validação de schema (pre-validate),
+ * para que os campos derivados (totalDuration, endTime, bufferAfter,
+ * blocksSlot) existam sempre e sejam a ÚNICA fonte da verdade —
+ * independentemente de quem cria a reserva (site público ou admin).
+ * Isto elimina a divergência online-vs-admin e garante endTime coerente.
+ */
+bookingSchema.pre('validate', function () {
   // Validação 1: cliente OU guest, não ambos vazios nem ambos preenchidos
   const hasClient = !!this.clientId;
   const hasGuest = !!this.guestInfo?.name;
@@ -235,12 +277,36 @@ bookingSchema.pre('save', function () {
     throw new Error('Booking não pode ter clientId E guestInfo simultaneamente — escolhe um');
   }
 
-  // Validação 2: endTime > startTime
+  // Derivar totalDuration, totalPrice e bufferAfter a partir dos serviços.
+  // totalDuration = Σ durações + Σ buffers ENTRE serviços (todos exceto o último).
+  // O buffer do ÚLTIMO serviço vira o buffer APÓS a reserva (bufferAfter),
+  // usado apenas na deteção de conflitos, não no endTime.
+  if (this.services && this.services.length > 0) {
+    let chairTime = 0;
+    for (let i = 0; i < this.services.length; i++) {
+      chairTime += this.services[i].duration;
+      if (i < this.services.length - 1) {
+        chairTime += this.services[i].bufferAfter ?? 0;
+      }
+    }
+    this.totalDuration = chairTime;
+    this.totalPrice = this.services.reduce((sum, s) => sum + s.price, 0);
+
+    const lastBuffer = this.services[this.services.length - 1].bufferAfter;
+    this.bufferAfter = lastBuffer != null ? lastBuffer : BOOKING_RULES.defaultBufferMinutes;
+  }
+
+  // endTime SEMPRE derivado de startTime + totalDuration (à prova de bala).
+  if (this.startTime && this.totalDuration) {
+    this.endTime = new Date(this.startTime.getTime() + this.totalDuration * 60_000);
+  }
+
+  // Validação: endTime > startTime
   if (this.startTime && this.endTime && this.endTime <= this.startTime) {
     throw new Error('endTime tem de ser depois de startTime');
   }
 
-  // Validação 3: cancelled exige razão e cancelledBy
+  // Validação: cancelled exige razão e cancelledBy
   if (this.status === 'cancelled') {
     if (!this.cancellationReason?.trim()) {
       throw new Error('Reservas canceladas têm de ter cancellationReason');
@@ -250,18 +316,13 @@ bookingSchema.pre('save', function () {
     }
   }
 
-  // Hook: ao mudar para cancelled, preencher cancelledAt
-  if (this.isModified('status') && this.status === 'cancelled') {
-    if (!this.cancelledAt) {
-      this.cancelledAt = new Date();
-    }
+  // Ao mudar para cancelled, preencher cancelledAt
+  if (this.isModified('status') && this.status === 'cancelled' && !this.cancelledAt) {
+    this.cancelledAt = new Date();
   }
 
-  // Recalcular totalDuration e totalPrice a partir dos services
-  if (this.services && this.services.length > 0) {
-    this.totalDuration = this.services.reduce((sum, s) => sum + s.duration, 0);
-    this.totalPrice = this.services.reduce((sum, s) => sum + s.price, 0);
-  }
+  // blocksSlot: só reservas ativas ocupam a agenda (suporta índice único parcial)
+  this.blocksSlot = SLOT_BLOCKING_STATUSES.includes(this.status);
 });
 
 bookingSchema.virtual('displayClientName').get(function (this: IBooking) {

@@ -50,6 +50,7 @@ export {
   Booking,
   BOOKING_STATUSES,
   BOOKING_SOURCES,
+  SLOT_BLOCKING_STATUSES,
   type IBooking,
   type BookingStatus,
   type BookingSource,
@@ -83,6 +84,9 @@ export {
 
 // ─── CashRegister ──────────────────────────────────────────
 export { CashRegister, type ICashRegister, type PaymentMethodBreakdown } from './CashRegister';
+
+// ─── GiftCard (vales / cartões-presente) ───────────────────
+export { GiftCard, generateGiftCardCode, type IGiftCard, type GiftCardHolder } from './GiftCard';
 
 // ─── Schedule ──────────────────────────────────────────────
 export {

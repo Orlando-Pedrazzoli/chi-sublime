@@ -14,7 +14,10 @@
 
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
-export const SALON_TIMEZONE = 'Europe/Lisbon';
+// SALON_TIMEZONE vive em constants/business.ts (single source of truth).
+// Re-exportado aqui por conveniência para os módulos que já o importam de time-utils.
+export { SALON_TIMEZONE } from '@/lib/constants/business';
+import { SALON_TIMEZONE } from '@/lib/constants/business';
 
 export type WeekDay =
   | 'monday'
