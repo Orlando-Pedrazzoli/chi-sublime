@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { SessionProvider } from '@/components/auth/SessionProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -121,7 +122,9 @@ export default function RootLayout({
   return (
     <html lang="pt" className={`${fraunces.variable} ${manrope.variable}`} suppressHydrationWarning>
       <body className="bg-chi-cream text-chi-charcoal antialiased">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );
