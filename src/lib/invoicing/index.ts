@@ -15,18 +15,20 @@
 import type { InvoiceProviderId } from '@/lib/models';
 import { InvoiceProviderError, type InvoiceProvider } from './InvoiceProvider';
 import { MockProvider } from './MockProvider';
+import { MoloniProvider } from './MoloniProvider';
 
 export function getInvoiceProvider(id: InvoiceProviderId): InvoiceProvider {
   switch (id) {
     case 'mock':
       return new MockProvider();
     case 'moloni':
+      return new MoloniProvider();
     case 'invoicexpress':
     case 'vendus':
     case 'atura':
       throw new InvoiceProviderError(
         'provider_not_implemented',
-        `Provider de faturação "${id}" ainda não está implementado. Usa "mock" nas definições fiscais por agora.`,
+        `Provider de faturação "${id}" ainda não está implementado. Usa "mock" ou "moloni" nas definições fiscais.`,
         false,
       );
     default:
@@ -39,6 +41,7 @@ export function getInvoiceProvider(id: InvoiceProviderId): InvoiceProvider {
 }
 
 export { MockProvider } from './MockProvider';
+export { MoloniProvider } from './MoloniProvider';
 export {
   InvoiceProviderError,
   type InvoiceProvider,

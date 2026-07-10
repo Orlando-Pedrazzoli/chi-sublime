@@ -1,12 +1,14 @@
 'use server';
 
+// 📄 src/lib/server-actions/auth.ts
+
 import { nanoid } from 'nanoid';
 import { connectDB } from '@/lib/db/connect';
 import { User } from '@/lib/models/User';
 import { Client } from '@/lib/models/Client';
 import { logAudit } from '@/lib/models/AuditLog';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
-import { sendPasswordResetEmail } from '@/lib/email/send';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/send';
 import {
   registerSchema,
   requestResetSchema,
@@ -139,6 +141,13 @@ export async function registerUser(
       autoMatched: !clientCreated,
     },
   });
+
+  // Email de boas-vindas — não bloqueia nem reverte o registo se falhar.
+  try {
+    await sendWelcomeEmail({ to: userDoc.email, name: userDoc.name });
+  } catch (err) {
+    console.error('[register] welcome email failed:', err);
+  }
 
   return {
     success: true,

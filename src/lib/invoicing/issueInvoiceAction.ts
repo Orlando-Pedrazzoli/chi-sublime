@@ -20,6 +20,8 @@ import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
 import { Transaction, Client, getFiscalSettings, logAudit } from '@/lib/models';
+import { centsToEuros } from '@/lib/utils/cents';
+import { sendInvoiceReceiptEmail } from '@/lib/email/send';
 import { ok, fail, type ActionResult } from '@/types/common';
 import { issueInvoiceSchema, retryInvoiceSchema } from '@/lib/validation/invoice';
 import {
@@ -36,6 +38,21 @@ async function requireAdminSession() {
   const session = await auth();
   if (!session?.user || session.user.role !== 'admin') return null;
   return session.user;
+}
+
+function formatMoney(cents: number, currency: string): string {
+  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(
+    centsToEuros(cents),
+  );
+}
+
+function formatDatePt(date: Date): string {
+  return new Intl.DateTimeFormat('pt-PT', {
+    timeZone: 'Europe/Lisbon',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -101,6 +118,7 @@ async function performIssue(
   documentType: InvoiceDocumentType,
   customerOverride: InvoiceCustomer | null,
   admin: { id: string; name: string; email: string },
+  sendEmailToCustomer: boolean,
 ): Promise<ActionResult<IssueOk>> {
   await connectDB();
 
@@ -177,6 +195,30 @@ async function performIssue(
     });
 
     revalidatePath('/admin/receitas');
+
+    // Envio do documento por email — nunca falha a emissão (o doc já está gravado).
+    if (sendEmailToCustomer && customer.email) {
+      try {
+        const emailResult = await sendInvoiceReceiptEmail({
+          to: customer.email,
+          name: customer.name,
+          documentNumber: issued.documentNumber,
+          date: formatDatePt(issued.issuedAt),
+          total: formatMoney(tx.totalWithVat, params.currency),
+          pdfUrl: issued.pdfUrl,
+        });
+        if (emailResult.ok) {
+          tx.set('invoiceData.sentToCustomer', true);
+          tx.set('invoiceData.sentAt', new Date());
+          await tx.save();
+        } else {
+          console.error('[performIssue] email da fatura não enviado:', emailResult.error);
+        }
+      } catch (mailErr) {
+        console.error('[performIssue] erro no email da fatura:', mailErr);
+      }
+    }
+
     return ok({ documentNumber: issued.documentNumber, pdfUrl: issued.pdfUrl });
   } catch (err) {
     const isProviderErr = err instanceof InvoiceProviderError;
@@ -235,7 +277,7 @@ export async function issueInvoiceAction(input: unknown): Promise<ActionResult<I
   }
 
   const data = parsed.data;
-  return performIssue(data.transactionId, data.documentType, data.customer, admin);
+  return performIssue(data.transactionId, data.documentType, data.customer, admin, data.sendEmail);
 }
 
 // ============================================================
@@ -250,6 +292,6 @@ export async function retryInvoiceAction(input: unknown): Promise<ActionResult<I
   if (!parsed.success) return fail('validation', 'ID inválido.');
 
   // Reconstrói o cliente a partir da própria transação (snapshot anterior
-  // ou cliente associado). Documento por defeito: fatura-recibo.
-  return performIssue(parsed.data.transactionId, 'FR', null, admin);
+  // ou cliente associado). Documento por defeito: fatura-recibo. Reenvia email.
+  return performIssue(parsed.data.transactionId, 'FR', null, admin, true);
 }
