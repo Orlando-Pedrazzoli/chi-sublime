@@ -1,9 +1,13 @@
+// 📄 src/app/reservar/horario/page.tsx
 /**
  * Chi Sublime — Reservar (Step 2: Horario + Staff)
  * ============================================================
  *
  * Server Component. Busca staff ativos da DB e passa ao
  * Step2Client (orquestrador client-side).
+ *
+ * Mobile-first: header compacto — o profissional e o
+ * calendário são a primeira coisa visível no telemóvel.
  */
 
 import type { Metadata } from 'next';
@@ -47,23 +51,24 @@ export default async function ReservarHorarioPage() {
     <>
       <PublicNavbar />
 
-      <main className="bg-chi-cream min-h-screen pt-32 pb-20">
-        <div className="mx-auto max-w-6xl px-6 md:px-12">
-          {/* Hero curto */}
-          <header className="mb-12 text-center">
-            <span className="text-chi-gold-deep mb-4 block font-serif text-xs tracking-[0.32em] uppercase italic">
-              — Reservar online —
-            </span>
-            <h1 className="text-chi-charcoal mb-5 font-serif text-4xl leading-[1.05] font-light tracking-tight md:text-5xl lg:text-6xl">
-              Escolha o seu <span className="text-chi-green-deep italic">momento</span>.
-            </h1>
-            <p className="text-chi-charcoal-soft mx-auto max-w-xl text-base leading-[1.85] md:text-lg">
-              Profissional, data e horário. Tudo no seu ritmo.
+      <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12">
+          {/* Header compacto */}
+          <header className="mb-6 md:mb-10">
+            <div className="flex items-baseline justify-between gap-4">
+              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">Data e horário</h1>
+              <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
+                Passo 2 de 3
+              </span>
+            </div>
+            <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
+              Escolha o profissional e o momento que lhe convém. Mostramos apenas horários realmente
+              disponíveis.
             </p>
           </header>
 
           {/* Stepper */}
-          <div className="mb-14">
+          <div className="mb-8 md:mb-12">
             <BookingStepper currentStep="time" />
           </div>
 

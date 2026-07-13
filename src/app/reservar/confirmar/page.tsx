@@ -1,9 +1,14 @@
+// 📄 src/app/reservar/confirmar/page.tsx
 /**
  * Chi Sublime — Reservar (Step 3: Confirmar)
  * ============================================================
  *
- * Server Component. Renderiza o form de confirmacao protegido pelo
- * BookingFlowGuard (exige Step 1 + Step 2 completados).
+ * Server Component. Renderiza o form de confirmacao protegido
+ * pelo BookingFlowGuard (exige Step 1 + Step 2 completados).
+ *
+ * Mobile-first: header compacto; no mobile o resumo read-only
+ * aparece ANTES do formulário (o utilizador confirma o que vai
+ * pagar antes de preencher dados — preço total visível cedo).
  */
 
 import type { Metadata } from 'next';
@@ -24,32 +29,39 @@ export default function ReservarConfirmarPage() {
     <>
       <PublicNavbar />
 
-      <main className="bg-chi-cream min-h-screen pt-32 pb-20">
-        <div className="mx-auto max-w-5xl px-6 md:px-12">
-          <header className="mb-12 text-center">
-            <span className="text-chi-gold-deep mb-4 block font-serif text-xs tracking-[0.32em] uppercase italic">
-              — Reservar online —
-            </span>
-            <h1 className="text-chi-charcoal mb-5 font-serif text-4xl leading-[1.05] font-light tracking-tight md:text-5xl lg:text-6xl">
-              Os seus <span className="text-chi-green-deep italic">dados</span>.
-            </h1>
-            <p className="text-chi-charcoal-soft mx-auto max-w-xl text-base leading-[1.85] md:text-lg">
-              Estamos quase a terminar.
+      <main className="bg-chi-cream min-h-screen pt-24 pb-24 md:pt-32 md:pb-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 md:px-12">
+          {/* Header compacto */}
+          <header className="mb-6 md:mb-10">
+            <div className="flex items-baseline justify-between gap-4">
+              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
+                Confirmar reserva
+              </h1>
+              <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
+                Passo 3 de 3
+              </span>
+            </div>
+            <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
+              Só faltam os seus dados. Confirme o resumo e termine a reserva.
             </p>
           </header>
 
-          <div className="mb-14">
+          {/* Stepper */}
+          <div className="mb-8 md:mb-12">
             <BookingStepper currentStep="confirm" />
           </div>
 
           <BookingFlowGuard requireStep="time">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px] lg:gap-12">
-              <div>
-                <Step3Client />
-              </div>
-              <aside className="lg:sticky lg:top-24 lg:self-start">
+              {/* Mobile: resumo primeiro (preço visível antes do form).
+                  Desktop: form à esquerda, resumo sticky à direita. */}
+              <aside className="order-first lg:sticky lg:top-24 lg:order-last lg:self-start">
                 <BookingSummaryReadOnly />
               </aside>
+
+              <div className="lg:order-first">
+                <Step3Client />
+              </div>
             </div>
           </BookingFlowGuard>
         </div>

@@ -1,9 +1,14 @@
+// 📄 src/app/reservar/page.tsx
 /**
  * Chi Sublime — Reservar (Step 1: Escolher Servico)
  * ============================================================
  *
  * Server Component. Busca categorias e servicos da DB e
  * passa para o ServicePicker (Client Component).
+ *
+ * Mobile-first: header compacto (uma linha) para que a lista
+ * de serviços apareça above the fold — o caminho até ao
+ * primeiro toque útil é o mais curto possível.
  */
 
 import type { Metadata } from 'next';
@@ -72,42 +77,45 @@ export default async function ReservarPage({ searchParams }: { searchParams: Sea
     <>
       <PublicNavbar />
 
-      <main className="bg-chi-cream min-h-screen pt-32 pb-32 md:pb-20">
-        <div className="mx-auto max-w-7xl px-6 md:px-12">
-          {/* Hero curto */}
-          <header className="mb-12 text-center">
-            <span className="text-chi-gold-deep mb-4 block font-serif text-xs tracking-[0.32em] uppercase italic">
-              — Reservar online —
-            </span>
-            <h1 className="text-chi-charcoal mb-5 font-serif text-4xl leading-[1.05] font-light tracking-tight md:text-5xl lg:text-6xl">
-              Comece pelo <span className="text-chi-green-deep italic">essencial</span>.
-            </h1>
-            <p className="text-chi-charcoal-soft mx-auto max-w-xl text-base leading-[1.85] md:text-lg">
-              Escolha um ou mais serviços. Pode combinar até 5 numa única reserva — corte e
-              coloração, manicure e sobrancelhas, o que quiser. O resto trata-se a seguir.
+      <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
+          {/* Header compacto — título e ajuda numa linha só */}
+          <header className="mb-6 md:mb-10">
+            <div className="flex items-baseline justify-between gap-4">
+              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
+                Escolha os serviços
+              </h1>
+              <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
+                Passo 1 de 3
+              </span>
+            </div>
+            <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
+              Pode combinar até 5 serviços numa única reserva. O total e a duração aparecem no
+              resumo à medida que escolhe.
             </p>
           </header>
 
           {/* Stepper */}
-          <div className="mb-14">
+          <div className="mb-8 md:mb-12">
             <BookingStepper currentStep="service" />
           </div>
 
-          {/* Layout: lista de servicos + sidebar */}
+          {/* Layout: lista de servicos + sidebar (desktop) */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-12">
             {/* Coluna principal — categorias e servicos */}
             <div>
               <ServicePicker categories={categories} initialOpenSlug={categoria} />
             </div>
 
-            {/* Coluna lateral — resumo */}
-            <div>
+            {/* Coluna lateral — resumo (sticky em desktop; no mobile o
+                BookingSummary rende a barra fixa inferior) */}
+            <aside className="lg:sticky lg:top-24 lg:self-start">
               <BookingSummary
                 ctaLabel="Continuar"
                 ctaHref="/reservar/horario"
                 ctaHelper="Próximo passo: escolher data e horário"
               />
-            </div>
+            </aside>
           </div>
         </div>
       </main>

@@ -1,3 +1,14 @@
+// 📄 src/components/layout/NavLinks.tsx
+/**
+ * Chi Sublime — NavLinks (Client)
+ * ============================================================
+ *
+ * Lógica intocada (sessão, dropdowns, scroll, mobile).
+ * Refinamento visual: CTA de cantos retos sem glow/translate,
+ * dropdowns sem gradientes decorativos, chevrons em vez de "▾".
+ * Cores críticas em inline style (regra Tailwind v4 + Next 16).
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -74,8 +85,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-all duration-500',
           scrolled
-            ? 'bg-chi-green-deep/95 border-chi-gold/10 shadow-medium border-b py-4 backdrop-blur-xl'
-            : 'from-chi-green-darker/90 via-chi-green-darker/60 bg-gradient-to-b to-transparent py-6',
+            ? 'bg-chi-green-deep/95 border-chi-gold/10 border-b py-4 backdrop-blur-xl'
+            : 'from-chi-green-darker/80 via-chi-green-darker/40 bg-gradient-to-b to-transparent py-6',
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
@@ -90,13 +101,13 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               priority
             />
             <span
-              className="font-serif text-xl tracking-wider italic md:text-2xl"
+              className="font-serif text-xl tracking-wide md:text-2xl"
               style={{
                 color: '#FAF7F2',
                 textShadow: scrolled ? 'none' : '0 2px 10px rgba(0,0,0,0.6)',
               }}
             >
-              Chi <span className="text-chi-gold">Sublime</span>
+              Chi <span style={{ color: '#D4AF6E' }}>Sublime</span>
             </span>
           </Link>
 
@@ -111,14 +122,23 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               >
                 <Link
                   href={getHref(item.anchor)}
-                  className="group hover:text-chi-gold relative text-xs tracking-[0.18em] uppercase transition-colors"
+                  className="group hover:text-chi-gold relative inline-flex items-center gap-1.5 text-xs tracking-[0.18em] uppercase transition-colors"
                   style={{
                     color: '#FAF7F2',
                     textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                   }}
                 >
                   {item.label}
-                  {item.hasDropdown && <span className="ml-1 text-[8px]">▾</span>}
+                  {item.hasDropdown && (
+                    <ChevronDown
+                      size={12}
+                      strokeWidth={1.5}
+                      className={cn(
+                        'transition-transform duration-200',
+                        servicesDropdownOpen && 'rotate-180',
+                      )}
+                    />
+                  )}
                   <span className="bg-chi-gold absolute -bottom-1.5 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" />
                 </Link>
 
@@ -131,35 +151,34 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                         : 'pointer-events-none translate-y-2 opacity-0',
                     )}
                   >
-                    <div className="bg-chi-green-deep/95 border-chi-gold/20 shadow-strong overflow-hidden rounded-md border backdrop-blur-xl">
-                      <div className="via-chi-gold/60 h-px bg-gradient-to-r from-transparent to-transparent" />
+                    <div className="bg-chi-green-deep/95 border-chi-gold/20 overflow-hidden border backdrop-blur-xl">
                       <ul className="py-2">
                         {categories.map((cat) => (
                           <li key={cat.slug}>
                             <Link
                               href={`/servicos/${cat.slug}`}
-                              className="group flex items-center justify-between px-5 py-3 font-serif text-base transition-all duration-300"
+                              className="group flex items-center justify-between px-5 py-3 font-serif text-base transition-colors duration-300"
                               style={{ color: '#FAF7F2' }}
                             >
-                              <span className="group-hover:text-chi-gold relative z-10 transition-colors duration-300">
+                              <span className="group-hover:text-chi-gold transition-colors duration-300">
                                 {cat.title}
                               </span>
-                              <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                              <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                                 →
                               </span>
-                              <span className="from-chi-gold/10 via-chi-gold/5 absolute inset-0 bg-gradient-to-r to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             </Link>
                           </li>
                         ))}
                       </ul>
-                      <div className="via-chi-gold/30 h-px bg-gradient-to-r from-transparent to-transparent" />
-                      <Link
-                        href={getHref('#services')}
-                        className="block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-all duration-300"
-                        style={{ color: '#D4AF6E' }}
-                      >
-                        Ver todos os serviços
-                      </Link>
+                      <div className="border-chi-gold/15 border-t">
+                        <Link
+                          href={getHref('#services')}
+                          className="hover:text-chi-gold block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-colors duration-300"
+                          style={{ color: '#D4AF6E' }}
+                        >
+                          Ver todos os serviços
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -168,7 +187,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
           </ul>
 
           {/* Right side: Account + CTA */}
-          <div className="hidden items-center gap-5 lg:flex">
+          <div className="hidden items-center gap-6 lg:flex">
             {/* Estado: NÃO LOGADO */}
             {!session && (
               <Link
@@ -236,14 +255,11 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       : 'pointer-events-none translate-y-2 opacity-0',
                   )}
                 >
-                  <div className="bg-chi-green-deep/95 border-chi-gold/20 shadow-strong overflow-hidden rounded-md border backdrop-blur-xl">
-                    {/* Top accent */}
-                    <div className="via-chi-gold/60 h-px bg-gradient-to-r from-transparent to-transparent" />
-
+                  <div className="bg-chi-green-deep/95 border-chi-gold/20 overflow-hidden border backdrop-blur-xl">
                     {/* User header */}
                     <div
                       className="px-5 py-3"
-                      style={{ borderBottom: '1px solid rgba(212,175,110,0.1)' }}
+                      style={{ borderBottom: '1px solid rgba(212,175,110,0.15)' }}
                     >
                       <p
                         className="text-[10px] tracking-[0.22em] uppercase"
@@ -264,13 +280,13 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       <li>
                         <Link
                           href="/conta"
-                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-all duration-300"
+                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-colors duration-300"
                           style={{ color: '#FAF7F2' }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
                             A minha conta
                           </span>
-                          <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                          <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                             →
                           </span>
                         </Link>
@@ -278,28 +294,25 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       <li>
                         <Link
                           href="/conta/reservas"
-                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-all duration-300"
+                          className="group flex items-center justify-between px-5 py-2.5 text-sm transition-colors duration-300"
                           style={{ color: '#FAF7F2' }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
                             As minhas reservas
                           </span>
-                          <span className="text-chi-gold transform opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                          <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                             →
                           </span>
                         </Link>
                       </li>
                     </ul>
 
-                    {/* Divider */}
-                    <div className="via-chi-gold/30 h-px bg-gradient-to-r from-transparent to-transparent" />
-
                     {/* Logout */}
-                    <div className="p-2">
+                    <div className="border-chi-gold/15 border-t p-2">
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="group flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-all duration-300 hover:bg-white/5"
+                        className="group flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-300 hover:bg-white/5"
                         style={{ color: 'rgba(250,247,242,0.7)' }}
                       >
                         <LogOut size={14} strokeWidth={1.5} />
@@ -313,12 +326,13 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               </div>
             )}
 
-            {/* CTA Agendar */}
+            {/* CTA Reservar — cantos retos, sem glow nem translate */}
             <Link
               href="/reservar"
-              className="bg-chi-gold text-chi-green-deep hover:bg-chi-gold-soft hover:text-chi-green-darker hover:shadow-gold rounded-md px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all duration-300 hover:-translate-y-[2px]"
+              className="bg-chi-gold hover:bg-chi-gold-soft px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
+              style={{ color: '#1F3D2E' }}
             >
-              Agendar
+              Reservar
             </Link>
           </div>
 
@@ -423,9 +437,10 @@ export function NavLinks({ categories, session }: NavLinksProps) {
           <Link
             href="/reservar"
             onClick={() => setMobileOpen(false)}
-            className="bg-chi-gold text-chi-green-deep mt-6 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
+            className="bg-chi-gold mt-6 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
+            style={{ color: '#1F3D2E' }}
           >
-            Agendar
+            Reservar
           </Link>
         </div>
       </div>

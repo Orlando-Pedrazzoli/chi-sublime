@@ -1,3 +1,14 @@
+// 📄 src/components/layout/PublicFooter.tsx
+/**
+ * Chi Sublime — PublicFooter
+ * ============================================================
+ *
+ * Estrutura de 4 colunas mantida; refinamentos:
+ *  - Marca sem itálico (coerente com navbar)
+ *  - "Reservar Online" agora aponta para /reservar (era #contact)
+ *  - Socials quadrados de cantos retos (linguagem do site)
+ */
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Lock } from 'lucide-react';
@@ -11,7 +22,7 @@ const NAV_LINKS = [
 ];
 
 const BOOKING_LINKS = [
-  { label: 'Reservar Online', href: '#contact' },
+  { label: 'Reservar Online', href: '/reservar' },
   { label: 'A Minha Conta', href: '/conta' },
   { label: 'Política de Cancelamento', href: '/cancelamento' },
   { label: 'Vouchers', href: '/vouchers' },
@@ -45,24 +56,24 @@ export function PublicFooter() {
                 height={40}
                 className="h-10 w-10"
               />
-              <span className="text-chi-green-deep font-serif text-2xl tracking-wider italic">
+              <span className="text-chi-green-deep font-serif text-2xl tracking-wide">
                 Chi <span className="text-chi-gold-deep">Sublime</span>
               </span>
             </Link>
-            <p className="text-chi-charcoal-soft mb-8 max-w-xs font-serif text-base leading-relaxed italic">
-              Hair Style & Beauty
+            <p className="text-chi-charcoal-soft mb-8 max-w-xs text-sm leading-[1.9]">
+              Hair Style &amp; Beauty
               <br />
               Um refúgio sensorial em Cascais.
             </p>
 
-            {/* Socials */}
+            {/* Socials — quadrados retos */}
             <div className="flex gap-3">
               <Link
                 href="https://www.instagram.com/chiptsublime/"
                 aria-label="Instagram"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-gold hover:text-chi-cream hover:border-chi-gold flex h-10 w-10 items-center justify-center rounded-full border transition-all"
+                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-green-deep hover:border-chi-green-deep flex h-10 w-10 items-center justify-center border transition-colors duration-300 hover:text-[#FAF7F2]"
               >
                 <svg
                   width="14"
@@ -82,7 +93,7 @@ export function PublicFooter() {
                 aria-label="Facebook"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-gold hover:text-chi-cream hover:border-chi-gold flex h-10 w-10 items-center justify-center rounded-full border transition-all"
+                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-green-deep hover:border-chi-green-deep flex h-10 w-10 items-center justify-center border transition-colors duration-300 hover:text-[#FAF7F2]"
               >
                 <svg
                   width="14"
@@ -100,7 +111,7 @@ export function PublicFooter() {
                 aria-label="WhatsApp"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-gold hover:text-chi-cream hover:border-chi-gold flex h-10 w-10 items-center justify-center rounded-full border transition-all"
+                className="border-chi-gold-deep/40 text-chi-gold-deep hover:bg-chi-green-deep hover:border-chi-green-deep flex h-10 w-10 items-center justify-center border transition-colors duration-300 hover:text-[#FAF7F2]"
               >
                 <svg
                   width="14"
