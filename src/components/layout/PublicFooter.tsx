@@ -25,7 +25,6 @@ const BOOKING_LINKS = [
   { label: 'Reservar Online', href: '/reservar' },
   { label: 'A Minha Conta', href: '/conta' },
   { label: 'Política de Cancelamento', href: '/cancelamento' },
-  { label: 'Vouchers', href: '/vouchers' },
 ];
 
 const LEGAL_LINKS = [

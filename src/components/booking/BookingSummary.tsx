@@ -155,10 +155,12 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
         </div>
       </aside>
 
-      {/* MOBILE — bottom bar fixa (so aparece se houver servicos) */}
+      {/* MOBILE — bottom bar fixa (so aparece se houver servicos).
+          pb com safe-area: em iPhones com home indicator o CTA
+          nao fica colado a barra do sistema. */}
       <div
         className={cn(
-          'bg-chi-cream border-chi-border shadow-strong fixed inset-x-0 bottom-0 z-40 border-t px-5 py-4 transition-transform duration-300 lg:hidden',
+          'bg-chi-cream border-chi-border shadow-strong fixed inset-x-0 bottom-0 z-40 border-t px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-transform duration-300 lg:hidden',
           hasServices ? 'translate-y-0' : 'translate-y-full',
         )}
       >

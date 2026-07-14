@@ -49,7 +49,7 @@ const INITIAL_FORM: FormState = {
 export function Step3Client() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { selectedServiceIds, staffId, date, time } = useBookingFlow();
+  const { selectedServiceIds, staffId, date, time, clearFlow } = useBookingFlow();
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -81,12 +81,20 @@ export function Step3Client() {
   // Estado: logado como CLIENTE → form de confirmação
   // ============================================================
 
+  // Campos do form cujos erros do servidor/cliente usam caminho aninhado
+  const ERROR_KEY_ALIASES: Record<string, string> = {
+    phone: 'guestInfo.phone',
+    vatNumber: 'fiscalData.vatNumber',
+  };
+
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (errors[key as string]) {
+    const alias = ERROR_KEY_ALIASES[key as string];
+    if (errors[key as string] || (alias && errors[alias])) {
       setErrors((prev) => {
         const next = { ...prev };
         delete next[key as string];
+        if (alias) delete next[alias];
         return next;
       });
     }
@@ -99,6 +107,34 @@ export function Step3Client() {
 
     if (!date || !time || !staffId) {
       setSubmitError('Falta informação da reserva. Volte ao passo anterior.');
+      return;
+    }
+
+    // ------------------------------------------------------------
+    // Validação client-side ANTES da viagem ao servidor.
+    // (o form tem noValidate, por isso o `required` nativo dos
+    // checkboxes não dispara — sem isto, a política de cancelamento
+    // podia ser ignorada até ao erro do servidor)
+    // ------------------------------------------------------------
+    const clientErrors: FormErrors = {};
+
+    const phoneDigits = form.phone.replace(/[\s\-.()]/g, '').replace(/^\+351/, '');
+    if (!/^\d{9}$/.test(phoneDigits)) {
+      clientErrors['guestInfo.phone'] = 'Indica um telefone português válido (9 dígitos)';
+    }
+
+    if (form.requestInvoice && !/^\d{9}$/.test(form.vatNumber.trim())) {
+      clientErrors['fiscalData.vatNumber'] = 'O NIF tem de ter 9 dígitos';
+    }
+
+    if (!form.acceptsCancellationPolicy) {
+      clientErrors['acceptsCancellationPolicy'] =
+        'Tens de aceitar a política de cancelamento para confirmar';
+    }
+
+    if (Object.keys(clientErrors).length > 0) {
+      setErrors(clientErrors);
+      setSubmitError('Corrige os campos assinalados para continuar.');
       return;
     }
 
@@ -139,6 +175,9 @@ export function Step3Client() {
       const result = await createBookingAction(input);
 
       if (result.success) {
+        // Limpa o carrinho ANTES do redirect — sem isto, voltar a
+        // /reservar mostrava os serviços da reserva já concluída
+        clearFlow();
         // Hard navigation para escapar do BookingFlowGuard
         window.location.href = `/reservar/${result.booking.bookingNumber}`;
         return;
@@ -186,6 +225,7 @@ export function Step3Client() {
             <input
               id="phone"
               type="tel"
+              inputMode="tel"
               value={form.phone}
               onChange={(e) => updateField('phone', e.target.value)}
               placeholder="+351 912 345 678"
@@ -328,6 +368,11 @@ export function Step3Client() {
             <p className="text-chi-charcoal-light mt-0.5 text-xs">
               Cancelamentos devem ser feitos com pelo menos 24h de antecedência.
             </p>
+            {errors['acceptsCancellationPolicy'] && (
+              <p className="text-chi-danger mt-1.5 text-xs font-medium">
+                {errors['acceptsCancellationPolicy']}
+              </p>
+            )}
           </div>
         </label>
 

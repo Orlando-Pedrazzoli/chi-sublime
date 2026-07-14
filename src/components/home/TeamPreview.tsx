@@ -11,6 +11,7 @@
  */
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Reveal } from '@/components/shared/Reveal';
 
 const TEAM = [
@@ -61,7 +62,7 @@ export function TeamPreview() {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:gap-10 lg:grid-cols-3">
           {TEAM.map((member, i) => (
             <Reveal key={member.slug} delay={i * 0.1} className={i === 1 ? 'lg:mt-20' : undefined}>
-              <article className="group">
+              <Link href={`/equipa/${member.slug}`} className="group block">
                 <div className="relative mb-6 aspect-[3/4] overflow-hidden">
                   <Image
                     src={member.image}
@@ -74,7 +75,7 @@ export function TeamPreview() {
                 </div>
 
                 <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="text-chi-charcoal font-serif text-2xl md:text-[1.75rem]">
+                  <h3 className="text-chi-charcoal group-hover:text-chi-green-deep font-serif text-2xl transition-colors duration-300 md:text-[1.75rem]">
                     {member.name}
                   </h3>
                   <span className="text-chi-gold-deep shrink-0 text-[10px] tracking-[0.25em] uppercase">
@@ -84,7 +85,10 @@ export function TeamPreview() {
                 <p className="text-chi-charcoal-soft mt-2 text-sm leading-[1.7]">
                   {member.specialty}
                 </p>
-              </article>
+                <span className="text-chi-gold-deep mt-3 inline-flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  Ver perfil →
+                </span>
+              </Link>
             </Reveal>
           ))}
         </div>

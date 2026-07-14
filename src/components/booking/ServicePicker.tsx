@@ -62,7 +62,13 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
 
   const [openSlugs, setOpenSlugs] = useState<Set<string>>(() => {
     const initial = new Set<string>();
-    if (initialOpenSlug) initial.add(initialOpenSlug);
+    if (initialOpenSlug) {
+      initial.add(initialOpenSlug);
+    } else if (categories.length > 0) {
+      // UX: sem categoria no URL, a primeira abre por defeito —
+      // o cliente nunca aterra numa lista de acordeões fechados.
+      initial.add(categories[0].slug);
+    }
     return initial;
   });
 
