@@ -1,27 +1,34 @@
+// 📄 src/components/booking/CalendarPicker.tsx
 'use client';
 
 /**
  * Chi Sublime — Calendar Picker (Step 2)
  * ============================================================
  *
- * Calendario mensal para escolha de data.
+ * Calendario mensal 100% ORIENTADO PELOS DADOS DO ADMIN, via
+ * getMonthAvailabilityAction (horario do salao, feriados,
+ * excecoes, horario semanal e ferias de cada profissional,
+ * reservas existentes).
  *
- * Comportamento:
- *  - Mostra mes atual ou mes navegado pelo user
- *  - Setas para mes anterior/seguinte
- *  - Limite: nao deixa navegar para passado nem para mais de 30 dias futuro
- *  - Dias clicaveis: futuro proximo, dentro de 30 dias
- *  - Dias bloqueados: passado, sabados/domingos, fora do limite
- *  - Hoje destacado com ponto dourado
- *  - Dia selecionado: fundo verde escuro
+ * MUDANCA vs versao anterior: os fins de semana deixaram de
+ * estar bloqueados hardcoded — se o admin abrir o salao ao
+ * sabado, o sabado abre aqui automaticamente.
  *
- * Visual:
- *  - 7 colunas (Seg-Dom) em portugues
- *  - 6 linhas para suportar todos os meses
- *  - Hover dourado em dias clicaveis
+ * Estados visuais por dia:
+ *  - PASSADO       → cor propria (areia), nao clicavel
+ *  - INDISPONIVEL  → opaco (~35%): fechado, feriado, folga/ferias
+ *                    do profissional, ou alem do horizonte
+ *  - ESGOTADO      → numero riscado (aberto mas sem vagas)
+ *  - DISPONIVEL    → normal, hover dourado, touch target amplo
+ *  - HOJE          → contorno dourado
+ *  - SELECIONADO   → preenchido verde profundo
+ *
+ * Cache por mes+staff+servicos para navegacao instantanea.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getMonthAvailabilityAction } from '@/lib/server-actions/calendar';
+import type { CalendarDay } from '@/lib/booking/month-availability';
 import { cn } from '@/lib/utils/cn';
 
 const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -41,12 +48,24 @@ const MONTH_NAMES = [
   'Dezembro',
 ];
 
+const STATE_TOOLTIP: Record<string, string> = {
+  past: 'Data passada',
+  'out-of-range': 'Fora do período de reserva',
+  closed: 'Salão encerrado',
+  'staff-off': 'Profissional indisponível',
+  full: 'Sem horários livres',
+};
+
 type Props = {
   /** Data selecionada (ISO YYYY-MM-DD ou null) */
   selectedDate: string | null;
   /** Callback quando data e selecionada */
   onSelectDate: (isoDate: string) => void;
-  /** Maximo de dias futuros permitidos */
+  /** Servicos escolhidos no Step 1 (necessario para calcular vagas) */
+  serviceIds: string[];
+  /** Staff escolhido ('any' ou id) */
+  staffId: string;
+  /** Maximo de dias futuros permitidos (para limites de navegacao) */
   maxDaysAhead?: number;
 };
 
@@ -67,31 +86,22 @@ function startOfDay(date: Date): Date {
   return d;
 }
 
-/** Devolve um array com todos os dias a mostrar no calendario.
- *  Inclui dias de "preenchimento" do mes anterior e seguinte para
- *  formar uma grelha rectangular. Comeca a Segunda. */
+/** Grelha retangular do mes (com preenchimento), a comecar a Segunda. */
 function getMonthGrid(year: number, month: number): Date[] {
   const firstOfMonth = new Date(year, month, 1);
   const lastOfMonth = new Date(year, month + 1, 0);
 
-  // JavaScript: 0=Sunday, 1=Monday... Convertemos para Mon=0, Sun=6
   const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
   const lastWeekday = (lastOfMonth.getDay() + 6) % 7;
 
   const days: Date[] = [];
 
-  // Dias do mes anterior (preenchimento)
   for (let i = firstWeekday; i > 0; i--) {
-    const d = new Date(year, month, 1 - i);
-    days.push(d);
+    days.push(new Date(year, month, 1 - i));
   }
-
-  // Dias do mes atual
   for (let d = 1; d <= lastOfMonth.getDate(); d++) {
     days.push(new Date(year, month, d));
   }
-
-  // Dias do mes seguinte (preenchimento)
   for (let i = 1; i <= 6 - lastWeekday; i++) {
     days.push(new Date(year, month + 1, i));
   }
@@ -103,7 +113,13 @@ function getMonthGrid(year: number, month: number): Date[] {
 // COMPONENTE
 // ============================================================
 
-export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }: Props) {
+export function CalendarPicker({
+  selectedDate,
+  onSelectDate,
+  serviceIds,
+  staffId,
+  maxDaysAhead = 30,
+}: Props) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const maxDate = useMemo(() => {
     const d = new Date(today);
@@ -113,7 +129,61 @@ export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }
 
   // Mes/ano em vista
   const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-based
+
+  // Disponibilidade do mes em vista
+  const [daysByISO, setDaysByISO] = useState<Map<string, CalendarDay>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Cache: "staffId|servicos|YYYY-MM" → CalendarDay[]
+  const cacheRef = useRef<Map<string, CalendarDay[]>>(new Map());
+  const serviceKey = useMemo(() => [...serviceIds].sort().join(','), [serviceIds]);
+
+  const loadMonth = useCallback(
+    async (year: number, monthZeroBased: number) => {
+      const key = `${staffId}|${serviceKey}|${year}-${monthZeroBased + 1}`;
+      const cached = cacheRef.current.get(key);
+      if (cached) {
+        setDaysByISO(new Map(cached.map((d) => [d.date, d])));
+        setLoading(false);
+        setFetchError(null);
+        return;
+      }
+
+      setLoading(true);
+      setFetchError(null);
+      try {
+        const result = await getMonthAvailabilityAction({
+          year,
+          month: monthZeroBased + 1,
+          serviceIds,
+          staffId,
+        });
+
+        if (result.error) {
+          setFetchError(result.error.message);
+          setDaysByISO(new Map());
+        } else {
+          cacheRef.current.set(key, result.days);
+          setDaysByISO(new Map(result.days.map((d) => [d.date, d])));
+        }
+      } catch (err) {
+        console.error('Failed to fetch month availability:', err);
+        setFetchError('Erro ao carregar o calendário. Tente novamente.');
+        setDaysByISO(new Map());
+      } finally {
+        setLoading(false);
+      }
+    },
+    [staffId, serviceKey, serviceIds],
+  );
+
+  // Fetch ao montar e sempre que mes/staff/servicos mudam
+  useEffect(() => {
+    if (serviceIds.length === 0) return;
+    void loadMonth(viewYear, viewMonth);
+  }, [viewYear, viewMonth, loadMonth, serviceIds.length]);
 
   const grid = useMemo(() => getMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
 
@@ -131,13 +201,8 @@ export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }
     setViewYear(newDate.getFullYear());
   };
 
-  // Disable navigation when on edges
   const canGoPrev = viewMonth > today.getMonth() || viewYear > today.getFullYear();
-
-  const canGoNext = (() => {
-    const nextMonthFirst = new Date(viewYear, viewMonth + 1, 1);
-    return nextMonthFirst <= maxDate;
-  })();
+  const canGoNext = new Date(viewYear, viewMonth + 1, 1) <= maxDate;
 
   return (
     <div>
@@ -171,7 +236,7 @@ export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }
             </svg>
           </button>
 
-          <span className="text-chi-charcoal min-w-[180px] text-center font-serif text-base md:text-lg">
+          <span className="text-chi-charcoal min-w-[160px] text-center font-serif text-base md:min-w-[180px] md:text-lg">
             {MONTH_NAMES[viewMonth]} {viewYear}
           </span>
 
@@ -203,7 +268,13 @@ export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }
       </div>
 
       {/* Grelha */}
-      <div className="border-chi-border bg-chi-cream rounded-lg border p-4 md:p-5">
+      <div
+        className={cn(
+          'border-chi-border bg-chi-cream relative rounded-lg border p-4 transition-opacity md:p-5',
+          loading && 'pointer-events-none opacity-60',
+        )}
+        aria-busy={loading}
+      >
         {/* Cabecalho dos dias da semana */}
         <div className="mb-2 grid grid-cols-7 gap-1 md:gap-2">
           {WEEKDAY_LABELS.map((label) => (
@@ -221,49 +292,109 @@ export function CalendarPicker({ selectedDate, onSelectDate, maxDaysAhead = 30 }
           {grid.map((date, idx) => {
             const iso = toISO(date);
             const isCurrentMonth = date.getMonth() === viewMonth;
-            const isPast = date < today;
-            const isTooFar = date > maxDate;
-            const dayOfWeek = date.getDay(); // 0=Sun, 6=Sat
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            const isToday = iso === toISO(today);
             const isSelected = iso === selectedDate;
 
-            // Bloqueado se: passado, > 30 dias, sabado, domingo, ou fora do mes
-            const isBlocked = !isCurrentMonth || isPast || isTooFar || isWeekend;
+            // Dias de preenchimento (outro mes): mudos, nao clicaveis
+            if (!isCurrentMonth) {
+              return (
+                <div
+                  key={`${iso}-${idx}`}
+                  aria-hidden
+                  className="text-chi-charcoal-light/20 flex aspect-square items-center justify-center text-sm md:text-base"
+                >
+                  {date.getDate()}
+                </div>
+              );
+            }
+
+            const dayInfo = daysByISO.get(iso);
+            const state = dayInfo?.state ?? 'out-of-range';
+
+            const isPast = state === 'past';
+            const isFull = state === 'full';
+            const isUnavailable =
+              state === 'closed' || state === 'staff-off' || state === 'out-of-range';
+            const isAvailable = state === 'available';
+            const isToday = iso === toISO(today);
+
+            const tooltip = dayInfo?.reason ?? STATE_TOOLTIP[state];
 
             return (
               <button
                 key={`${iso}-${idx}`}
-                onClick={() => !isBlocked && onSelectDate(iso)}
-                disabled={isBlocked}
-                aria-label={`${date.getDate()} de ${MONTH_NAMES[date.getMonth()]}`}
+                onClick={() => isAvailable && onSelectDate(iso)}
+                disabled={!isAvailable}
+                title={isAvailable ? undefined : tooltip}
+                aria-label={`${date.getDate()} de ${MONTH_NAMES[date.getMonth()]}${
+                  isAvailable ? '' : ` — ${tooltip}`
+                }`}
                 aria-pressed={isSelected}
+                aria-disabled={!isAvailable}
                 className={cn(
                   'relative flex aspect-square items-center justify-center rounded-md text-sm font-medium transition-all md:text-base',
-                  // Estados base
-                  !isCurrentMonth && 'text-chi-charcoal-light/30',
-                  isCurrentMonth &&
-                    !isBlocked &&
+                  // DISPONIVEL — normal, hover dourado
+                  isAvailable &&
                     'text-chi-charcoal hover:bg-chi-gold/15 hover:text-chi-green-deep cursor-pointer',
-                  isCurrentMonth && isBlocked && 'text-chi-charcoal-light/40 cursor-not-allowed',
-                  // Selecionado tem prioridade
-                  isSelected && '!bg-chi-green-deep !text-chi-cream shadow-soft font-semibold',
+                  // PASSADO — cor propria (areia), distinta dos indisponiveis
+                  isPast && 'text-chi-sand-deep cursor-default',
+                  // INDISPONIVEL — opaco (fechado / folga / fora do periodo)
+                  isUnavailable && 'text-chi-charcoal cursor-not-allowed opacity-30',
+                  // ESGOTADO — riscado (aberto mas sem vagas)
+                  isFull && 'text-chi-charcoal-light cursor-not-allowed line-through opacity-60',
+                  // HOJE — contorno dourado
+                  isToday && !isSelected && 'ring-chi-gold ring-1 ring-inset',
+                  // SELECIONADO — tem prioridade sobre tudo
+                  isSelected &&
+                    '!text-chi-cream shadow-soft !bg-chi-green-deep font-semibold !opacity-100',
                 )}
               >
                 <span>{date.getDate()}</span>
-                {isToday && !isSelected && (
-                  <span className="bg-chi-gold absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" />
-                )}
               </button>
             );
           })}
         </div>
+
+        {/* Spinner discreto durante fetch */}
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="border-chi-gold h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+          </div>
+        )}
       </div>
 
-      {/* Legenda discreta */}
-      <p className="text-chi-charcoal-light mt-3 text-center text-[11px] italic">
-        Sábados, domingos e feriados não estão disponíveis para reserva.
-      </p>
+      {/* Erro de fetch */}
+      {fetchError && (
+        <div className="mt-3 text-center">
+          <p className="text-chi-danger text-sm italic">{fetchError}</p>
+          <button
+            type="button"
+            onClick={() => void loadMonth(viewYear, viewMonth)}
+            className="text-chi-gold-deep hover:text-chi-green-deep mt-1 text-xs tracking-[0.15em] uppercase underline underline-offset-4 transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {/* Legenda — orientada aos estados reais */}
+      <div className="text-chi-charcoal-light mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px]">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="border-chi-border bg-chi-cream inline-block h-3 w-3 rounded-sm border" />
+          Disponível
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="bg-chi-charcoal/25 inline-block h-3 w-3 rounded-sm" />
+          Indisponível
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="line-through">00</span>
+          Esgotado
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-chi-sand-deep">00</span>
+          Passado
+        </span>
+      </div>
     </div>
   );
 }

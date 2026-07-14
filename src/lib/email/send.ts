@@ -7,6 +7,10 @@
  * envia via `sendEmail` (resend.ts). Templates são componentes puros;
  * aqui é que se constroem os URLs e os assuntos.
  *
+ * NOVO: sendNewBookingAdminEmail — alerta ao SALÃO a cada reserva
+ * nova (substitui o push do Noona HQ). Destinatário configurável
+ * via SALON_NOTIFICATION_EMAIL (fallback: FROM_EMAIL).
+ *
  * Compatibilidade: `sendPasswordResetEmail({ to, name, token })`
  * mantém a assinatura antiga (usada pelo auth.ts). A infraestrutura
  * (sendEmail, helpers de URL, tipos) é re-exportada para quem antes
@@ -19,6 +23,7 @@ import { render } from '@react-email/components';
 import {
   sendEmail,
   APP_URL,
+  FROM_EMAIL,
   getResetPasswordUrl,
   getBookingDetailUrl,
   getLoginUrl,
@@ -33,6 +38,7 @@ import { BookingConfirmationEmail } from './templates/booking-confirmation';
 import { BookingReminderEmail } from './templates/booking-reminder';
 import { BookingCancellationEmail } from './templates/booking-cancellation';
 import { InvoiceReceiptEmail } from './templates/invoice-receipt';
+import { NewBookingAdminEmail } from './templates/new-booking-admin';
 
 // Re-export da infraestrutura (backward-compat)
 export {
@@ -43,6 +49,13 @@ export {
   getVerifyEmailUrl,
 } from './resend';
 export type { SendEmailInput, SendEmailResult } from './resend';
+
+/**
+ * Para onde vão os alertas operacionais do salão (novas reservas).
+ * Definir SALON_NOTIFICATION_EMAIL no .env; sem ela, cai no FROM
+ * (a caixa reservas@chisublime.pt recebe os próprios alertas).
+ */
+export const SALON_NOTIFICATION_EMAIL = process.env.SALON_NOTIFICATION_EMAIL ?? FROM_EMAIL;
 
 // ============================================================
 // Render helper
@@ -125,6 +138,38 @@ export async function sendBookingConfirmationEmail(params: {
   return sendEmail({
     to: params.to,
     subject: `Reserva confirmada · ${params.bookingNumber} — Chi Sublime`,
+    html,
+    text,
+  });
+}
+
+export async function sendNewBookingAdminEmail(params: {
+  bookingNumber: string;
+  clientName: string;
+  clientPhone?: string;
+  date: string;
+  time: string;
+  services: string;
+  staffName: string;
+  total: string;
+  source: string;
+}): Promise<SendEmailResult> {
+  const node = createElement(NewBookingAdminEmail, {
+    bookingNumber: params.bookingNumber,
+    clientName: params.clientName,
+    clientPhone: params.clientPhone,
+    date: params.date,
+    time: params.time,
+    services: params.services,
+    staffName: params.staffName,
+    total: params.total,
+    source: params.source,
+    agendaUrl: `${APP_URL}/admin/reservas`,
+  });
+  const { html, text } = await renderEmail(node);
+  return sendEmail({
+    to: SALON_NOTIFICATION_EMAIL,
+    subject: `🗓 Nova reserva ${params.time} · ${params.clientName} — ${params.bookingNumber}`,
     html,
     text,
   });

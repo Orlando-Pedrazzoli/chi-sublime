@@ -1,11 +1,27 @@
+// 📄 src/components/admin/agenda/NewBookingModal.tsx
 'use client';
 
+/**
+ * Chi Sublime — New Booking Modal (Agenda admin)
+ * ============================================================
+ *
+ * MUDANCAS (ligacao ao motor auditado):
+ *  - Usa createManualBookingAction de manual-bookings.ts
+ *    (ActionResult; valida disponibilidade real, bloqueia dias
+ *    passados, sobreposicao SEMPRE verificada + indice E11000).
+ *    A action antiga em admin-bookings.ts ficou orfa.
+ *  - Checkbox "Forcar encaixe": salta a validacao de horario
+ *    (salao/staff/grelha) para walk-ins fora do padrao — nunca
+ *    salta a detecao de sobreposicao.
+ *  - Prefill de hora + profissional (clique em slot vazio da
+ *    vista de dia no AgendaContainer).
+ *  - searchClientsAction continua em admin-bookings.ts.
+ */
+
 import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
-import { X, Phone, Globe, User as UserIcon, Plus } from 'lucide-react';
-import {
-  createManualBookingAction,
-  searchClientsAction,
-} from '@/lib/server-actions/admin-bookings';
+import { X, Phone, Globe, User as UserIcon, Plus, AlertTriangle } from 'lucide-react';
+import { createManualBookingAction } from '@/lib/server-actions/manual-bookings';
+import { searchClientsAction } from '@/lib/server-actions/admin-bookings';
 
 type StaffOption = { id: string; name: string; photo?: string };
 type ServiceOption = {
@@ -21,11 +37,14 @@ type NewBookingModalProps = {
   staff: StaffOption[];
   services: ServiceOption[];
   defaultDate: string;
+  /** Prefill vindo do clique num slot vazio da agenda */
+  prefillTime?: string;
+  prefillStaffId?: string;
   onClose: () => void;
   onCreated: () => void;
 };
 
-type Source = 'phone' | 'walk-in' | 'instagram' | 'website';
+type Source = 'phone' | 'walk-in' | 'instagram';
 
 // Ordem e labels das categorias (alinhado com seed-database.ts)
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -42,6 +61,8 @@ export function NewBookingModal({
   staff,
   services,
   defaultDate,
+  prefillTime,
+  prefillStaffId,
   onClose,
   onCreated,
 }: NewBookingModalProps) {
@@ -58,11 +79,12 @@ export function NewBookingModal({
 
   // Reserva
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [staffId, setStaffId] = useState(staff[0]?.id ?? '');
+  const [staffId, setStaffId] = useState(prefillStaffId ?? staff[0]?.id ?? '');
   const [date, setDate] = useState(defaultDate);
-  const [time, setTime] = useState('10:00');
+  const [time, setTime] = useState(prefillTime ?? '10:00');
   const [source, setSource] = useState<Source>('phone');
   const [notes, setNotes] = useState('');
+  const [force, setForce] = useState(false);
 
   // Tabs de serviços + validação
   const [activeTab, setActiveTab] = useState<string>(CATEGORY_ORDER[0]);
@@ -158,6 +180,11 @@ export function NewBookingModal({
       return;
     }
 
+    if (selectedServices.length > 5) {
+      setError('Máximo de 5 serviços por reserva');
+      return;
+    }
+
     if (!staffId) {
       setError('Seleciona um profissional');
       return;
@@ -188,14 +215,15 @@ export function NewBookingModal({
         date,
         time,
         source,
-        initialStatus: 'confirmed',
+        status: 'confirmed',
         notes: notes.trim() || undefined,
+        force,
       });
 
       if (result.success) {
         onCreated();
       } else {
-        setError(result.error);
+        setError(result.error.message);
       }
     });
   }
@@ -379,7 +407,7 @@ export function NewBookingModal({
                   searchQuery.trim().length >= 2 &&
                   searchResults.length === 0 && (
                     <p className="px-3 py-2 text-xs italic" style={{ color: '#5A5A5A' }}>
-                      Nenhum cliente encontrado. Usa "Novo cliente" para registar.
+                      Nenhum cliente encontrado. Usa &quot;Novo cliente&quot; para registar.
                     </p>
                   )}
               </div>
@@ -424,7 +452,7 @@ export function NewBookingModal({
 
           {/* Serviços com tabs */}
           <Section
-            label={`Serviços ${selectedServices.length > 0 ? `(${selectedServices.length})` : ''}`}
+            label={`Serviços ${selectedServices.length > 0 ? `(${selectedServices.length}/5)` : ''}`}
           >
             {/* Tabs de categorias */}
             <div
@@ -545,6 +573,36 @@ export function NewBookingModal({
               />
             </Section>
           </div>
+
+          {/* Forçar encaixe */}
+          <label
+            className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors"
+            style={{
+              borderColor: force ? 'rgba(196,134,30,0.4)' : 'rgba(31,61,46,0.15)',
+              backgroundColor: force ? 'rgba(196,134,30,0.06)' : 'transparent',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={force}
+              onChange={(e) => setForce(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer rounded"
+              style={{ accentColor: '#C4861E' }}
+            />
+            <span>
+              <span
+                className="flex items-center gap-1.5 text-sm font-medium"
+                style={{ color: '#1A1A1A' }}
+              >
+                <AlertTriangle size={13} style={{ color: '#C4861E' }} />
+                Forçar encaixe
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed" style={{ color: '#5A5A5A' }}>
+                Permite agendar fora do horário normal do salão/profissional (ex: walk-in ao fim do
+                dia). Sobreposições com outras reservas continuam bloqueadas.
+              </span>
+            </span>
+          </label>
 
           {/* Notas */}
           <Section label="Notas (opcional)">

@@ -1,3 +1,4 @@
+// 📄 src/components/booking/TimeSlotGrid.tsx
 'use client';
 
 /**
@@ -6,17 +7,18 @@
  *
  * Grelha de horarios disponiveis para a data escolhida.
  *
+ * Melhorias mobile-first (best practices de booking):
+ *  - Slots agrupados por MANHA / TARDE (scan mais rapido)
+ *  - Touch targets >= 52px de altura
+ *  - Nome do staff so aparece quando o cliente escolheu
+ *    "qualquer profissional" (showStaffName) — senao e redundante
+ *
  * Estados:
  *  - Idle (sem data escolhida): mensagem inicial
  *  - Loading: skeleton durante fetch
  *  - Empty: mensagem amigavel ("sem horarios disponiveis")
  *  - Closed: mensagem do salao fechado (feriado, etc.)
  *  - Loaded: grelha de slots clicaveis
- *
- * Visual:
- *  - 4 colunas mobile / 6 desktop
- *  - Cada slot: hora grande + nome do staff (font menor)
- *  - Selecionado: fundo dourado + texto verde escuro
  */
 
 import { cn } from '@/lib/utils/cn';
@@ -38,7 +40,13 @@ type Props = {
   selectedTime: string | null;
   /** Callback quando user escolhe um slot */
   onSelectSlot: (slot: SlotData) => void;
+  /** Mostrar o nome do staff em cada slot (true quando staff='any') */
+  showStaffName?: boolean;
 };
+
+function isMorning(time: string): boolean {
+  return Number(time.slice(0, 2)) < 12;
+}
 
 export function TimeSlotGrid({
   state,
@@ -46,7 +54,51 @@ export function TimeSlotGrid({
   closedDetail,
   selectedTime,
   onSelectSlot,
+  showStaffName = true,
 }: Props) {
+  const morning = slots.filter((s) => isMorning(s.time));
+  const afternoon = slots.filter((s) => !isMorning(s.time));
+
+  const renderSlots = (group: SlotData[]) => (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:gap-3">
+      {group.map((slot) => {
+        const isSelected = selectedTime === slot.time;
+        return (
+          <button
+            key={`${slot.time}-${slot.staffId}`}
+            onClick={() => onSelectSlot(slot)}
+            aria-pressed={isSelected}
+            className={cn(
+              'flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-md border-2 px-2 py-3 transition-all duration-200',
+              isSelected
+                ? 'border-chi-gold bg-chi-gold shadow-gold'
+                : 'border-chi-border bg-chi-cream hover:border-chi-gold hover:shadow-soft',
+            )}
+          >
+            <span
+              className={cn(
+                'font-mono text-base font-medium md:text-lg',
+                isSelected ? 'text-chi-green-deep' : 'text-chi-charcoal',
+              )}
+            >
+              {slot.time}
+            </span>
+            {showStaffName && (
+              <span
+                className={cn(
+                  'max-w-full truncate text-[10px] tracking-[0.12em] uppercase',
+                  isSelected ? 'text-chi-green-darker' : 'text-chi-charcoal-light',
+                )}
+              >
+                {slot.staffName}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div>
       <h3 className="text-chi-charcoal mb-5 font-serif text-xl">Horários disponíveis</h3>
@@ -55,19 +107,16 @@ export function TimeSlotGrid({
       {state === 'idle' && (
         <div className="border-chi-border bg-chi-cream/50 rounded-lg border border-dashed p-8 text-center">
           <p className="text-chi-charcoal-soft font-serif italic">
-            Selecione uma data acima para ver os horários disponíveis.
+            Selecione uma data no calendário para ver os horários disponíveis.
           </p>
         </div>
       )}
 
       {/* LOADING — skeleton */}
       {state === 'loading' && (
-        <div
-          className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:gap-3 lg:grid-cols-6"
-          aria-busy="true"
-        >
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:gap-3" aria-busy="true">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="bg-chi-sand/40 h-16 animate-pulse rounded-md md:h-20" />
+            <div key={i} className="bg-chi-sand/40 h-[52px] animate-pulse rounded-md" />
           ))}
         </div>
       )}
@@ -105,42 +154,25 @@ export function TimeSlotGrid({
         </div>
       )}
 
-      {/* LOADED — slots disponiveis */}
+      {/* LOADED — slots agrupados por periodo */}
       {state === 'loaded' && slots.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:gap-3 lg:grid-cols-6">
-          {slots.map((slot) => {
-            const isSelected = selectedTime === slot.time;
-            return (
-              <button
-                key={`${slot.time}-${slot.staffId}`}
-                onClick={() => onSelectSlot(slot)}
-                aria-pressed={isSelected}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 rounded-md border-2 px-2 py-3 transition-all duration-200 md:py-4',
-                  isSelected
-                    ? 'border-chi-gold bg-chi-gold shadow-gold'
-                    : 'border-chi-border bg-chi-cream hover:border-chi-gold hover:shadow-soft hover:-translate-y-0.5',
-                )}
-              >
-                <span
-                  className={cn(
-                    'font-mono text-base font-medium md:text-lg',
-                    isSelected ? 'text-chi-green-deep' : 'text-chi-charcoal',
-                  )}
-                >
-                  {slot.time}
-                </span>
-                <span
-                  className={cn(
-                    'max-w-full truncate text-[10px] tracking-[0.12em] uppercase',
-                    isSelected ? 'text-chi-green-darker' : 'text-chi-charcoal-light',
-                  )}
-                >
-                  {slot.staffName}
-                </span>
-              </button>
-            );
-          })}
+        <div className="space-y-6">
+          {morning.length > 0 && (
+            <div>
+              <p className="text-chi-charcoal-light mb-3 text-[10px] font-semibold tracking-[0.25em] uppercase">
+                Manhã
+              </p>
+              {renderSlots(morning)}
+            </div>
+          )}
+          {afternoon.length > 0 && (
+            <div>
+              <p className="text-chi-charcoal-light mb-3 text-[10px] font-semibold tracking-[0.25em] uppercase">
+                Tarde
+              </p>
+              {renderSlots(afternoon)}
+            </div>
+          )}
         </div>
       )}
     </div>

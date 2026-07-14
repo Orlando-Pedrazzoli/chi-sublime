@@ -66,9 +66,6 @@ const scheduleSchema = new Schema<ISchedule>(
   { timestamps: true, versionKey: false },
 );
 
-scheduleSchema.index({ type: 1, dayOfWeek: 1 }, { sparse: true });
-scheduleSchema.index({ type: 1, date: 1 }, { sparse: true });
-
 scheduleSchema.index(
   { type: 1, dayOfWeek: 1 },
   { unique: true, partialFilterExpression: { type: 'regular' } },

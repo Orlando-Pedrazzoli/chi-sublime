@@ -1,3 +1,4 @@
+// 📄 src/lib/booking/availability.ts
 /**
  * Chi Sublime — Availability Algorithm
  * ============================================================
@@ -14,6 +15,21 @@
  *  - Load balancing para "qualquer staff" (menor ocupacao)
  *  - Respeita: salao hours, holidays, exceptions, staff vacations,
  *    staff working hours, breaks, reservas existentes
+ *
+ * CHANGELOG (auditoria):
+ *  - FIX: validacao de passado agora e por DIA DE CALENDARIO em
+ *    Lisboa (toISODate). Antes, uma janela de 24h permitia gerar
+ *    slots (e criar reservas) para ontem.
+ *  - FIX: ferias comparadas por dia de calendario INCLUSIVO.
+ *    Antes, "to" gravado a meia-noite deixava o staff disponivel
+ *    no ultimo dia de ferias.
+ *  - PERF: alocacao "any" calcula a ocupacao UMA vez por staff,
+ *    em memoria, a partir das reservas ja carregadas (antes:
+ *    1 query por staff POR SLOT — dezenas de queries por chamada).
+ *  - Helpers exportados para reuso pelo modulo de disponibilidade
+ *    mensal (month-availability.ts): generateSlotsForStaff,
+ *    canStaffPerformAllServices, isStaffOnVacation,
+ *    calculateTotalDuration.
  *
  * Output:
  *  - Lista de slots ["10:00", "10:30", ...]
@@ -40,7 +56,6 @@ import {
   type Break,
   type ExistingBooking,
 } from './conflicts';
-import { pickLeastOccupiedStaff } from './staff-allocator';
 import { BOOKING_RULES } from '@/lib/constants/business';
 
 // ============================================================
@@ -121,8 +136,6 @@ export type AvailabilityError =
  *   serviceIds: ["service-1", "service-2"],
  *   staffId: "any",
  * });
- *
- * // result.slots = [{ time: "10:00", staffId: "...", staffName: "Jean Pierre", ... }, ...]
  */
 export async function getAvailableSlots(input: AvailabilityInput): Promise<AvailabilityResult> {
   await connectDB();
@@ -241,7 +254,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
 
   const candidateStaffIds = candidates.map((s) => String(s._id));
 
-  // Buscar TODAS as reservas dos staff candidatos no dia (otimizacao)
+  // Buscar TODAS as reservas dos staff candidatos no dia (1 query)
   const dayStart = combineDateAndTime(date, '00:00');
   const dayEnd = combineDateAndTime(date, '23:59');
   const allBookingsToday = await Booking.find({
@@ -305,17 +318,38 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
   }
 
   // ============================================================
-  // PASSO 6 — STAFF ALLOCATION (load balancing)
+  // PASSO 6 — STAFF ALLOCATION (load balancing, em memoria)
   // ============================================================
+  //
+  // A ocupacao de cada staff no dia e CONSTANTE durante esta
+  // chamada, e as reservas ja estao carregadas (Passo 4).
+  // Calculamos a ocupacao UMA vez por staff, sem queries extra,
+  // e alocamos o menos ocupado (empate: ordem alfabetica) —
+  // mesma politica do staff-allocator, custo zero.
+
+  const occupationByStaff = new Map<string, number>();
+  for (const sid of candidateStaffIds) {
+    const bookings = bookingsByStaff.get(sid) ?? [];
+    const minutes = bookings.reduce(
+      (sum, b) => sum + Math.round((b.endTime.getTime() - b.startTime.getTime()) / 60_000),
+      0,
+    );
+    occupationByStaff.set(sid, minutes);
+  }
 
   const finalSlots: AvailableSlot[] = [];
-
-  // Cache de ocupacao por staff (evita queries repetidas)
   const sortedTimes = Array.from(slotAvailability.keys()).sort();
 
   for (const time of sortedTimes) {
     const availableForSlot = slotAvailability.get(time)!;
-    const allocated = await pickLeastOccupiedStaff(availableForSlot, date);
+
+    const allocated = [...availableForSlot].sort((a, b) => {
+      const occA = occupationByStaff.get(a.id) ?? 0;
+      const occB = occupationByStaff.get(b.id) ?? 0;
+      if (occA !== occB) return occA - occB;
+      return a.name.localeCompare(b.name);
+    })[0];
+
     if (!allocated) continue;
 
     const slotEnd = minutesToTime(timeToMinutes(time) + totalDurationMinutes);
@@ -345,24 +379,31 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
 }
 
 // ============================================================
-// FUNCOES INTERNAS
+// HELPERS PARTILHADOS (usados tambem por month-availability.ts)
 // ============================================================
 
-function validateDate(date: Date): AvailabilityError | null {
-  const now = new Date();
+/**
+ * FIX auditoria: validacao por DIA DE CALENDARIO em Lisboa.
+ * Antes: `date < now - 24h` deixava passar o dia de ontem
+ * (a data chega ancorada as 12:00), e o Passo 5 so corta
+ * horas passadas quando a data e HOJE — permitia reservar ontem.
+ */
+export function validateDate(date: Date): AvailabilityError | null {
+  const todayISO = toISODate(new Date());
+  const dateISO = toISODate(date);
 
-  // Passado?
-  if (date.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+  // Passado? (comparacao lexicografica de YYYY-MM-DD e segura)
+  if (dateISO < todayISO) {
     return {
       code: 'no-past',
       message: 'Nao e possivel reservar para datas passadas',
     };
   }
 
-  // Mais de 30 dias futuro?
-  const maxDate = new Date(now);
+  // Alem do horizonte de reserva?
+  const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS);
-  if (date.getTime() > maxDate.getTime()) {
+  if (dateISO > toISODate(maxDate)) {
     return {
       code: 'too-far',
       message: `Reservas so podem ser feitas ate ${MAX_ADVANCE_DAYS} dias de antecedencia`,
@@ -372,7 +413,7 @@ function validateDate(date: Date): AvailabilityError | null {
   return null;
 }
 
-function calculateTotalDuration(services: IService[]): number {
+export function calculateTotalDuration(services: IService[]): number {
   let total = 0;
   for (let i = 0; i < services.length; i++) {
     total += services[i].duration;
@@ -385,7 +426,7 @@ function calculateTotalDuration(services: IService[]): number {
   return total;
 }
 
-function canStaffPerformAllServices(staff: IStaff, services: IService[]): boolean {
+export function canStaffPerformAllServices(staff: IStaff, services: IService[]): boolean {
   for (const service of services) {
     // Se servico nao tem staffIds especificado, qualquer staff pode fazer
     if (!service.staffIds || service.staffIds.length === 0) continue;
@@ -397,20 +438,28 @@ function canStaffPerformAllServices(staff: IStaff, services: IService[]): boolea
   return true;
 }
 
-function isStaffOnVacation(staff: IStaff, date: Date): boolean {
+/**
+ * FIX auditoria: comparacao INCLUSIVA por dia de calendario (Lisboa).
+ * Antes comparava timestamps: ferias com `to` gravado a meia-noite
+ * (2026-07-20T00:00) vs data avaliada as 12:00 → o staff aparecia
+ * DISPONIVEL no ultimo dia de ferias. Agora 20/07 esta de ferias
+ * ate ao fim do dia 20/07, independentemente da hora gravada.
+ */
+export function isStaffOnVacation(staff: IStaff, date: Date): boolean {
   if (!staff.vacations || staff.vacations.length === 0) return false;
-  const dateTime = date.getTime();
+  const dateISO = toISODate(date);
   return staff.vacations.some((vac) => {
-    const from = new Date(vac.from).getTime();
-    const to = new Date(vac.to).getTime();
-    return dateTime >= from && dateTime <= to;
+    const fromISO = toISODate(new Date(vac.from));
+    const toISO = toISODate(new Date(vac.to));
+    return dateISO >= fromISO && dateISO <= toISO;
   });
 }
 
 /**
  * Gera todos os slots livres para um staff especifico nesse dia.
+ * (Exportada para reuso pelo calculo de disponibilidade mensal.)
  */
-function generateSlotsForStaff(params: {
+export function generateSlotsForStaff(params: {
   date: Date;
   staff: IStaff;
   schedule: ResolvedSchedule;

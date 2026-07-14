@@ -1,3 +1,4 @@
+// 📄 src/components/booking/BookingStepper.tsx
 'use client';
 
 /**
@@ -6,11 +7,17 @@
  *
  * Indicador visual dos 3 passos do fluxo de reserva.
  *
+ * MUDANCAS (auditoria):
+ *  - Mais compacto no mobile (circulos 36px vs 40px, menos
+ *    altura total — mais conteudo util above the fold)
+ *  - Linhas conectoras por posicionamento absoluto atras dos
+ *    circulos (remove o hack mt-[-20px], alinhamento perfeito
+ *    em qualquer breakpoint)
+ *
  * Visual:
- *  - 3 circulos numerados conectados por linhas
  *  - Passo atual: dourado (preenchido)
- *  - Passos completos: verde escuro (com ✓)
- *  - Passos pendentes: cinza (vazio)
+ *  - Passos completos: verde escuro (com check)
+ *  - Passos pendentes: contorno cinza
  */
 
 import { cn } from '@/lib/utils/cn';
@@ -18,8 +25,8 @@ import { cn } from '@/lib/utils/cn';
 export type BookingStep = 'service' | 'time' | 'confirm';
 
 const STEPS: { key: BookingStep; label: string; number: number }[] = [
-  { key: 'service', label: 'Servico', number: 1 },
-  { key: 'time', label: 'Horario', number: 2 },
+  { key: 'service', label: 'Serviço', number: 1 },
+  { key: 'time', label: 'Horário', number: 2 },
   { key: 'confirm', label: 'Confirmar', number: 3 },
 ];
 
@@ -38,30 +45,49 @@ export function BookingStepper({ currentStep }: Props) {
 
   return (
     <nav aria-label="Progresso da reserva" className="mx-auto max-w-2xl">
-      <ol className="flex items-center justify-between gap-2 md:gap-4">
-        {STEPS.map((step, idx) => {
-          const isCompleted = step.number < currentNum;
-          const isActive = step.number === currentNum;
-          const isPending = step.number > currentNum;
-          const isLast = idx === STEPS.length - 1;
+      <div className="relative">
+        {/* Linhas conectoras — absolutas, atrás dos círculos.
+            Centros dos círculos: 16.67% / 50% / 83.33% da largura.
+            top = metade da altura do círculo (36px mobile, 44px md). */}
+        <div
+          className={cn(
+            'absolute left-[16.67%] h-px w-[33.33%] transition-colors duration-300',
+            'top-[18px] md:top-[22px]',
+            currentNum > 1 ? 'bg-chi-green-deep' : 'bg-chi-charcoal-light/30',
+          )}
+          aria-hidden
+        />
+        <div
+          className={cn(
+            'absolute left-1/2 h-px w-[33.33%] transition-colors duration-300',
+            'top-[18px] md:top-[22px]',
+            currentNum > 2 ? 'bg-chi-green-deep' : 'bg-chi-charcoal-light/30',
+          )}
+          aria-hidden
+        />
 
-          return (
-            <li key={step.key} className={cn('flex items-center', !isLast && 'flex-1')}>
-              {/* Circulo numerado */}
-              <div className="flex flex-col items-center gap-2">
+        <ol className="relative grid grid-cols-3">
+          {STEPS.map((step) => {
+            const isCompleted = step.number < currentNum;
+            const isActive = step.number === currentNum;
+            const isPending = step.number > currentNum;
+
+            return (
+              <li key={step.key} className="flex flex-col items-center gap-2">
+                {/* Círculo (bg opaco para cobrir a linha) */}
                 <div
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300 md:h-12 md:w-12',
+                    'flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-300 md:h-11 md:w-11',
                     isActive && 'border-chi-gold bg-chi-gold text-chi-green-deep shadow-gold',
                     isCompleted && 'border-chi-green-deep bg-chi-green-deep text-chi-cream',
                     isPending &&
-                      'border-chi-charcoal-light/30 text-chi-charcoal-light bg-transparent',
+                      'border-chi-charcoal-light/30 text-chi-charcoal-light bg-chi-cream',
                   )}
                 >
                   {isCompleted ? (
                     <svg
-                      width="18"
-                      height="18"
+                      width="16"
+                      height="16"
                       viewBox="0 0 20 20"
                       fill="none"
                       stroke="currentColor"
@@ -72,9 +98,12 @@ export function BookingStepper({ currentStep }: Props) {
                       <polyline points="4 11 8 15 16 6" />
                     </svg>
                   ) : (
-                    <span className="font-serif text-lg font-medium md:text-xl">{step.number}</span>
+                    <span className="font-serif text-base font-medium md:text-lg">
+                      {step.number}
+                    </span>
                   )}
                 </div>
+
                 <span
                   className={cn(
                     'text-[10px] tracking-[0.2em] uppercase transition-colors md:text-xs',
@@ -85,21 +114,11 @@ export function BookingStepper({ currentStep }: Props) {
                 >
                   {step.label}
                 </span>
-              </div>
-
-              {/* Linha conectora (exceto no ultimo) */}
-              {!isLast && (
-                <div
-                  className={cn(
-                    'mx-2 mt-[-20px] h-px flex-1 transition-colors duration-300 md:mx-4',
-                    isCompleted ? 'bg-chi-green-deep' : 'bg-chi-charcoal-light/30',
-                  )}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }

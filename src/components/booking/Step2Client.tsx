@@ -1,7 +1,19 @@
+// 📄 src/components/booking/Step2Client.tsx
 'use client';
 
 /**
  * Chi Sublime — Step 2 Client (Orchestrator)
+ * ============================================================
+ *
+ * MUDANCAS (auditoria):
+ *  - CalendarPicker agora recebe serviceIds + staffId e pinta
+ *    os estados de cada dia via getMonthAvailabilityAction
+ *    (passado / fechado / folga / esgotado / disponivel).
+ *  - FIX: o botao "Continuar" ATIVO nao tinha background nenhum
+ *    (ficava invisivel) — agora verde profundo com cor inline.
+ *  - TimeSlotGrid so mostra o nome do staff quando o cliente
+ *    escolheu "qualquer profissional".
+ *  - CTAs empilham confortavelmente no mobile.
  */
 
 import { useState, useTransition } from 'react';
@@ -120,7 +132,12 @@ export function Step2Client({ staffOptions }: Props) {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
         <div>
-          <CalendarPicker selectedDate={date} onSelectDate={handleSelectDate} />
+          <CalendarPicker
+            selectedDate={date}
+            onSelectDate={handleSelectDate}
+            serviceIds={selectedServiceIds}
+            staffId={currentStaffId}
+          />
         </div>
 
         <div>
@@ -130,6 +147,7 @@ export function Step2Client({ staffOptions }: Props) {
             closedDetail={fetchState.closedDetail}
             selectedTime={time}
             onSelectSlot={handleSelectSlot}
+            showStaffName={currentStaffId === 'any'}
           />
 
           {fetchState.status === 'error' && (
@@ -140,7 +158,7 @@ export function Step2Client({ staffOptions }: Props) {
         </div>
       </div>
 
-      {/* CTAs — Voltar discreto à esquerda, Continuar destacado ao centro */}
+      {/* CTAs — Voltar discreto à esquerda, Continuar destacado à direita */}
       <div className="border-chi-border mt-4 border-t pt-8">
         {/* Helper text quando não pode continuar */}
         {!canContinue && (
@@ -157,18 +175,19 @@ export function Step2Client({ staffOptions }: Props) {
           <button
             type="button"
             onClick={handleBack}
-            className="text-chi-charcoal-soft hover:text-chi-charcoal inline-flex items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors"
+            className="text-chi-charcoal-soft hover:text-chi-charcoal inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors"
           >
             <span>←</span>
             Voltar
           </button>
 
-          {/* Continuar — botão sólido com largura controlada */}
+          {/* Continuar — FIX: a versão ativa não tinha background (invisível) */}
           {canContinue ? (
             <button
               type="button"
               onClick={handleContinue}
-              className="hover:shadow-medium inline-flex items-center justify-center gap-2 px-12 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5"
+              className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium inline-flex flex-1 items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all sm:flex-none sm:px-12"
+              style={{ color: '#FAF7F2' }}
             >
               Continuar
               <span>→</span>
@@ -177,7 +196,7 @@ export function Step2Client({ staffOptions }: Props) {
             <button
               type="button"
               disabled
-              className="inline-flex cursor-not-allowed items-center justify-center gap-2 px-12 py-4 text-xs font-semibold tracking-[0.22em] uppercase opacity-50"
+              className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase opacity-50 sm:flex-none sm:px-12"
               style={{
                 backgroundColor: '#9A9A9A',
                 color: '#FAF7F2',

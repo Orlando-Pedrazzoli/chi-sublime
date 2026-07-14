@@ -1,8 +1,19 @@
+// 📄 src/components/admin/agenda/AgendaContainer.tsx
 'use client';
+
+/**
+ * Chi Sublime — Agenda Container (admin)
+ * ============================================================
+ *
+ * MUDANCA: prefill do slot vazio implementado (era o TODO
+ * "Sprint 5C parte 2") — clicar num slot vazio da vista de dia
+ * abre o NewBookingModal ja com a hora e o profissional
+ * preenchidos.
+ */
 
 import { useState, useTransition, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, RotateCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
@@ -29,6 +40,11 @@ type AgendaContainerProps = {
   openNewModalInitially?: boolean;
 };
 
+type NewBookingPrefill = {
+  time?: string;
+  staffId?: string;
+};
+
 export function AgendaContainer({
   initialDate,
   initialView,
@@ -46,6 +62,7 @@ export function AgendaContainer({
   const [bookings, setBookings] = useState(initialBookings);
   const [selectedBooking, setSelectedBooking] = useState<AdminBookingForList | null>(null);
   const [newBookingOpen, setNewBookingOpen] = useState(openNewModalInitially);
+  const [newBookingPrefill, setNewBookingPrefill] = useState<NewBookingPrefill | null>(null);
 
   const refresh = useCallback(async (newDate: string, newView: 'day' | 'week') => {
     const fn = newView === 'day' ? getBookingsByDayAction : getBookingsByWeekAction;
@@ -103,8 +120,18 @@ export function AgendaContainer({
     setSelectedBooking(null);
   }
 
-  function handleNewBookingCreated() {
+  function openNewBooking(prefill?: NewBookingPrefill) {
+    setNewBookingPrefill(prefill ?? null);
+    setNewBookingOpen(true);
+  }
+
+  function closeNewBooking() {
     setNewBookingOpen(false);
+    setNewBookingPrefill(null);
+  }
+
+  function handleNewBookingCreated() {
+    closeNewBooking();
     handleRefresh();
   }
 
@@ -208,7 +235,7 @@ export function AgendaContainer({
 
           <button
             type="button"
-            onClick={() => setNewBookingOpen(true)}
+            onClick={() => openNewBooking()}
             className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px]"
             style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
           >
@@ -227,9 +254,8 @@ export function AgendaContainer({
           staff={staff}
           onBookingClick={setSelectedBooking}
           onEmptySlotClick={(time, staffId) => {
-            // Pré-preencher modal com horário sugerido
-            setNewBookingOpen(true);
-            // (NewBookingModal vai aceitar prefill no Sprint 5C parte 2)
+            // Prefill: abre o modal já com hora + profissional do slot clicado
+            openNewBooking({ time, staffId });
           }}
         />
       ) : (
@@ -255,7 +281,9 @@ export function AgendaContainer({
           staff={staff}
           services={services}
           defaultDate={date}
-          onClose={() => setNewBookingOpen(false)}
+          prefillTime={newBookingPrefill?.time}
+          prefillStaffId={newBookingPrefill?.staffId}
+          onClose={closeNewBooking}
           onCreated={handleNewBookingCreated}
         />
       )}
