@@ -42,21 +42,30 @@ export function PublicFooter() {
       <div className="mx-auto max-w-7xl">
         {/* Grid principal — 4 colunas em desktop */}
         <div className="mb-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
-          {/* Coluna 1 — Marca + Socials */}
+          {/* Coluna 1 — Marca + Socials
+              Mesmo lockup vertical da navbar (logo-mark + SUBLIME
+              em HTML). No fundo areia, o texto usa gold-deep. */}
           <div>
             <Link
               href="#home"
-              className="mb-6 flex items-center gap-2 transition-opacity hover:opacity-80"
+              className="mb-6 inline-flex flex-col items-center transition-opacity hover:opacity-80"
             >
               <Image
-                src="/images/logo.png"
+                src="/images/logo_new.png"
                 alt="Chi Sublime"
-                width={40}
+                width={63}
                 height={40}
-                className="h-10 w-10"
+                className="h-10 w-auto"
               />
-              <span className="text-chi-green-deep font-serif text-2xl tracking-wide">
-                Chi <span className="text-chi-gold-deep">Sublime</span>
+              <span
+                className="mt-1 text-[9px] font-medium uppercase"
+                style={{
+                  color: '#B8924A',
+                  letterSpacing: '0.42em',
+                  marginRight: '-0.42em',
+                }}
+              >
+                Sublime
               </span>
             </Link>
             <p className="text-chi-charcoal-soft mb-8 max-w-xs text-sm leading-[1.9]">

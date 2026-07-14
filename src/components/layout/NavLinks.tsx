@@ -90,25 +90,17 @@ export function NavLinks({ categories, session }: NavLinksProps) {
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 transition hover:opacity-80">
+          {/* Logo — logo_new.png contém a marca completa
+              (lótus + CHI + Sublime); sem texto ao lado */}
+          <Link href="/" className="flex items-center transition hover:opacity-80">
             <Image
-              src="/images/logo.png"
+              src="/images/logo_new.png"
               alt="Chi Sublime"
-              width={48}
-              height={48}
-              className="h-10 w-10 md:h-12 md:w-12"
+              width={81}
+              height={60}
+              className="h-12 w-auto md:h-14"
               priority
             />
-            <span
-              className="font-serif text-xl tracking-wide md:text-2xl"
-              style={{
-                color: '#FAF7F2',
-                textShadow: scrolled ? 'none' : '0 2px 10px rgba(0,0,0,0.6)',
-              }}
-            >
-              Chi <span style={{ color: '#D4AF6E' }}>Sublime</span>
-            </span>
           </Link>
 
           {/* Desktop nav */}

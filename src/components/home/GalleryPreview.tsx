@@ -18,6 +18,9 @@ const GALLERY_ITEMS = [
   { src: '/images/services/detalhe4.jpg', alt: 'Cabelereiro', span: 'default' },
   { src: '/images/services/detalhe5.jpg', alt: 'Maquilhagem', span: 'default' },
   { src: '/images/services/detalhe8.jpg', alt: 'Sobrancelhas', span: 'default' },
+  // Posição deliberada: como 6º item 'tall', o auto-placement do
+  // grid coloca-a na coluna 4, linhas 2-3 — o vazio que existia
+  { src: '/images/salao_novo.jpg', alt: 'Receção do Chi Sublime', span: 'tall' },
   { src: '/images/services/detalhe3.jpg', alt: 'Depilação', span: 'wide' },
   { src: '/images/services/detalhe7.jpg', alt: 'Unhas', span: 'default' },
 ];
