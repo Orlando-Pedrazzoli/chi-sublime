@@ -9,6 +9,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 export const metadata: Metadata = {
   title: 'Entrar · Chi Sublime',
   description: 'Entra na tua conta Chi Sublime para gerir as tuas reservas.',
+  robots: { index: false, follow: false },
 };
 
 type SearchParams = { redirect?: string; registered?: string };

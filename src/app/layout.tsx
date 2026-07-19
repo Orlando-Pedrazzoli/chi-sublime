@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
 import { SessionProvider } from '@/components/auth/SessionProvider';
 import { ToastProvider } from '@/components/ui/Toast';
+import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -88,11 +91,16 @@ export const metadata: Metadata = {
     },
   },
 
-  alternates: {
-    canonical: '/',
-    languages: {
-      'pt-PT': '/pt',
-      'en-US': '/en',
+  /* ── Verificação de propriedade — Search Console / Webmaster Tools ──
+     Google Search Console → método "Meta tag HTML" → copiar APENAS o
+     valor do atributo content (não a tag inteira).
+     Bing Webmaster Tools → "Meta tag" → valor do content de msvalidate.01.
+     Dica: no Bing, usa "Importar do Google Search Console" e nem
+     precisas do código — mas deixo o campo pronto na mesma. */
+  verification: {
+    google: 'COLAR_AQUI_CODIGO_GOOGLE', // <meta name="google-site-verification" content="...">
+    other: {
+      'msvalidate.01': 'COLAR_AQUI_CODIGO_BING', // <meta name="msvalidate.01" content="...">
     },
   },
 
@@ -114,17 +122,28 @@ export const viewport: Viewport = {
    Aplica-se a TODAS as páginas (público, admin, auth, etc.)
    ============================================================ */
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Locale vem do cookie NEXT_LOCALE (ver src/i18n/request.ts)
+  const locale = await getLocale();
+
   return (
-    <html lang="pt" className={`${fraunces.variable} ${manrope.variable}`} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={`${fraunces.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
       <body className="bg-chi-cream text-chi-charcoal antialiased">
-        <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </SessionProvider>
+        <LocalBusinessJsonLd />
+        {/* Sem prop `messages`: herda as mensagens do request.ts automaticamente */}
+        <NextIntlClientProvider>
+          <SessionProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </SessionProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

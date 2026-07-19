@@ -1,25 +1,28 @@
+// 📄 src/i18n/request.ts
 /**
- * Chi Sublime — next-intl request configuration
+ * Chi Sublime — next-intl request configuration (cookie-based)
  * ============================================================
  *
- * Esta função é chamada pelo next-intl em CADA request para
- * determinar qual o idioma e carregar as mensagens correspondentes.
+ * Estratégia "without i18n routing": o locale NÃO vem da URL,
+ * vem do cookie NEXT_LOCALE (definido pelo LangSwitcher via
+ * Server Action). Sem cookie → default 'pt'.
  *
- * Refª: https://next-intl-docs.vercel.app/docs/usage/configuration
+ * Esta função corre uma vez por request (React cache) e alimenta
+ * getLocale(), getTranslations() e o NextIntlClientProvider.
+ *
+ * Refª: https://next-intl.dev/docs/getting-started/app-router/without-i18n-routing
  */
 
 import { getRequestConfig } from 'next-intl/server';
-import { hasLocale } from 'next-intl';
-import { routing } from './routing';
+import { cookies } from 'next/headers';
+import { defaultLocale, isValidLocale, LOCALE_COOKIE } from './config';
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  // Determina o locale da URL (ex: /pt/servicos -> "pt")
-  const requested = await requestLocale;
+export default getRequestConfig(async () => {
+  const store = await cookies();
+  const cookieValue = store.get(LOCALE_COOKIE)?.value;
 
-  // Valida — se for inválido ou inexistente, cai no default
-  const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale;
+  const locale = cookieValue && isValidLocale(cookieValue) ? cookieValue : defaultLocale;
 
-  // Carrega as mensagens do JSON correspondente (pt.json ou en.json)
   return {
     locale,
     messages: (await import(`./messages/${locale}.json`)).default,

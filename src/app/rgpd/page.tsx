@@ -52,7 +52,7 @@ export default function RgpdPage() {
 
       <LegalSection title="Como exercer">
         <P>
-          Envie o seu pedido para <strong>reservas@chisublime.pt</strong> a partir do email
+          Envie o seu pedido para <strong>contacto@chisublime.pt</strong> a partir do email
           associado à sua conta (para verificarmos a identidade), indicando o direito que pretende
           exercer. Respondemos no prazo máximo de <strong>30 dias</strong>.
         </P>

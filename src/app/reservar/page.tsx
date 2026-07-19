@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   title: 'Reservar Online | Chi Sublime',
   description:
     'Reserve o seu serviço no Chi Sublime — Hair Style & Beauty. Cabelereiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais.',
+  alternates: { canonical: '/reservar' },
 };
 
 // ============================================================

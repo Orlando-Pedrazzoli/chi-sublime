@@ -9,6 +9,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 export const metadata: Metadata = {
   title: 'Criar conta · Chi Sublime',
   description: 'Cria a tua conta Chi Sublime para fazer reservas online.',
+  robots: { index: false, follow: false },
 };
 
 type SearchParams = { redirect?: string };

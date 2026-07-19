@@ -27,10 +27,11 @@ export default function PrivacidadePage() {
     <LegalPage eyebrow="Legal" title="Política de Privacidade" updated="julho de 2026">
       <LegalSection title="Quem somos">
         <P>
-          O site chisublime.pt é operado por Chi Sublime — Hair Style &amp; Beauty
-          <strong> [A CONFIRMAR: denominação legal e NIF]</strong>, com estabelecimento na Quinta da
-          Bicuda, Cascais, Portugal (&quot;Chi Sublime&quot;, &quot;nós&quot;). Somos o responsável
-          pelo tratamento dos dados pessoais recolhidos através deste site.
+          O site chisublime.pt é operado por Chi Sublime — Hair Style &amp; Beauty, de{' '}
+          <strong>Jean Barbosa da Silva</strong>, empresário em nome individual, NIF 295145870, com
+          estabelecimento na Rua do Estorninho, Loja E, Quinta da Bicuda, 2750-686 Cascais, Portugal
+          (&quot;Chi Sublime&quot;, &quot;nós&quot;). Somos o responsável pelo tratamento dos dados
+          pessoais recolhidos através deste site.
         </P>
         <P>Contacto para questões de privacidade: reservas@chisublime.pt · +351 932 932 691.</P>
       </LegalSection>

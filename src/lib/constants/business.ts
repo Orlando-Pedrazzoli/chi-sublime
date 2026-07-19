@@ -59,7 +59,7 @@ export const BOOKING_POLICY = {
 export const SALON_CONTACT_FALLBACK = {
   name: 'Chi Sublime',
   phone: '+351 932 932 691',
-  email: 'reservas@chisublime.pt',
+  email: 'contacto@chisublime.pt',
   address: 'R. Estorninho, Loja E, Quinta da Bicuda',
   postalCode: '2750-686',
   city: 'Cascais',

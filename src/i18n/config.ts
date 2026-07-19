@@ -1,3 +1,4 @@
+// 📄 src/i18n/config.ts
 /**
  * Chi Sublime — i18n Configuration
  * ============================================================
@@ -10,6 +11,9 @@ export const locales = ['pt', 'en'] as const;
 export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = 'pt';
+
+/** Nome do cookie que persiste a preferência de idioma (convenção next-intl) */
+export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 export const localeNames: Record<Locale, string> = {
   pt: 'Português',

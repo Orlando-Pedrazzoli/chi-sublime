@@ -22,9 +22,10 @@ export default function TermosPage() {
       <LegalSection title="1. Objeto">
         <P>
           Estes termos regulam a utilização do site chisublime.pt e do respetivo serviço de reservas
-          online, operados por Chi Sublime — Hair Style &amp; Beauty{' '}
-          <strong>[A CONFIRMAR: denominação legal e NIF]</strong>, Quinta da Bicuda, Cascais. Ao
-          criar conta ou efetuar uma reserva, aceita estes termos.
+          online, operados por Chi Sublime — Hair Style &amp; Beauty, de{' '}
+          <strong>Jean Barbosa da Silva</strong>, empresário em nome individual, NIF 295145870, Rua
+          do Estorninho, Loja E, Quinta da Bicuda, 2750-686 Cascais. Ao criar conta ou efetuar uma
+          reserva, aceita estes termos.
         </P>
       </LegalSection>
 

@@ -17,7 +17,9 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { User, LogOut, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils/cn';
+import { LangSwitcher } from './LangSwitcher';
 
 export type NavCategory = {
   slug: string;
@@ -35,20 +37,22 @@ type NavLinksProps = {
 };
 
 type NavItem = {
-  label: string;
+  /** chave em messages/{locale}.json → nav.* */
+  labelKey: 'home' | 'services' | 'team' | 'gallery' | 'contact';
   anchor: string;
   hasDropdown?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Início', anchor: '#home' },
-  { label: 'Serviços', anchor: '#services', hasDropdown: true },
-  { label: 'Equipa', anchor: '#team' },
-  { label: 'Galeria', anchor: '#gallery' },
-  { label: 'Contacto', anchor: '#contact' },
+  { labelKey: 'home', anchor: '#home' },
+  { labelKey: 'services', anchor: '#services', hasDropdown: true },
+  { labelKey: 'team', anchor: '#team' },
+  { labelKey: 'gallery', anchor: '#gallery' },
+  { labelKey: 'contact', anchor: '#contact' },
 ];
 
 export function NavLinks({ categories, session }: NavLinksProps) {
+  const t = useTranslations('nav');
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
@@ -120,7 +124,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                     textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                   }}
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                   {item.hasDropdown && (
                     <ChevronDown
                       size={12}
@@ -180,6 +184,9 @@ export function NavLinks({ categories, session }: NavLinksProps) {
 
           {/* Right side: Account + CTA */}
           <div className="hidden items-center gap-6 lg:flex">
+            {/* Toggle de idioma PT | EN */}
+            <LangSwitcher variant="desktop" scrolled={scrolled} />
+
             {/* Estado: NÃO LOGADO */}
             {!session && (
               <Link
@@ -191,7 +198,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 }}
               >
                 <User size={14} strokeWidth={1.5} />
-                Entrar
+                {t('login')}
               </Link>
             )}
 
@@ -206,7 +213,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 }}
               >
                 <User size={14} strokeWidth={1.5} />
-                Painel
+                {t('adminPanel')}
               </Link>
             )}
 
@@ -276,7 +283,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                           style={{ color: '#FAF7F2' }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
-                            A minha conta
+                            {t('myAccount')}
                           </span>
                           <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                             →
@@ -290,7 +297,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                           style={{ color: '#FAF7F2' }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
-                            As minhas reservas
+                            {t('myBookings')}
                           </span>
                           <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
                             →
@@ -309,7 +316,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       >
                         <LogOut size={14} strokeWidth={1.5} />
                         <span className="group-hover:text-chi-gold transition-colors">
-                          Terminar sessão
+                          {t('signOut')}
                         </span>
                       </button>
                     </div>
@@ -324,7 +331,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               className="bg-chi-gold hover:bg-chi-gold-soft px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
               style={{ color: '#1F3D2E' }}
             >
-              Reservar
+              {t('book')}
             </Link>
           </div>
 
@@ -332,7 +339,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex flex-col gap-1.5 p-2 lg:hidden"
-            aria-label="Menu"
+            aria-label={t('menu')}
           >
             <span
               className={cn(
@@ -366,9 +373,12 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               onClick={() => setMobileOpen(false)}
               className="text-chi-cream hover:text-chi-gold font-serif text-3xl"
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
+
+          {/* Toggle de idioma PT | EN */}
+          <LangSwitcher variant="mobile" />
 
           {/* Account section */}
           <div className="bg-chi-gold/30 my-4 h-px w-24" />
@@ -380,7 +390,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
             >
               <User size={18} strokeWidth={1.5} />
-              Entrar
+              {t('login')}
             </Link>
           )}
 
@@ -391,7 +401,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
             >
               <User size={18} strokeWidth={1.5} />
-              Painel
+              {t('adminPanel')}
             </Link>
           )}
 
@@ -403,14 +413,14 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 className="text-chi-cream hover:text-chi-gold flex items-center gap-2 font-serif text-2xl"
               >
                 <User size={20} strokeWidth={1.5} />
-                Olá, {firstName}
+                {t('greeting', { name: firstName })}
               </Link>
               <Link
                 href="/conta/reservas"
                 onClick={() => setMobileOpen(false)}
                 className="text-chi-cream/80 hover:text-chi-gold text-sm tracking-[0.18em] uppercase"
               >
-                As minhas reservas
+                {t('myBookings')}
               </Link>
               <button
                 type="button"
@@ -421,7 +431,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 className="text-chi-cream/60 hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase"
               >
                 <LogOut size={14} strokeWidth={1.5} />
-                Terminar sessão
+                {t('signOut')}
               </button>
             </>
           )}
@@ -432,7 +442,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             className="bg-chi-gold mt-6 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
             style={{ color: '#1F3D2E' }}
           >
-            Reservar
+            {t('book')}
           </Link>
         </div>
       </div>
