@@ -36,36 +36,78 @@
   "home": {
     "hero": {
       "eyebrow": "Hair Style & Beauty · Cascais",
-      "title": "Beauty that breathes through time",
-      "subtitle": "A refined space of care in Quinta da Bicuda, where every gesture is designed to reveal your essence.",
-      "ctaPrimary": "Book Online",
-      "ctaSecondary": "Discover"
+      "title": "Beauty that <em>breathes</em><br></br>with time",
+      "subtitle": "A refined sanctuary of care at Quinta da Bicuda, where every gesture is designed to reveal your essence.",
+      "ctaPrimary": "Book now",
+      "ctaSecondary": "Discover our services",
+      "imageAlt": "Chi Sublime salon interior"
     },
     "philosophy": {
       "eyebrow": "Our philosophy",
-      "title": "Where care meets art.",
-      "quote": "We believe true beauty lives in attention to small details — touch, time, listening.",
-      "body": "In the heart of Cascais, Chi Sublime is more than a salon. It's a sensorial refuge where every visit celebrates your individuality."
+      "title": "True beauty lives in the attention to the smallest details — in the touch, the time, the listening.",
+      "p1": "In the heart of Cascais, Chi Sublime is more than a salon: it is a sensory refuge where every visit celebrates your individuality.",
+      "p2": "Our team combines refined technique with products of excellence to create truly memorable experiences — no rush, no formulas.",
+      "imageAlt": "The Chi Sublime space",
+      "captionLeft": "Quinta da Bicuda",
+      "captionRight": "Cascais, Portugal"
     },
     "services": {
       "eyebrow": "Our services",
-      "title": "Five universes of care.",
-      "description": "From exceptional hair treatments to bridal makeup and brow design — each service is delivered with the precision of those who treat each client as unique.",
-      "viewServices": "View services"
+      "title": "The Chi Sublime menu",
+      "intro": "From hair to the smallest gesture, every service is performed with the precision of treating each client as one of a kind.",
+      "count": "{count, plural, one {# service} other {# services}}",
+      "viewServices": "View services",
+      "cta": "Book online",
+      "descriptions": {
+        "cabelereiro": "Cuts, colouring, highlights, straightening, vegan treatments, strand-by-strand extensions.",
+        "sobrancelhas": "Personalised design, brow lamination, pigmentation and cleanup.",
+        "maquilhagem": "Premium and bridal make-up — for the moments when every detail matters.",
+        "unhas": "Manicure and pedicure, classic or gel.",
+        "depilacao": "Full-body waxing treatments with gentle products.",
+        "fallback": "Services of excellence."
+      }
     },
     "team": {
       "eyebrow": "Our team",
-      "title": "Hands that care.",
-      "description": "Three professionals. One shared passion for the art of beauty."
+      "title": "Three professionals, one single focus",
+      "intro": "Meet the people behind every Chi Sublime experience — and choose who you want to be with.",
+      "viewProfile": "View profile",
+      "specialties": {
+        "jean-pierre": "Colouring and hair transformations",
+        "matias": "Precision cuts and styling",
+        "ana-rita": "Make-up, brows and nails"
+      }
     },
     "gallery": {
       "eyebrow": "Our space",
-      "title": "A refuge in Cascais."
+      "title": "A refuge in Cascais",
+      "instagram": "Follow on Instagram",
+      "alts": {
+        "philosophy": "The Chi Sublime space",
+        "hero": "Salon interior",
+        "hair": "Hairdressing",
+        "makeup": "Make-up",
+        "brows": "Brows",
+        "reception": "Chi Sublime reception",
+        "waxing": "Waxing",
+        "nails": "Nails"
+      }
     },
     "contact": {
       "eyebrow": "Visit us",
-      "title": "We're waiting for you.",
-      "description": "In the heart of Quinta da Bicuda, in a space designed in detail to welcome those seeking more than a service — an experience."
+      "title": "Your moment begins with a booking",
+      "ctaBook": "Book online",
+      "ctaWhatsapp": "Chat on WhatsApp",
+      "addressTitle": "Address",
+      "viewMap": "View on map",
+      "contactTitle": "Contact",
+      "hoursTitle": "Opening hours",
+      "hours": {
+        "tueFri": "Tuesday to Friday",
+        "sat": "Saturday",
+        "sunMon": "Sunday and Monday",
+        "closed": "Closed"
+      }
     }
   },
   "services": {
@@ -80,29 +122,111 @@
     "duration": "Duration",
     "price": "Price",
     "minutes": "min",
-    "bookThis": "Book this service"
+    "bookThis": "Book this service",
+    "page": {
+      "emptyCategory": "Coming soon — we are preparing this category's menu.",
+      "popular": "Popular",
+      "bookCta": "Book {category}",
+      "bookHint": "Book online in under a minute — choose the service, the professional and the time that suits you.",
+      "explore": "Also explore"
+    }
   },
   "booking": {
-    "title": "Book",
-    "step1": "Choose service",
-    "step2": "Choose time",
-    "step3": "Confirm",
-    "selectService": "What service do you want?",
-    "selectDate": "Choose a date",
-    "selectTime": "Choose a time",
-    "selectStaff": "Choose a professional",
-    "anyStaff": "Any available professional",
-    "yourDetails": "Your details",
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "notes": "Notes (optional)",
-    "totalDuration": "Total duration",
-    "totalPrice": "Total",
-    "confirmBooking": "Confirm booking",
-    "bookingConfirmed": "Booking confirmed!",
-    "confirmationSent": "We've sent a confirmation email to",
-    "bookingNumber": "Booking number"
+    "stepper": {
+      "aria": "Booking progress",
+      "service": "Service",
+      "time": "Time",
+      "confirm": "Confirm"
+    },
+    "services": {
+      "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+      "servicesCount": "{count, plural, one {# service} other {# services}}",
+      "popular": "Popular",
+      "maxReached": "You have reached the maximum of {max} services per booking. To choose another, remove one of the selected."
+    },
+    "staff": {
+      "title": "Professional",
+      "anyTitle": "Any",
+      "anySubtitle": "available"
+    },
+    "slots": {
+      "title": "Available times",
+      "idle": "Select a date on the calendar to see the available times.",
+      "closedDefault": "Salon closed on this date",
+      "closedHint": "Please choose another date.",
+      "emptyTitle": "No available times on this date",
+      "emptyHint": "Try another day or another professional.",
+      "morning": "Morning",
+      "afternoon": "Afternoon"
+    },
+    "calendar": {
+      "title": "Choose a date",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "dateAria": "{month} {day}",
+      "loadError": "Failed to load the calendar. Please try again.",
+      "retry": "Try again",
+      "weekdays": {
+        "0": "Mon",
+        "1": "Tue",
+        "2": "Wed",
+        "3": "Thu",
+        "4": "Fri",
+        "5": "Sat",
+        "6": "Sun"
+      },
+      "months": {
+        "0": "January",
+        "1": "February",
+        "2": "March",
+        "3": "April",
+        "4": "May",
+        "5": "June",
+        "6": "July",
+        "7": "August",
+        "8": "September",
+        "9": "October",
+        "10": "November",
+        "11": "December"
+      },
+      "tooltips": {
+        "past": "Past date",
+        "outOfRange": "Outside the booking window",
+        "closed": "Salon closed",
+        "staffOff": "Professional unavailable",
+        "full": "No free times"
+      },
+      "legend": {
+        "available": "Available",
+        "unavailable": "Unavailable",
+        "full": "Fully booked",
+        "past": "Past"
+      }
+    },
+    "pages": {
+      "stepLabel": "Step {current} of {total}",
+      "step1Title": "Choose your services",
+      "step1Intro": "You can combine up to 5 services in a single booking. The total and duration appear in the summary as you choose.",
+      "step1Cta": "Continue",
+      "step1CtaHelper": "Next step: choose date and time",
+      "step2Title": "Date and time",
+      "step2Intro": "Choose the professional and the moment that suits you. We only show times that are actually available."
+    },
+    "summary": {
+      "title": "Your booking",
+      "empty": "Choose at least one service to continue.",
+      "totalDuration": "Total duration",
+      "total": "Total",
+      "removeAria": "Remove {name}",
+      "servicesCount": "{count, plural, one {# service} other {# services}}"
+    },
+    "step2": {
+      "slotsError": "Failed to load times. Please try again.",
+      "chooseDateHint": "Choose a date to see the available times.",
+      "chooseTimeHint": "Choose a time to continue.",
+      "back": "Back",
+      "continue": "Continue"
+    }
   },
   "contact": {
     "address": "Address",

@@ -12,6 +12,9 @@
  */
 
 import type { Metadata } from 'next';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@/i18n/config';
+import { localizedField } from '@/lib/utils/localized';
 import { connectDB } from '@/lib/db/connect';
 import { Category, Service } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
@@ -31,7 +34,7 @@ export const metadata: Metadata = {
 // DATA FETCHING (server-side)
 // ============================================================
 
-async function getCategoriesWithServices(): Promise<CategoryWithServices[]> {
+async function getCategoriesWithServices(locale: Locale): Promise<CategoryWithServices[]> {
   await connectDB();
 
   const categories = await Category.find({ active: true }).sort({ order: 1 }).lean();
@@ -48,10 +51,10 @@ async function getCategoriesWithServices(): Promise<CategoryWithServices[]> {
       return {
         id: String(cat._id),
         slug: cat.slug,
-        name: cat.name.pt,
+        name: localizedField(cat.name, locale),
         services: services.map((s) => ({
           id: String(s._id),
-          name: s.name.pt,
+          name: localizedField(s.name, locale),
           duration: s.duration,
           bufferAfter: s.bufferAfter ?? 5,
           price: s.price,
@@ -72,7 +75,11 @@ type SearchParams = Promise<{ categoria?: string }>;
 
 export default async function ReservarPage({ searchParams }: { searchParams: SearchParams }) {
   const { categoria } = await searchParams;
-  const categories = await getCategoriesWithServices();
+  const locale = (await getLocale()) as Locale;
+  const [t, categories] = await Promise.all([
+    getTranslations('booking.pages'),
+    getCategoriesWithServices(locale),
+  ]);
 
   return (
     <>
@@ -84,15 +91,14 @@ export default async function ReservarPage({ searchParams }: { searchParams: Sea
           <header className="mb-6 md:mb-10">
             <div className="flex items-baseline justify-between gap-4">
               <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
-                Escolha os serviços
+                {t('step1Title')}
               </h1>
               <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
-                Passo 1 de 3
+                {t('stepLabel', { current: 1, total: 3 })}
               </span>
             </div>
             <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
-              Pode combinar até 5 serviços numa única reserva. O total e a duração aparecem no
-              resumo à medida que escolhe.
+              {t('step1Intro')}
             </p>
           </header>
 
@@ -112,9 +118,9 @@ export default async function ReservarPage({ searchParams }: { searchParams: Sea
                 BookingSummary rende a barra fixa inferior) */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <BookingSummary
-                ctaLabel="Continuar"
+                ctaLabel={t('step1Cta')}
                 ctaHref="/reservar/horario"
-                ctaHelper="Próximo passo: escolher data e horário"
+                ctaHelper={t('step1CtaHelper')}
               />
             </aside>
           </div>

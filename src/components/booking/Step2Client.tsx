@@ -17,6 +17,7 @@
  */
 
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { getAvailableSlotsAction } from '@/lib/server-actions/bookings';
@@ -36,6 +37,7 @@ type Props = {
 };
 
 export function Step2Client({ staffOptions }: Props) {
+  const t = useTranslations('booking.step2');
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -100,7 +102,7 @@ export function Step2Client({ staffOptions }: Props) {
         console.error('Failed to fetch slots:', err);
         setFetchState({
           status: 'error',
-          errorMessage: 'Erro ao carregar horários. Tente novamente.',
+          errorMessage: t('slotsError'),
         });
       }
     });
@@ -163,9 +165,7 @@ export function Step2Client({ staffOptions }: Props) {
         {/* Helper text quando não pode continuar */}
         {!canContinue && (
           <p className="text-chi-charcoal-light mb-6 text-center text-sm italic">
-            {!date
-              ? 'Escolha uma data para ver os horários disponíveis.'
-              : 'Escolha um horário para continuar.'}
+            {!date ? t('chooseDateHint') : t('chooseTimeHint')}
           </p>
         )}
 
@@ -178,7 +178,7 @@ export function Step2Client({ staffOptions }: Props) {
             className="text-chi-charcoal-soft hover:text-chi-charcoal inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors"
           >
             <span>←</span>
-            Voltar
+            {t('back')}
           </button>
 
           {/* Continuar — FIX: a versão ativa não tinha background (invisível) */}
@@ -189,7 +189,7 @@ export function Step2Client({ staffOptions }: Props) {
               className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium inline-flex flex-1 items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all sm:flex-none sm:px-12"
               style={{ color: '#FAF7F2' }}
             >
-              Continuar
+              {t('continue')}
               <span>→</span>
             </button>
           ) : (
@@ -202,7 +202,7 @@ export function Step2Client({ staffOptions }: Props) {
                 color: '#FAF7F2',
               }}
             >
-              Continuar
+              {t('continue')}
               <span>→</span>
             </button>
           )}

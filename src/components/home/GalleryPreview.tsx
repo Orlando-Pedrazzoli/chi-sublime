@@ -6,24 +6,29 @@
  * Masonry mantido, decoração removida: sem overlays verdes de
  * hover, sem gradientes. As fotos falam por si — apenas um
  * scale subtil. Link para o Instagram no header (prova social).
+ *
+ * i18n: getTranslations('home.gallery'). Os alts das imagens
+ * são traduzidos (a11y + Google Imagens em ambos os idiomas)
+ * via altKey → home.gallery.alts.*
  */
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Reveal } from '@/components/shared/Reveal';
 
 const GALLERY_ITEMS = [
-  { src: '/images/philosophy.jpg', alt: 'Espaço Chi Sublime', span: 'tall' },
-  { src: '/images/hero.jpg', alt: 'Interior do salão', span: 'wide' },
-  { src: '/images/services/detalhe4.jpg', alt: 'Cabelereiro', span: 'default' },
-  { src: '/images/services/detalhe5.jpg', alt: 'Maquilhagem', span: 'default' },
-  { src: '/images/services/detalhe8.jpg', alt: 'Sobrancelhas', span: 'default' },
+  { src: '/images/philosophy.jpg', altKey: 'philosophy', span: 'tall' },
+  { src: '/images/hero.jpg', altKey: 'hero', span: 'wide' },
+  { src: '/images/services/detalhe4.jpg', altKey: 'hair', span: 'default' },
+  { src: '/images/services/detalhe5.jpg', altKey: 'makeup', span: 'default' },
+  { src: '/images/services/detalhe8.jpg', altKey: 'brows', span: 'default' },
   // Posição deliberada: como 6º item 'tall', o auto-placement do
   // grid coloca-a na coluna 4, linhas 2-3 — o vazio que existia
-  { src: '/images/salao_novo.jpg', alt: 'Receção do Chi Sublime', span: 'tall' },
-  { src: '/images/services/detalhe3.jpg', alt: 'Depilação', span: 'wide' },
-  { src: '/images/services/detalhe7.jpg', alt: 'Unhas', span: 'default' },
-];
+  { src: '/images/salao_novo.jpg', altKey: 'reception', span: 'tall' },
+  { src: '/images/services/detalhe3.jpg', altKey: 'waxing', span: 'wide' },
+  { src: '/images/services/detalhe7.jpg', altKey: 'nails', span: 'default' },
+] as const;
 
 const SPAN_CLASSES: Record<string, string> = {
   tall: 'row-span-2',
@@ -31,16 +36,18 @@ const SPAN_CLASSES: Record<string, string> = {
   default: '',
 };
 
-export function GalleryPreview() {
+export async function GalleryPreview() {
+  const t = await getTranslations('home.gallery');
+
   return (
     <section id="gallery" className="bg-chi-sand py-28 md:py-40">
       <div className="mx-auto max-w-7xl px-6 md:px-12">
         {/* Header */}
         <div className="mb-16 grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto] md:items-end">
           <Reveal>
-            <span className="eyebrow text-chi-gold-deep mb-8 block">O nosso espaço</span>
+            <span className="eyebrow text-chi-gold-deep mb-8 block">{t('eyebrow')}</span>
             <h2 className="text-chi-green-deep text-display-lg max-w-xl font-serif text-balance">
-              Um refúgio em Cascais
+              {t('title')}
             </h2>
           </Reveal>
           <Reveal delay={0.15}>
@@ -51,7 +58,7 @@ export function GalleryPreview() {
               className="group text-chi-charcoal-soft inline-flex items-center gap-3 text-xs font-medium tracking-[0.22em] uppercase"
             >
               <span className="border-chi-charcoal-light/50 group-hover:border-chi-gold-deep border-b pb-1 transition-colors duration-300">
-                Seguir no Instagram
+                {t('instagram')}
               </span>
               <span className="text-chi-gold-deep transition-transform duration-300 group-hover:translate-x-1">
                 →
@@ -67,7 +74,7 @@ export function GalleryPreview() {
               <div className="group relative h-full w-full overflow-hidden">
                 <Image
                   src={item.src}
-                  alt={item.alt}
+                  alt={t(`alts.${item.altKey}`)}
                   fill
                   quality={80}
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

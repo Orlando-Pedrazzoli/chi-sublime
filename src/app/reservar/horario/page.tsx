@@ -11,6 +11,9 @@
  */
 
 import type { Metadata } from 'next';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@/i18n/config';
+import { localizedField } from '@/lib/utils/localized';
 import { connectDB } from '@/lib/db/connect';
 import { Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
@@ -29,13 +32,13 @@ export const metadata: Metadata = {
 // DATA FETCHING
 // ============================================================
 
-async function getActiveStaff(): Promise<StaffOption[]> {
+async function getActiveStaff(locale: Locale): Promise<StaffOption[]> {
   await connectDB();
   const staff = await Staff.find({ active: true }).sort({ order: 1 }).lean();
   return staff.map((s) => ({
     id: String(s._id),
     name: s.name,
-    role: s.role.pt,
+    role: localizedField(s.role, locale),
     photo: s.photo,
   }));
 }
@@ -45,7 +48,11 @@ async function getActiveStaff(): Promise<StaffOption[]> {
 // ============================================================
 
 export default async function ReservarHorarioPage() {
-  const staffOptions = await getActiveStaff();
+  const locale = (await getLocale()) as Locale;
+  const [t, staffOptions] = await Promise.all([
+    getTranslations('booking.pages'),
+    getActiveStaff(locale),
+  ]);
 
   return (
     <>
@@ -56,14 +63,15 @@ export default async function ReservarHorarioPage() {
           {/* Header compacto */}
           <header className="mb-6 md:mb-10">
             <div className="flex items-baseline justify-between gap-4">
-              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">Data e horário</h1>
+              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
+                {t('step2Title')}
+              </h1>
               <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
-                Passo 2 de 3
+                {t('stepLabel', { current: 2, total: 3 })}
               </span>
             </div>
             <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
-              Escolha o profissional e o momento que lhe convém. Mostramos apenas horários realmente
-              disponíveis.
+              {t('step2Intro')}
             </p>
           </header>
 

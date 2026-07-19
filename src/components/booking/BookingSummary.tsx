@@ -18,6 +18,7 @@
  */
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useBookingFlow, useIsHydrated } from '@/hooks/useBookingFlow';
 import { cn } from '@/lib/utils/cn';
 
@@ -44,6 +45,7 @@ type Props = {
 };
 
 export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
+  const t = useTranslations('booking.summary');
   const isHydrated = useIsHydrated();
   const { selectedServices, totals, removeService, canProceedFromStep1 } = useBookingFlow();
 
@@ -66,7 +68,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
       {/* DESKTOP — sticky sidebar */}
       <aside className="hidden w-full lg:block">
         <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-8">
-          <h3 className="text-chi-charcoal mb-6 font-serif text-xl">A sua reserva</h3>
+          <h3 className="text-chi-charcoal mb-6 font-serif text-xl">{t('title')}</h3>
 
           {hasServices ? (
             <>
@@ -88,7 +90,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
                       <button
                         onClick={() => removeService(service.id)}
                         className="text-chi-charcoal-light hover:text-chi-danger -mr-1 p-1 transition-colors"
-                        aria-label={`Remover ${service.name}`}
+                        aria-label={t('removeAria', { name: service.name })}
                       >
                         <svg
                           width="14"
@@ -109,13 +111,13 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
 
               <div className="mb-7 space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-chi-charcoal-soft">Duração total</span>
+                  <span className="text-chi-charcoal-soft">{t('totalDuration')}</span>
                   <span className="text-chi-charcoal font-medium">
                     {formatDuration(totals.duration)}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-chi-charcoal-soft text-sm">Total</span>
+                  <span className="text-chi-charcoal-soft text-sm">{t('total')}</span>
                   <span className="text-chi-green-deep font-mono text-2xl font-medium">
                     {formatPrice(totals.price)}
                   </span>
@@ -124,7 +126,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
             </>
           ) : (
             <p className="text-chi-charcoal-light mb-7 text-sm leading-relaxed italic">
-              Escolha pelo menos um serviço para continuar.
+              {t('empty')}
             </p>
           )}
 
@@ -167,8 +169,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-chi-charcoal-light text-[10px] tracking-[0.2em] uppercase">
-              {totals.count} {totals.count === 1 ? 'serviço' : 'serviços'} ·{' '}
-              {formatDuration(totals.duration)}
+              {t('servicesCount', { count: totals.count })} · {formatDuration(totals.duration)}
             </span>
             <span className="text-chi-green-deep font-mono text-lg font-medium">
               {formatPrice(totals.price)}

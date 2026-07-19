@@ -36,36 +36,78 @@
   "home": {
     "hero": {
       "eyebrow": "Hair Style & Beauty · Cascais",
-      "title": "Beleza que respira o tempo",
-      "subtitle": "Um espaço de cuidado refinado em Quinta da Bicuda, onde cada gesto é pensado para revelar a sua essência.",
-      "ctaPrimary": "Reservar Online",
-      "ctaSecondary": "Descobrir"
+      "title": "Beleza que <em>respira</em><br></br>o tempo",
+      "subtitle": "Um espaço de cuidado refinado na Quinta da Bicuda, onde cada gesto é pensado para revelar a sua essência.",
+      "ctaPrimary": "Reservar",
+      "ctaSecondary": "Descobrir os serviços",
+      "imageAlt": "Interior do salão Chi Sublime"
     },
     "philosophy": {
       "eyebrow": "A nossa filosofia",
-      "title": "Onde o cuidado encontra a arte.",
-      "quote": "Acreditamos que a verdadeira beleza vive na atenção aos pequenos detalhes — no toque, no tempo, na escuta.",
-      "body": "No coração de Cascais, o Chi Sublime é mais do que um salão. É um refúgio sensorial onde cada visita é uma celebração da sua individualidade."
+      "title": "A verdadeira beleza vive na atenção aos pequenos detalhes — no toque, no tempo, na escuta.",
+      "p1": "No coração de Cascais, o Chi Sublime é mais do que um salão: é um refúgio sensorial onde cada visita celebra a sua individualidade.",
+      "p2": "A nossa equipa combina técnica refinada com produtos de excelência para criar experiências verdadeiramente memoráveis — sem pressa, sem fórmulas.",
+      "imageAlt": "Espaço Chi Sublime",
+      "captionLeft": "Quinta da Bicuda",
+      "captionRight": "Cascais, Portugal"
     },
     "services": {
       "eyebrow": "Os nossos serviços",
-      "title": "Cinco universos de cuidado.",
-      "description": "Desde tratamentos capilares de excelência a maquilhagem de noiva e design de sobrancelhas — cada serviço é executado com a precisão de quem trata cada cliente como única.",
-      "viewServices": "Ver serviços"
+      "title": "A carta Chi Sublime",
+      "intro": "Do cabelo ao gesto mais pequeno, cada serviço é executado com a precisão de quem trata cada cliente como única.",
+      "count": "{count, plural, one {# serviço} other {# serviços}}",
+      "viewServices": "Ver serviços",
+      "cta": "Reservar online",
+      "descriptions": {
+        "cabelereiro": "Cortes, coloração, madeixas, alisamentos, tratamentos vegan, extensões fio a fio.",
+        "sobrancelhas": "Design personalizado, brow lamination, pigmentação e limpeza.",
+        "maquilhagem": "Maquilhagem premium e de noiva — para os momentos em que cada detalhe importa.",
+        "unhas": "Manicure e pedicure, simples ou gelinho.",
+        "depilacao": "Tratamentos completos para todo o corpo, com produtos suaves.",
+        "fallback": "Serviços de excelência."
+      }
     },
     "team": {
       "eyebrow": "A nossa equipa",
-      "title": "Mãos que cuidam.",
-      "description": "Três profissionais. Uma paixão partilhada pela arte da beleza."
+      "title": "Três profissionais, uma só atenção",
+      "intro": "Conheça quem está por trás de cada experiência Chi Sublime — e escolha com quem quer estar.",
+      "viewProfile": "Ver perfil",
+      "specialties": {
+        "jean-pierre": "Coloração e transformações capilares",
+        "matias": "Cortes de precisão e styling",
+        "ana-rita": "Maquilhagem, sobrancelhas e unhas"
+      }
     },
     "gallery": {
       "eyebrow": "O nosso espaço",
-      "title": "Um refúgio em Cascais."
+      "title": "Um refúgio em Cascais",
+      "instagram": "Seguir no Instagram",
+      "alts": {
+        "philosophy": "Espaço Chi Sublime",
+        "hero": "Interior do salão",
+        "hair": "Cabelereiro",
+        "makeup": "Maquilhagem",
+        "brows": "Sobrancelhas",
+        "reception": "Receção do Chi Sublime",
+        "waxing": "Depilação",
+        "nails": "Unhas"
+      }
     },
     "contact": {
       "eyebrow": "Visite-nos",
-      "title": "Estamos à sua espera.",
-      "description": "No coração da Quinta da Bicuda, num espaço pensado ao detalhe para receber quem procura mais do que um serviço — uma experiência."
+      "title": "O seu momento começa com uma reserva",
+      "ctaBook": "Reservar online",
+      "ctaWhatsapp": "Falar por WhatsApp",
+      "addressTitle": "Morada",
+      "viewMap": "Ver no mapa",
+      "contactTitle": "Contacto",
+      "hoursTitle": "Horário",
+      "hours": {
+        "tueFri": "Terça a Sexta",
+        "sat": "Sábado",
+        "sunMon": "Domingo e Segunda",
+        "closed": "Encerrado"
+      }
     }
   },
   "services": {
@@ -80,29 +122,111 @@
     "duration": "Duração",
     "price": "Preço",
     "minutes": "min",
-    "bookThis": "Reservar este serviço"
+    "bookThis": "Reservar este serviço",
+    "page": {
+      "emptyCategory": "Em breve — estamos a preparar a carta desta categoria.",
+      "popular": "Popular",
+      "bookCta": "Reservar {category}",
+      "bookHint": "Reserva online em menos de um minuto — escolhe o serviço, o profissional e o horário que te convém.",
+      "explore": "Explorar também"
+    }
   },
   "booking": {
-    "title": "Reservar",
-    "step1": "Escolher serviço",
-    "step2": "Escolher horário",
-    "step3": "Confirmar",
-    "selectService": "Que serviço pretende?",
-    "selectDate": "Escolha a data",
-    "selectTime": "Escolha a hora",
-    "selectStaff": "Escolha o profissional",
-    "anyStaff": "Qualquer profissional disponível",
-    "yourDetails": "Os seus dados",
-    "name": "Nome",
-    "email": "Email",
-    "phone": "Telefone",
-    "notes": "Observações (opcional)",
-    "totalDuration": "Duração total",
-    "totalPrice": "Total",
-    "confirmBooking": "Confirmar reserva",
-    "bookingConfirmed": "Reserva confirmada!",
-    "confirmationSent": "Enviámos um email de confirmação para",
-    "bookingNumber": "Número de reserva"
+    "stepper": {
+      "aria": "Progresso da reserva",
+      "service": "Serviço",
+      "time": "Horário",
+      "confirm": "Confirmar"
+    },
+    "services": {
+      "selectedCount": "{count, plural, one {# selecionado} other {# selecionados}}",
+      "servicesCount": "{count, plural, one {# serviço} other {# serviços}}",
+      "popular": "Popular",
+      "maxReached": "Atingiu o máximo de {max} serviços por reserva. Para escolher outro, remova um dos selecionados."
+    },
+    "staff": {
+      "title": "Profissional",
+      "anyTitle": "Qualquer",
+      "anySubtitle": "disponível"
+    },
+    "slots": {
+      "title": "Horários disponíveis",
+      "idle": "Selecione uma data no calendário para ver os horários disponíveis.",
+      "closedDefault": "Salão fechado nesta data",
+      "closedHint": "Por favor escolha outra data.",
+      "emptyTitle": "Sem horários disponíveis nesta data",
+      "emptyHint": "Tente outro dia ou outro profissional.",
+      "morning": "Manhã",
+      "afternoon": "Tarde"
+    },
+    "calendar": {
+      "title": "Escolha a data",
+      "prevMonth": "Mês anterior",
+      "nextMonth": "Mês seguinte",
+      "dateAria": "{day} de {month}",
+      "loadError": "Erro ao carregar o calendário. Tente novamente.",
+      "retry": "Tentar novamente",
+      "weekdays": {
+        "0": "Seg",
+        "1": "Ter",
+        "2": "Qua",
+        "3": "Qui",
+        "4": "Sex",
+        "5": "Sáb",
+        "6": "Dom"
+      },
+      "months": {
+        "0": "Janeiro",
+        "1": "Fevereiro",
+        "2": "Março",
+        "3": "Abril",
+        "4": "Maio",
+        "5": "Junho",
+        "6": "Julho",
+        "7": "Agosto",
+        "8": "Setembro",
+        "9": "Outubro",
+        "10": "Novembro",
+        "11": "Dezembro"
+      },
+      "tooltips": {
+        "past": "Data passada",
+        "outOfRange": "Fora do período de reserva",
+        "closed": "Salão encerrado",
+        "staffOff": "Profissional indisponível",
+        "full": "Sem horários livres"
+      },
+      "legend": {
+        "available": "Disponível",
+        "unavailable": "Indisponível",
+        "full": "Esgotado",
+        "past": "Passado"
+      }
+    },
+    "pages": {
+      "stepLabel": "Passo {current} de {total}",
+      "step1Title": "Escolha os serviços",
+      "step1Intro": "Pode combinar até 5 serviços numa única reserva. O total e a duração aparecem no resumo à medida que escolhe.",
+      "step1Cta": "Continuar",
+      "step1CtaHelper": "Próximo passo: escolher data e horário",
+      "step2Title": "Data e horário",
+      "step2Intro": "Escolha o profissional e o momento que lhe convém. Mostramos apenas horários realmente disponíveis."
+    },
+    "summary": {
+      "title": "A sua reserva",
+      "empty": "Escolha pelo menos um serviço para continuar.",
+      "totalDuration": "Duração total",
+      "total": "Total",
+      "removeAria": "Remover {name}",
+      "servicesCount": "{count, plural, one {# serviço} other {# serviços}}"
+    },
+    "step2": {
+      "slotsError": "Erro ao carregar horários. Tente novamente.",
+      "chooseDateHint": "Escolha uma data para ver os horários disponíveis.",
+      "chooseTimeHint": "Escolha um horário para continuar.",
+      "back": "Voltar",
+      "continue": "Continuar"
+    }
   },
   "contact": {
     "address": "Morada",

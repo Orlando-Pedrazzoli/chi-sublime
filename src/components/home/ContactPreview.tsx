@@ -7,6 +7,9 @@
  * final à reserva + informação prática em três colunas
  * (morada, contacto, horário).
  *
+ * i18n: getTranslations('home.contact'). Dias do horário nos
+ * JSONs; horas ficam no código (dados, não texto).
+ *
  * ⚠️ TODO (confirmar com o Jean Pierre antes do deploy):
  *   - Morada completa (rua e código postal)
  *   - Horário de funcionamento real
@@ -14,6 +17,7 @@
  */
 
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Reveal } from '@/components/shared/Reveal';
 
 const PHONE_DISPLAY = '+351 932 932 691';
@@ -22,25 +26,26 @@ const WHATSAPP = 'https://wa.me/351932932691';
 const MAPS_URL = 'https://maps.google.com/?q=Chi+Sublime+Quinta+da+Bicuda+Cascais';
 
 // TODO: confirmar horários reais com o cliente
-const HOURS: Array<{ days: string; time: string }> = [
-  { days: 'Terça a Sexta', time: '09:30 – 19:00' },
-  { days: 'Sábado', time: '09:00 – 18:00' },
-  { days: 'Domingo e Segunda', time: 'Encerrado' },
+// daysKey → home.contact.hours.* | timeKey 'closed' → traduzido; string literal → hora fixa
+const HOURS: Array<{ daysKey: 'tueFri' | 'sat' | 'sunMon'; time: string | 'closed' }> = [
+  { daysKey: 'tueFri', time: '09:30 – 19:00' },
+  { daysKey: 'sat', time: '09:00 – 18:00' },
+  { daysKey: 'sunMon', time: 'closed' },
 ];
 
-export function ContactPreview() {
+export async function ContactPreview() {
+  const t = await getTranslations('home.contact');
+
   return (
     <section id="contact" className="bg-chi-green-deep text-chi-cream py-28 md:py-40">
       <div className="mx-auto max-w-7xl px-6 md:px-12">
         {/* Convite */}
         <div className="mb-20 max-w-3xl md:mb-24">
           <Reveal>
-            <span className="eyebrow text-chi-gold mb-8 block">Visite-nos</span>
+            <span className="eyebrow text-chi-gold mb-8 block">{t('eyebrow')}</span>
           </Reveal>
           <Reveal delay={0.1}>
-            <h2 className="text-display-lg mb-10 font-serif text-balance">
-              O seu momento começa com uma reserva
-            </h2>
+            <h2 className="text-display-lg mb-10 font-serif text-balance">{t('title')}</h2>
           </Reveal>
           <Reveal delay={0.2}>
             <div className="flex flex-wrap items-center gap-8">
@@ -49,7 +54,7 @@ export function ContactPreview() {
                 className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
                 style={{ color: '#1F3D2E' }}
               >
-                Reservar online
+                {t('ctaBook')}
               </Link>
               <Link
                 href={WHATSAPP}
@@ -59,7 +64,7 @@ export function ContactPreview() {
                 style={{ color: '#FAF7F2' }}
               >
                 <span className="border-chi-cream/40 group-hover:border-chi-gold border-b pb-1 transition-colors duration-300">
-                  Falar por WhatsApp
+                  {t('ctaWhatsapp')}
                 </span>
                 <span className="text-chi-gold transition-transform duration-300 group-hover:translate-x-1">
                   →
@@ -73,7 +78,7 @@ export function ContactPreview() {
         <div className="border-chi-cream/15 grid grid-cols-1 gap-12 border-t pt-14 sm:grid-cols-2 lg:grid-cols-3">
           <Reveal delay={0.05}>
             <h3 className="text-chi-gold mb-6 text-[11px] font-semibold tracking-[0.28em] uppercase">
-              Morada
+              {t('addressTitle')}
             </h3>
             <p className="text-chi-cream/80 text-base leading-[1.9]">
               Quinta da Bicuda
@@ -86,14 +91,14 @@ export function ContactPreview() {
               rel="noopener noreferrer"
               className="group text-chi-cream/60 hover:text-chi-gold mt-5 inline-flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors duration-300"
             >
-              Ver no mapa
+              {t('viewMap')}
               <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
 
           <Reveal delay={0.1}>
             <h3 className="text-chi-gold mb-6 text-[11px] font-semibold tracking-[0.28em] uppercase">
-              Contacto
+              {t('contactTitle')}
             </h3>
             <p className="text-chi-cream/80 text-base leading-[1.9]">
               <a href={PHONE_TEL} className="hover:text-chi-gold transition-colors duration-300">
@@ -113,13 +118,15 @@ export function ContactPreview() {
 
           <Reveal delay={0.15}>
             <h3 className="text-chi-gold mb-6 text-[11px] font-semibold tracking-[0.28em] uppercase">
-              Horário
+              {t('hoursTitle')}
             </h3>
             <dl className="text-chi-cream/80 space-y-2 text-base leading-[1.7]">
               {HOURS.map((h) => (
-                <div key={h.days} className="flex items-baseline justify-between gap-6">
-                  <dt>{h.days}</dt>
-                  <dd className="text-chi-cream/60 m-0 shrink-0 text-sm">{h.time}</dd>
+                <div key={h.daysKey} className="flex items-baseline justify-between gap-6">
+                  <dt>{t(`hours.${h.daysKey}`)}</dt>
+                  <dd className="text-chi-cream/60 m-0 shrink-0 text-sm">
+                    {h.time === 'closed' ? t('hours.closed') : h.time}
+                  </dd>
                 </div>
               ))}
             </dl>

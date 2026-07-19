@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db/connect';
 import { Category } from '@/lib/models';
 import { auth } from '@/lib/auth';
 import type { Locale } from '@/i18n/config';
+import { localizedField } from '@/lib/utils/localized';
 import { NavLinks, type NavCategory, type NavSession } from './NavLinks';
 
 async function getCategoriesForNav(locale: Locale): Promise<NavCategory[]> {
@@ -11,8 +12,8 @@ async function getCategoriesForNav(locale: Locale): Promise<NavCategory[]> {
   const categories = await Category.find({ active: true }).sort({ order: 1 }).lean();
   return categories.map((c) => ({
     slug: c.slug,
-    // Conteúdo da DB: usa o idioma ativo com fallback para PT
-    title: (locale === 'en' && c.name.en) || c.name.pt,
+    // Conteúdo da DB: idioma ativo com fallback para PT
+    title: localizedField(c.name, locale),
   }));
 }
 

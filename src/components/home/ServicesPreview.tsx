@@ -11,12 +11,21 @@
  * Mobile: thumbnail sempre visível à esquerda da linha.
  *
  * Sobre fundo verde profundo, mantendo o contraste da home.
+ *
+ * i18n:
+ * - UI via getTranslations('home.services')
+ * - Nome da categoria (DB) via localizedField() com fallback PT
+ * - Descrições por slug nos JSONs (t.has → fallback genérico)
+ * - Contador com plural ICU: "{count, plural, one {...} other {...}}"
  */
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { connectDB } from '@/lib/db/connect';
 import { Category, Service } from '@/lib/models';
+import type { Locale } from '@/i18n/config';
+import { localizedField } from '@/lib/utils/localized';
 import { Reveal } from '@/components/shared/Reveal';
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -27,23 +36,14 @@ const CATEGORY_IMAGES: Record<string, string> = {
   depilacao: '/images/services/depilacao.jpg',
 };
 
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  cabelereiro: 'Cortes, coloração, madeixas, alisamentos, tratamentos vegan, extensões fio a fio.',
-  sobrancelhas: 'Design personalizado, brow lamination, pigmentação e limpeza.',
-  maquilhagem: 'Maquilhagem premium e de noiva — para os momentos em que cada detalhe importa.',
-  unhas: 'Manicure e pedicure, simples ou gelinho.',
-  depilacao: 'Tratamentos completos para todo o corpo, com produtos suaves.',
-};
-
 type CategoryCard = {
   slug: string;
   title: string;
   count: number;
-  description: string;
   image: string;
 };
 
-async function getCategoriesWithCount(): Promise<CategoryCard[]> {
+async function getCategoriesWithCount(locale: Locale): Promise<CategoryCard[]> {
   await connectDB();
 
   const categories = await Category.find({ active: true }).sort({ order: 1 }).lean();
@@ -57,9 +57,8 @@ async function getCategoriesWithCount(): Promise<CategoryCard[]> {
 
       return {
         slug: cat.slug,
-        title: cat.name.pt,
+        title: localizedField(cat.name, locale),
         count,
-        description: CATEGORY_DESCRIPTIONS[cat.slug] ?? 'Serviços de excelência.',
         image: CATEGORY_IMAGES[cat.slug] ?? '/images/services/cabelereiro.jpg',
       } satisfies CategoryCard;
     }),
@@ -69,7 +68,15 @@ async function getCategoriesWithCount(): Promise<CategoryCard[]> {
 }
 
 export async function ServicesPreview() {
-  const categories = await getCategoriesWithCount();
+  const locale = (await getLocale()) as Locale;
+  const [t, categories] = await Promise.all([
+    getTranslations('home.services'),
+    getCategoriesWithCount(locale),
+  ]);
+
+  /** Descrição por slug com fallback genérico (slugs novos na DB não partem o site) */
+  const description = (slug: string) =>
+    t.has(`descriptions.${slug}`) ? t(`descriptions.${slug}`) : t('descriptions.fallback');
 
   return (
     <section id="services" className="bg-chi-green-deep text-chi-cream py-28 md:py-40">
@@ -77,16 +84,11 @@ export async function ServicesPreview() {
         {/* Header */}
         <div className="mb-20 grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto] md:items-end">
           <Reveal>
-            <span className="eyebrow text-chi-gold mb-8 block">Os nossos serviços</span>
-            <h2 className="text-display-lg max-w-2xl font-serif text-balance">
-              A carta Chi Sublime
-            </h2>
+            <span className="eyebrow text-chi-gold mb-8 block">{t('eyebrow')}</span>
+            <h2 className="text-display-lg max-w-2xl font-serif text-balance">{t('title')}</h2>
           </Reveal>
           <Reveal delay={0.15}>
-            <p className="text-chi-cream/70 max-w-sm text-base leading-[1.85]">
-              Do cabelo ao gesto mais pequeno, cada serviço é executado com a precisão de quem trata
-              cada cliente como única.
-            </p>
+            <p className="text-chi-cream/70 max-w-sm text-base leading-[1.85]">{t('intro')}</p>
           </Reveal>
         </div>
 
@@ -119,20 +121,20 @@ export async function ServicesPreview() {
                     {cat.title}
                   </h3>
                   <span className="text-chi-cream/45 mt-2 block text-[10px] tracking-[0.25em] uppercase md:mt-3">
-                    {cat.count} {cat.count === 1 ? 'serviço' : 'serviços'}
+                    {t('count', { count: cat.count })}
                   </span>
                 </div>
 
                 {/* Descrição — só a partir de md */}
                 <p className="text-chi-cream/60 hidden text-sm leading-[1.75] md:block">
-                  {cat.description}
+                  {description(cat.slug)}
                 </p>
 
                 {/* Ação: desktop — label revelado no hover;
                     mobile — seta discreta (affordance de toque) */}
                 <span className="hidden items-center gap-2 md:inline-flex">
                   <span className="text-chi-gold -translate-x-2 text-[10px] tracking-[0.25em] uppercase opacity-0 transition-all duration-500 group-hover:translate-x-0 group-hover:opacity-100">
-                    Ver serviços →
+                    {t('viewServices')} →
                   </span>
                 </span>
                 <span className="text-chi-cream/50 text-xl md:hidden" aria-hidden>
@@ -151,7 +153,7 @@ export async function ServicesPreview() {
               className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
               style={{ color: '#1F3D2E' }}
             >
-              Reservar online
+              {t('cta')}
             </Link>
           </div>
         </Reveal>

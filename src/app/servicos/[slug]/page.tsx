@@ -15,6 +15,9 @@
  */
 
 import type { Metadata } from 'next';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@/i18n/config';
+import { localizedField } from '@/lib/utils/localized';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -48,7 +51,7 @@ type ServiceRow = {
   popular: boolean;
 };
 
-async function getCategoryData(slug: string) {
+async function getCategoryData(slug: string, locale: Locale) {
   await connectDB();
 
   const category = await Category.findOne({ slug, active: true }).lean();
@@ -64,14 +67,14 @@ async function getCategoryData(slug: string) {
   return {
     category: {
       slug: category.slug,
-      name: category.name.pt,
-      description: category.description?.pt,
+      name: localizedField(category.name, locale),
+      description: localizedField(category.description, locale) || undefined,
     },
     services: services.map(
       (s): ServiceRow => ({
         id: String(s._id),
-        name: s.name.pt,
-        description: s.description?.pt,
+        name: localizedField(s.name, locale),
+        description: localizedField(s.description, locale) || undefined,
         duration: s.duration,
         price: s.price,
         popular: s.popular,
@@ -79,7 +82,7 @@ async function getCategoryData(slug: string) {
     ),
     otherCategories: allCategories
       .filter((c) => c.slug !== slug)
-      .map((c) => ({ slug: c.slug, name: c.name.pt })),
+      .map((c) => ({ slug: c.slug, name: localizedField(c.name, locale) })),
   };
 }
 
@@ -91,7 +94,8 @@ type Params = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const data = await getCategoryData(slug);
+  const locale = (await getLocale()) as Locale;
+  const data = await getCategoryData(slug, locale);
   if (!data) return { title: 'Serviços' };
 
   const title = `${data.category.name} em Cascais`;
@@ -128,7 +132,12 @@ function formatDuration(minutes: number): string {
 
 export default async function ServicoCategoriaPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const data = await getCategoryData(slug);
+  const locale = (await getLocale()) as Locale;
+  const [t, tNav, data] = await Promise.all([
+    getTranslations('services.page'),
+    getTranslations('nav'),
+    getCategoryData(slug, locale),
+  ]);
   if (!data) notFound();
 
   const { category, services, otherCategories } = data;
@@ -200,7 +209,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
             aria-label="Breadcrumb"
           >
             <Link href="/" className="hover:text-chi-gold transition-colors">
-              Início
+              {tNav('home')}
             </Link>
             <span className="mx-2" style={{ color: '#D4AF6E' }}>
               /
@@ -230,7 +239,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
         <div className="mx-auto max-w-4xl px-6 md:px-12">
           {services.length === 0 ? (
             <p className="text-chi-charcoal-soft py-16 text-center font-serif text-lg italic">
-              Em breve — estamos a preparar a carta desta categoria.
+              {t('emptyCategory')}
             </p>
           ) : (
             <div className="border-chi-border border-t">
@@ -244,7 +253,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
                         </h2>
                         {service.popular && (
                           <span className="text-chi-gold-deep border-chi-gold/40 rounded border px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em] uppercase">
-                            Popular
+                            {t('popular')}
                           </span>
                         )}
                       </div>
@@ -275,11 +284,10 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
                 className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-12 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
                 style={{ color: '#1F3D2E' }}
               >
-                Reservar {category.name.toLowerCase()}
+                {t('bookCta', { category: category.name.toLowerCase() })}
               </Link>
               <p className="text-chi-charcoal-light max-w-sm text-xs leading-relaxed">
-                Reserva online em menos de um minuto — escolhe o serviço, o profissional e o horário
-                que te convém.
+                {t('bookHint')}
               </p>
             </div>
           </Reveal>
@@ -288,7 +296,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
         {/* Navegação entre categorias */}
         {otherCategories.length > 0 && (
           <div className="mx-auto mt-24 max-w-4xl px-6 md:px-12">
-            <p className="eyebrow text-chi-gold-deep mb-8">Explorar também</p>
+            <p className="eyebrow text-chi-gold-deep mb-8">{t('explore')}</p>
             <ul className="border-chi-border border-t">
               {otherCategories.map((cat) => (
                 <li key={cat.slug}>

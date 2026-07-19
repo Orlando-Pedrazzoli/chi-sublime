@@ -20,14 +20,15 @@
  *  - Passos pendentes: contorno cinza
  */
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils/cn';
 
 export type BookingStep = 'service' | 'time' | 'confirm';
 
-const STEPS: { key: BookingStep; label: string; number: number }[] = [
-  { key: 'service', label: 'Serviço', number: 1 },
-  { key: 'time', label: 'Horário', number: 2 },
-  { key: 'confirm', label: 'Confirmar', number: 3 },
+const STEPS: { key: BookingStep; number: number }[] = [
+  { key: 'service', number: 1 },
+  { key: 'time', number: 2 },
+  { key: 'confirm', number: 3 },
 ];
 
 const STEP_ORDER: Record<BookingStep, number> = {
@@ -41,10 +42,11 @@ type Props = {
 };
 
 export function BookingStepper({ currentStep }: Props) {
+  const t = useTranslations('booking.stepper');
   const currentNum = STEP_ORDER[currentStep];
 
   return (
-    <nav aria-label="Progresso da reserva" className="mx-auto max-w-2xl">
+    <nav aria-label={t('aria')} className="mx-auto max-w-2xl">
       <div className="relative">
         {/* Linhas conectoras — absolutas, atrás dos círculos.
             Centros dos círculos: 16.67% / 50% / 83.33% da largura.
@@ -112,7 +114,7 @@ export function BookingStepper({ currentStep }: Props) {
                     isPending && 'text-chi-charcoal-light',
                   )}
                 >
-                  {step.label}
+                  {t(step.key)}
                 </span>
               </li>
             );
