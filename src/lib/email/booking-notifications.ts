@@ -59,6 +59,8 @@ export type BookingCreatedNotification = {
     email?: string;
     phone?: string;
   };
+  /** false em reservas criadas pelo admin — o salão já sabe. Default: true */
+  notifySalon?: boolean;
 };
 
 export async function notifyBookingCreated(params: BookingCreatedNotification): Promise<void> {
@@ -87,19 +89,20 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
   }
 
   // 2) Alerta ao salão — o "toque no bolso" a cada reserva nova
-  jobs.push(
-    sendNewBookingAdminEmail({
-      bookingNumber: params.bookingNumber,
-      clientName: params.client.name,
-      clientPhone: params.client.phone,
-      date,
-      time,
-      services,
-      staffName: params.staffName,
-      total,
-      source: params.source,
-    }),
-  );
+  if (params.notifySalon !== false)
+    jobs.push(
+      sendNewBookingAdminEmail({
+        bookingNumber: params.bookingNumber,
+        clientName: params.client.name,
+        clientPhone: params.client.phone,
+        date,
+        time,
+        services,
+        staffName: params.staffName,
+        total,
+        source: params.source,
+      }),
+    );
 
   const results = await Promise.allSettled(jobs);
   results.forEach((r, i) => {

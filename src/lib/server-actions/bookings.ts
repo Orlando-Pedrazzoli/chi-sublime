@@ -3,6 +3,7 @@
 import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db/connect';
+import { notifyBookingCreated, notifyBookingCancelled } from '@/lib/email/booking-notifications';
 import { Booking, Client, generateBookingNumber, logAudit, type IBooking } from '@/lib/models';
 import { auth } from '@/lib/auth';
 import { getAvailableSlots } from '@/lib/booking/availability';
@@ -277,14 +278,22 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       metadata: { bookingNumber, totalPrice, totalDuration, source: data.source },
     });
 
-    console.log('\n📧 [MOCK EMAIL] Booking confirmation');
-    console.log(`   To: ${data.guestInfo.email}`);
-    console.log(`   Booking: ${bookingNumber}`);
-    console.log(`   Date: ${data.date} ${data.time}`);
-    console.log(`   Staff: ${requestedSlot.staffName}`);
-    console.log(`   Services: ${serviceItems.map((s) => s.name).join(', ')}`);
-    console.log(`   Total: €${(totalPrice / 100).toFixed(2)}`);
-    console.log(`   Cancellation link: /cancelar/${cancellationToken}\n`);
+    // Emails reais (cliente + alerta ao salão). AWAIT obrigatório:
+    // em serverless, um fire-and-forget pode ser morto com a lambda
+    // antes de o Resend responder. notifyBookingCreated nunca lança.
+    await notifyBookingCreated({
+      bookingNumber,
+      startTime,
+      services: serviceItems.map((s) => s.name),
+      staffName: requestedSlot.staffName,
+      totalPrice,
+      source: data.source,
+      client: {
+        name: data.guestInfo.name,
+        email: data.guestInfo.email,
+        phone: data.guestInfo.phone,
+      },
+    });
 
     return {
       success: true,
@@ -395,7 +404,15 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
     metadata: { reason: booking.cancellationReason },
   });
 
-  console.log(`\n📧 [MOCK EMAIL] Booking cancelled: ${bookingNumber}\n`);
+  await notifyBookingCancelled({
+    bookingNumber,
+    startTime: booking.startTime,
+    reason: booking.cancellationReason,
+    client: {
+      name: booking.guestInfo?.name ?? 'Cliente',
+      email: booking.guestInfo?.email,
+    },
+  });
 
   return { success: true, bookingNumber };
 }
@@ -533,7 +550,12 @@ export async function cancelMyBookingAction(input: {
     metadata: { reason: booking.cancellationReason },
   });
 
-  console.log(`\n📧 [MOCK EMAIL] Cancellation by client: ${input.bookingNumber}\n`);
+  await notifyBookingCancelled({
+    bookingNumber: input.bookingNumber,
+    startTime: booking.startTime,
+    reason: booking.cancellationReason,
+    client: { name: session.user.name, email: session.user.email },
+  });
 
   return { success: true, bookingNumber: input.bookingNumber };
 }

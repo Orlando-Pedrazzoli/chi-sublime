@@ -27,6 +27,7 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
+import { notifyBookingCreated } from '@/lib/email/booking-notifications';
 import { auth } from '@/lib/auth';
 import {
   Booking,
@@ -285,6 +286,25 @@ export async function createManualBookingAction(
         totalPrice: booking.totalPrice,
       },
     });
+
+    // Confirmação ao cliente (se tiver email e a reserva for futura).
+    // notifySalon: false — foi o próprio salão a criar. Nunca lança.
+    if (clientDoc.email && startTime > new Date()) {
+      await notifyBookingCreated({
+        bookingNumber,
+        startTime,
+        services: serviceItems.map((s) => s.name),
+        staffName: staff.name,
+        totalPrice: booking.totalPrice,
+        source: data.source,
+        client: {
+          name: clientDoc.name,
+          email: clientDoc.email,
+          phone: clientDoc.phone,
+        },
+        notifySalon: false,
+      });
+    }
 
     revalidateBookingViews();
 

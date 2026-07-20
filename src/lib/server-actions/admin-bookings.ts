@@ -3,6 +3,7 @@
 
 import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db/connect';
+import { notifyBookingCancelled } from '@/lib/email/booking-notifications';
 import {
   Booking,
   Client,
@@ -333,6 +334,23 @@ export async function updateBookingStatusAction(input: UpdateStatusInput): Promi
     severity: input.newStatus === 'cancelled' ? 'warning' : 'info',
     metadata: { oldStatus, newStatus: input.newStatus, reason: input.reason },
   });
+
+  // Cancelado pelo salão → avisar o cliente por email (se o tivermos).
+  if (input.newStatus === 'cancelled' && oldStatus !== 'cancelled') {
+    let email = booking.guestInfo?.email;
+    let name = booking.guestInfo?.name;
+    if (!email && booking.clientId) {
+      const clientDoc = await Client.findById(booking.clientId).select('name email').lean();
+      email = clientDoc?.email ?? undefined;
+      name = name ?? clientDoc?.name;
+    }
+    await notifyBookingCancelled({
+      bookingNumber: input.bookingNumber,
+      startTime: booking.startTime,
+      reason: booking.cancellationReason,
+      client: { name: name ?? 'Cliente', email },
+    });
+  }
 
   return { success: true };
 }
