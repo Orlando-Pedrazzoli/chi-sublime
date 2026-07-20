@@ -102,11 +102,22 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
   );
 
   const results = await Promise.allSettled(jobs);
-  for (const r of results) {
+  results.forEach((r, i) => {
+    const label = i === 0 && params.client.email ? 'confirmação cliente' : 'alerta salão';
     if (r.status === 'rejected') {
-      console.error('[booking-notifications] envio falhou:', r.reason);
+      console.error(`[booking-notifications] ${label} falhou:`, r.reason);
+    } else if (
+      r.status === 'fulfilled' &&
+      r.value &&
+      typeof r.value === 'object' &&
+      'ok' in r.value &&
+      !(r.value as { ok: boolean }).ok
+    ) {
+      // sendEmail resolve com { ok:false, error } — sem isto a falha
+      // ficava invisível nos logs (Promise cumprida ≠ email enviado)
+      console.error(`[booking-notifications] ${label} não enviado:`, r.value);
     }
-  }
+  });
 }
 
 // ------------------------------------------------------------

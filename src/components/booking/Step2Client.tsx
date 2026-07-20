@@ -17,7 +17,7 @@
  */
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { getAvailableSlotsAction } from '@/lib/server-actions/bookings';
@@ -38,10 +38,12 @@ type Props = {
 
 export function Step2Client({ staffOptions }: Props) {
   const t = useTranslations('booking.step2');
+  const locale = useLocale();
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const { selectedServiceIds, staffId, date, time, updateState } = useBookingFlow();
+  const { selectedServiceIds, staffId, date, time, assignedStaffName, updateState } =
+    useBookingFlow();
 
   const currentStaffId = staffId ?? 'any';
 
@@ -157,6 +159,51 @@ export function Step2Client({ staffOptions }: Props) {
               {fetchState.errorMessage}
             </p>
           )}
+
+          {/* Confirmação contextual — aparece colada ao horário escolhido */}
+          {canContinue && date && time && (
+            <div
+              className="mt-5 rounded-lg border p-5"
+              style={{
+                borderColor: 'rgba(212,175,110,0.5)',
+                backgroundColor: 'rgba(212,175,110,0.08)',
+              }}
+            >
+              <p
+                className="text-[10px] font-semibold tracking-[0.25em] uppercase"
+                style={{ color: '#B8924A' }}
+              >
+                {t('yourChoice')}
+              </p>
+              <p className="mt-1.5 font-serif text-lg capitalize" style={{ color: '#1A1A1A' }}>
+                {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'pt-PT', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                }).format(new Date(`${date}T12:00:00`))}
+                {' · '}
+                <span style={{ color: '#1F3D2E' }}>{time}</span>
+              </p>
+              {assignedStaffName && (
+                <p className="mt-0.5 text-sm" style={{ color: '#5A5A5A' }}>
+                  {t('withStaff', { name: assignedStaffName })}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
+                style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+              >
+                {t('confirmSlot')}
+                <span>→</span>
+              </button>
+              <p className="mt-2.5 text-center text-xs italic" style={{ color: '#8A8A8A' }}>
+                {t('changeHint')}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -181,13 +228,14 @@ export function Step2Client({ staffOptions }: Props) {
             {t('back')}
           </button>
 
-          {/* Continuar — FIX: a versão ativa não tinha background (invisível) */}
+          {/* Continuar — cores SEMPRE inline (bug Tailwind v4 + Next 16:
+              bg-chi-* via classe não renderiza e o botão ficava ilegível) */}
           {canContinue ? (
             <button
               type="button"
               onClick={handleContinue}
-              className="bg-chi-green-deep hover:bg-chi-green-soft hover:shadow-medium inline-flex flex-1 items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all sm:flex-none sm:px-12"
-              style={{ color: '#FAF7F2' }}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px] sm:flex-none sm:px-12"
+              style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
             >
               {t('continue')}
               <span>→</span>

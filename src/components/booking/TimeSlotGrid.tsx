@@ -70,25 +70,26 @@ export function TimeSlotGrid({
             aria-pressed={isSelected}
             className={cn(
               'flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-md border-2 px-2 py-3 transition-all duration-200',
-              isSelected
-                ? 'border-chi-gold bg-chi-gold shadow-gold'
-                : 'border-chi-border bg-chi-cream hover:border-chi-gold hover:shadow-soft',
+              isSelected ? 'shadow-gold' : 'hover:shadow-soft',
             )}
+            style={
+              // Cores SEMPRE inline (bug Tailwind v4 + Next 16: bg-chi-*
+              // via classe não renderiza — a seleção ficava invisível)
+              isSelected
+                ? { backgroundColor: '#D4AF6E', borderColor: '#D4AF6E' }
+                : { backgroundColor: '#FAF7F2', borderColor: 'rgba(31,61,46,0.15)' }
+            }
           >
             <span
-              className={cn(
-                'font-mono text-base font-medium md:text-lg',
-                isSelected ? 'text-chi-green-deep' : 'text-chi-charcoal',
-              )}
+              className="font-mono text-base font-medium md:text-lg"
+              style={{ color: isSelected ? '#1F3D2E' : '#1A1A1A' }}
             >
               {slot.time}
             </span>
             {showStaffName && (
               <span
-                className={cn(
-                  'max-w-full truncate text-[10px] tracking-[0.12em] uppercase',
-                  isSelected ? 'text-chi-green-darker' : 'text-chi-charcoal-light',
-                )}
+                className="max-w-full truncate text-[10px] tracking-[0.12em] uppercase"
+                style={{ color: isSelected ? '#14301F' : '#8A8A8A' }}
               >
                 {slot.staffName}
               </span>

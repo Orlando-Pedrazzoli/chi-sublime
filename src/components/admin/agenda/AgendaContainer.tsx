@@ -18,16 +18,18 @@ import { cn } from '@/lib/utils/cn';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
 import { BookingDetailModal } from './BookingDetailModal';
+import { UpcomingListView } from './UpcomingListView';
 import { NewBookingModal } from './NewBookingModal';
 import {
   getBookingsByDayAction,
   getBookingsByWeekAction,
+  getUpcomingBookingsAction,
   type AdminBookingForList,
 } from '@/lib/server-actions/admin-bookings';
 
 type AgendaContainerProps = {
   initialDate: string;
-  initialView: 'day' | 'week';
+  initialView: 'day' | 'week' | 'list';
   initialBookings: AdminBookingForList[];
   staff: Array<{ id: string; name: string; photo?: string }>;
   services: Array<{
@@ -58,21 +60,25 @@ export function AgendaContainer({
   const [isPending, startTransition] = useTransition();
 
   const [date, setDate] = useState(initialDate);
-  const [view, setView] = useState<'day' | 'week'>(initialView);
+  const [view, setView] = useState<'day' | 'week' | 'list'>(initialView);
   const [bookings, setBookings] = useState(initialBookings);
   const [selectedBooking, setSelectedBooking] = useState<AdminBookingForList | null>(null);
   const [newBookingOpen, setNewBookingOpen] = useState(openNewModalInitially);
   const [newBookingPrefill, setNewBookingPrefill] = useState<NewBookingPrefill | null>(null);
 
-  const refresh = useCallback(async (newDate: string, newView: 'day' | 'week') => {
-    const fn = newView === 'day' ? getBookingsByDayAction : getBookingsByWeekAction;
-    const result = await fn(newDate);
+  const refresh = useCallback(async (newDate: string, newView: 'day' | 'week' | 'list') => {
+    const result =
+      newView === 'day'
+        ? await getBookingsByDayAction(newDate)
+        : newView === 'week'
+          ? await getBookingsByWeekAction(newDate)
+          : await getUpcomingBookingsAction(newDate);
     if (result.success) {
       setBookings(result.bookings);
     }
   }, []);
 
-  function navigateToDate(newDate: string, newView?: 'day' | 'week') {
+  function navigateToDate(newDate: string, newView?: 'day' | 'week' | 'list') {
     const v = newView ?? view;
     setDate(newDate);
     if (newView) setView(newView);
@@ -89,19 +95,19 @@ export function AgendaContainer({
     });
   }
 
-  function handleViewChange(newView: 'day' | 'week') {
+  function handleViewChange(newView: 'day' | 'week' | 'list') {
     navigateToDate(date, newView);
   }
 
   function handlePrevDate() {
     const d = new Date(`${date}T12:00:00`);
-    d.setDate(d.getDate() - (view === 'day' ? 1 : 7));
+    d.setDate(d.getDate() - (view === 'day' ? 1 : view === 'week' ? 7 : 14));
     navigateToDate(d.toISOString().slice(0, 10));
   }
 
   function handleNextDate() {
     const d = new Date(`${date}T12:00:00`);
-    d.setDate(d.getDate() + (view === 'day' ? 1 : 7));
+    d.setDate(d.getDate() + (view === 'day' ? 1 : view === 'week' ? 7 : 14));
     navigateToDate(d.toISOString().slice(0, 10));
   }
 
@@ -220,7 +226,7 @@ export function AgendaContainer({
               type="button"
               onClick={() => handleViewChange('week')}
               className={cn(
-                'rounded-r-md px-4 py-2 text-xs font-medium tracking-wide transition-colors',
+                'px-4 py-2 text-xs font-medium tracking-wide transition-colors',
                 view === 'week' ? '' : 'hover:bg-white',
               )}
               style={{
@@ -230,6 +236,21 @@ export function AgendaContainer({
               }}
             >
               Semana
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange('list')}
+              className={cn(
+                'rounded-r-md px-4 py-2 text-xs font-medium tracking-wide transition-colors',
+                view === 'list' ? '' : 'hover:bg-white',
+              )}
+              style={{
+                borderLeft: '1px solid rgba(31,61,46,0.2)',
+                backgroundColor: view === 'list' ? '#1F3D2E' : 'transparent',
+                color: view === 'list' ? '#FAF7F2' : '#1F3D2E',
+              }}
+            >
+              Próximas
             </button>
           </div>
 
@@ -246,6 +267,29 @@ export function AgendaContainer({
         </div>
       </div>
 
+      {/* Hint: dia sem reservas → atalho para a lista de próximas */}
+      {view === 'day' && bookings.length === 0 && (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3"
+          style={{
+            borderColor: 'rgba(212,175,110,0.4)',
+            backgroundColor: 'rgba(212,175,110,0.08)',
+          }}
+        >
+          <p className="text-sm" style={{ color: '#5A4A2A' }}>
+            Sem reservas neste dia — vê o que está agendado para os próximos dias.
+          </p>
+          <button
+            type="button"
+            onClick={() => handleViewChange('list')}
+            className="rounded-md px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all hover:-translate-y-[1px]"
+            style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
+          >
+            Ver próximas reservas
+          </button>
+        </div>
+      )}
+
       {/* Vista actual */}
       {view === 'day' ? (
         <CalendarDayView
@@ -258,13 +302,15 @@ export function AgendaContainer({
             openNewBooking({ time, staffId });
           }}
         />
-      ) : (
+      ) : view === 'week' ? (
         <CalendarWeekView
           weekStart={date}
           bookings={bookings}
           onBookingClick={setSelectedBooking}
           onDayClick={(d) => navigateToDate(d, 'day')}
         />
+      ) : (
+        <UpcomingListView bookings={bookings} onBookingClick={setSelectedBooking} />
       )}
 
       {/* Modais */}

@@ -1,9 +1,11 @@
+// 📄 src/app/admin/reservas/page.tsx
 import type { Metadata } from 'next';
 import { requireAdmin } from '@/lib/auth/permissions';
 import { AgendaContainer } from '@/components/admin/agenda/AgendaContainer';
 import {
   getBookingsByDayAction,
   getBookingsByWeekAction,
+  getUpcomingBookingsAction,
   getAdminBookingMetaAction,
 } from '@/lib/server-actions/admin-bookings';
 
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
 
 type SearchParams = {
   date?: string;
-  view?: 'day' | 'week';
+  view?: 'day' | 'week' | 'list';
   new?: string;
 };
 
@@ -31,11 +33,16 @@ export default async function AdminReservasPage({
   const params = await searchParams;
 
   const date = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayString();
-  const view: 'day' | 'week' = params.view === 'week' ? 'week' : 'day';
+  const view: 'day' | 'week' | 'list' =
+    params.view === 'week' ? 'week' : params.view === 'list' ? 'list' : 'day';
   const openNewModal = params.new === '1';
 
   const [bookingsResult, meta] = await Promise.all([
-    view === 'day' ? getBookingsByDayAction(date) : getBookingsByWeekAction(date),
+    view === 'day'
+      ? getBookingsByDayAction(date)
+      : view === 'week'
+        ? getBookingsByWeekAction(date)
+        : getUpcomingBookingsAction(date),
     getAdminBookingMetaAction(),
   ]);
 

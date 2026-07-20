@@ -225,7 +225,11 @@
       "chooseDateHint": "Choose a date to see the available times.",
       "chooseTimeHint": "Choose a time to continue.",
       "back": "Back",
-      "continue": "Continue"
+      "continue": "Continue",
+      "yourChoice": "Your choice",
+      "withStaff": "with {name}",
+      "confirmSlot": "Confirm this time",
+      "changeHint": "You can pick a different time from the list above."
     }
   },
   "contact": {

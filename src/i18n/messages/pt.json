@@ -225,7 +225,11 @@
       "chooseDateHint": "Escolha uma data para ver os horários disponíveis.",
       "chooseTimeHint": "Escolha um horário para continuar.",
       "back": "Voltar",
-      "continue": "Continuar"
+      "continue": "Continuar",
+      "yourChoice": "A tua escolha",
+      "withStaff": "com {name}",
+      "confirmSlot": "Confirmar este horário",
+      "changeHint": "Podes escolher outro horário na lista acima."
     }
   },
   "contact": {

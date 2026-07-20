@@ -65,6 +65,8 @@ type AttentionItem = {
   title: string;
   subtitle: string;
   when: string;
+  /** Data (YYYY-MM-DD) da reserva — deep-link para a agenda do dia */
+  date?: string;
 };
 
 type StaffOccupancy = { name: string; percent: number };
@@ -237,6 +239,7 @@ async function getDashboardData() {
     title: clientName(b),
     subtitle: b.services.map((s: any) => s.name).join(', '),
     when: dayTimeFmt.format(new Date(b.startTime)),
+    date: new Date(b.startTime).toISOString().slice(0, 10),
   }));
 
   const recentCancellations: AttentionItem[] = recentCancellationsRaw.map((b: any) => ({
@@ -244,6 +247,7 @@ async function getDashboardData() {
     title: clientName(b),
     subtitle: b.cancellationReason ?? 'Sem motivo indicado',
     when: dayTimeFmt.format(new Date(b.startTime)),
+    date: new Date(b.startTime).toISOString().slice(0, 10),
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -677,30 +681,52 @@ function Panel({
 function AttentionList({ items, accent }: { items: AttentionItem[]; accent: string }) {
   return (
     <ul className="divide-y" style={{ borderColor: 'rgba(31,61,46,0.06)' }}>
-      {items.map((item) => (
-        <li key={item.id} className="flex items-center gap-3 py-3">
-          <span
-            className="h-2 w-2 shrink-0 rounded-full"
-            style={{ backgroundColor: accent }}
-            aria-hidden
-          />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium" style={{ color: '#1A1A1A' }}>
-              {item.title}
-            </p>
-            <p className="truncate text-xs" style={{ color: '#5A5A5A' }}>
-              {item.subtitle}
-            </p>
-          </div>
-          <span
-            className="inline-flex shrink-0 items-center gap-1 font-mono text-xs"
-            style={{ color: '#5A5A5A' }}
-          >
-            <Clock size={11} />
-            {item.when}
-          </span>
-        </li>
-      ))}
+      {items.map((item) => {
+        const inner = (
+          <>
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: accent }}
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium" style={{ color: '#1A1A1A' }}>
+                {item.title}
+              </p>
+              <p className="truncate text-xs" style={{ color: '#5A5A5A' }}>
+                {item.subtitle}
+              </p>
+            </div>
+            <span
+              className="inline-flex shrink-0 items-center gap-1 font-mono text-xs"
+              style={{ color: '#5A5A5A' }}
+            >
+              <Clock size={11} />
+              {item.when}
+            </span>
+          </>
+        );
+
+        // Com data → linha clicável que abre a agenda no dia da reserva
+        if (item.date) {
+          return (
+            <li key={item.id}>
+              <Link
+                href={`/admin/reservas?date=${item.date}&view=day`}
+                className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-[rgba(212,175,110,0.08)]"
+              >
+                {inner}
+              </Link>
+            </li>
+          );
+        }
+
+        return (
+          <li key={item.id} className="flex items-center gap-3 py-3">
+            {inner}
+          </li>
+        );
+      })}
     </ul>
   );
 }

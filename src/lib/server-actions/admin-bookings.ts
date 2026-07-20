@@ -1,3 +1,4 @@
+// 📄 src/lib/server-actions/admin-bookings.ts
 'use server';
 
 import mongoose from 'mongoose';
@@ -237,6 +238,55 @@ export async function getBookingsByWeekAction(dateStr: string): Promise<WeekBook
   } catch (err) {
     console.error('[getBookingsByWeekAction]', err);
     return { success: false, error: 'Erro ao buscar reservas' };
+  }
+}
+
+// ============================================================
+// GET UPCOMING (lista "Próximas")
+// ============================================================
+
+export type UpcomingBookingsResult =
+  | { success: true; bookings: AdminBookingForList[]; from: string; to: string }
+  | { success: false; error: string };
+
+/**
+ * Reservas ativas (pending/confirmed/in-progress) desde o início do
+ * dia indicado até `days` dias à frente. Alimenta a vista "Próximas"
+ * da agenda e o hint de dia vazio.
+ */
+export async function getUpcomingBookingsAction(
+  fromDateStr: string,
+  days = 14,
+): Promise<UpcomingBookingsResult> {
+  const admin = await requireAdminSession();
+  if (!admin) return { success: false, error: 'Não autorizado' };
+
+  await connectDB();
+
+  try {
+    const from = startOfDay(parseDate(fromDateStr));
+    const to = new Date(from);
+    to.setDate(to.getDate() + Math.min(Math.max(days, 1), 60));
+
+    const bookings = await Booking.find({
+      startTime: { $gte: from, $lt: to },
+      status: { $in: ['pending', 'confirmed', 'in-progress'] },
+    })
+      .sort({ startTime: 1 })
+      .limit(200)
+      .populate('clientId', 'name phone email')
+      .populate('staffId', 'name photo')
+      .lean();
+
+    return {
+      success: true,
+      bookings: bookings.map(formatBooking),
+      from: fromDateStr,
+      to: toDateString(to),
+    };
+  } catch (err) {
+    console.error('[getUpcomingBookingsAction]', err);
+    return { success: false, error: 'Erro ao buscar próximas reservas' };
   }
 }
 
