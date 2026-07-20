@@ -1,7 +1,7 @@
 // 📄 src/app/admin/definicoes/page.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Building2, Receipt, Bell, Users, ChevronRight } from 'lucide-react';
+import { Building2, Receipt, Bell, Users, Lock, ChevronRight } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth/permissions';
 
 export const metadata: Metadata = {
@@ -10,6 +10,13 @@ export const metadata: Metadata = {
 };
 
 const SECTIONS = [
+  {
+    href: '/admin/definicoes/seguranca',
+    icon: Lock,
+    title: 'Segurança',
+    description: 'Alterar a password de acesso ao painel.',
+    ready: true,
+  },
   {
     href: '/admin/definicoes/faturacao',
     icon: Receipt,
