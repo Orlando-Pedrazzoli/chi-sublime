@@ -51,32 +51,55 @@ export default async function RelatoriosPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {REPORTS.map((r) => (
-          <Link
-            key={r.href}
-            href={r.href}
-            className="group border-chi-border hover:border-chi-gold flex items-start gap-3 rounded-lg border bg-white p-4 transition-colors"
-          >
-            <span className="bg-chi-sand text-chi-green-deep flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-              <r.icon size={18} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-chi-charcoal font-medium">{r.title}</span>
-                {!r.ready && (
-                  <span className="bg-chi-sand text-chi-charcoal-soft rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
-                    Em breve
-                  </span>
-                )}
+        {REPORTS.map((r) => {
+          const inner = (
+            <>
+              <span className="bg-chi-sand text-chi-green-deep flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
+                <r.icon size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-chi-charcoal font-medium">{r.title}</span>
+                  {!r.ready && (
+                    <span className="bg-chi-sand text-chi-charcoal-soft rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+                      Em breve
+                    </span>
+                  )}
+                </div>
+                <p className="text-chi-charcoal-soft mt-0.5 text-sm">{r.description}</p>
               </div>
-              <p className="text-chi-charcoal-soft mt-0.5 text-sm">{r.description}</p>
-            </div>
-            <ChevronRight
-              size={18}
-              className="text-chi-charcoal-light mt-1 shrink-0 transition-transform group-hover:translate-x-0.5"
-            />
-          </Link>
-        ))}
+              {r.ready && (
+                <ChevronRight
+                  size={18}
+                  className="text-chi-charcoal-light mt-1 shrink-0 transition-transform group-hover:translate-x-0.5"
+                />
+              )}
+            </>
+          );
+
+          // Relatórios em desenvolvimento: card informativo, sem navegação
+          if (!r.ready) {
+            return (
+              <div
+                key={r.href}
+                aria-disabled="true"
+                className="border-chi-border flex items-start gap-3 rounded-lg border bg-white p-4 opacity-60"
+              >
+                {inner}
+              </div>
+            );
+          }
+
+          return (
+            <Link
+              key={r.href}
+              href={r.href}
+              className="group border-chi-border hover:border-chi-gold flex items-start gap-3 rounded-lg border bg-white p-4 transition-colors"
+            >
+              {inner}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
