@@ -3,14 +3,18 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth/permissions';
+import { listAdminUsersAction } from '@/lib/server-actions/admin-users';
+import { AdminUsersManager } from '@/components/admin/settings/AdminUsersManager';
 
 export const metadata: Metadata = {
   title: 'Utilizadores',
   robots: { index: false, follow: false },
 };
 
-export default async function Page() {
-  await requireAdmin();
+export default async function UtilizadoresPage() {
+  const admin = await requireAdmin();
+  const result = await listAdminUsersAction();
+  const users = result.success ? result.data.users : [];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -23,10 +27,13 @@ export default async function Page() {
           Definições
         </Link>
         <h1 className="text-chi-green-darker mt-2 font-serif text-2xl">Utilizadores</h1>
+        <p className="text-chi-charcoal-soft mt-1 text-sm">
+          Quem pode aceder ao painel de administração. Cada pessoa deve ter a sua própria conta —
+          nunca partilhem a mesma password.
+        </p>
       </div>
-      <div className="border-chi-border rounded-lg border border-dashed bg-white p-10 text-center">
-        <p className="text-chi-charcoal-soft text-sm">Esta secção está em construção.</p>
-      </div>
+
+      <AdminUsersManager initialUsers={users} currentUserId={admin.id} />
     </div>
   );
 }

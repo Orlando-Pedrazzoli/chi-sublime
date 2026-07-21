@@ -81,3 +81,66 @@ export async function updateFiscalSettingsAction(
   revalidatePath('/admin/definicoes/faturacao');
   return ok({ ok: true });
 }
+
+// ============================================================
+// EMPRESA — dados do salão (identidade fiscal e contactos)
+// ============================================================
+
+const updateCompanySchema = z.object({
+  companyName: z.string().trim().min(2, 'Nome obrigatório').max(200),
+  tradingName: z.string().trim().max(200).optional().or(z.literal('')),
+  vatNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{9}$/, 'NIF deve ter 9 dígitos'),
+  address: z.string().trim().min(3, 'Morada obrigatória').max(300),
+  postalCode: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{3}$/, 'Formato: 0000-000'),
+  city: z.string().trim().min(2, 'Localidade obrigatória').max(100),
+  phone: z.string().trim().max(30).optional().or(z.literal('')),
+  fiscalEmail: z.string().trim().email('Email inválido').max(200),
+  iban: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^PT50\d{21}$/, 'IBAN PT inválido (PT50 + 21 dígitos)')
+    .optional()
+    .or(z.literal('')),
+});
+
+export async function updateCompanySettingsAction(
+  input: unknown,
+): Promise<ActionResult<{ ok: true }>> {
+  const session = await auth();
+  if (session?.user?.role !== 'admin') return fail('unauthorized', 'Não autorizado');
+
+  const parsed = updateCompanySchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return fail('validation', first?.message ?? 'Dados inválidos. Verifica os campos.');
+  }
+  const d = parsed.data;
+
+  await connectDB();
+  await FiscalSettings.updateOne(
+    { key: 'default' },
+    {
+      $set: {
+        companyName: d.companyName,
+        tradingName: d.tradingName || undefined,
+        vatNumber: d.vatNumber,
+        address: d.address,
+        postalCode: d.postalCode,
+        city: d.city,
+        phone: d.phone || undefined,
+        fiscalEmail: d.fiscalEmail,
+        iban: d.iban || undefined,
+      },
+    },
+  );
+
+  revalidatePath('/admin/definicoes/empresa');
+  return ok({ ok: true });
+}

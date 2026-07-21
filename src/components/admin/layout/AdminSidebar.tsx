@@ -1,9 +1,9 @@
+// 📄 src/components/admin/layout/AdminSidebar.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import {
   LayoutDashboard,
   Calendar,
@@ -16,6 +16,8 @@ import {
   Settings,
   X,
   ChevronRight,
+  Globe,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -93,7 +95,7 @@ export function AdminSidebar({ user, isMobileOpen, onMobileClose }: AdminSidebar
             className="flex items-center gap-3 transition-opacity hover:opacity-80"
           >
             <Image
-              src="/images/logo.png"
+              src="/images/logo_new.png"
               alt="Chi Sublime"
               width={36}
               height={36}
@@ -164,6 +166,56 @@ export function AdminSidebar({ user, isMobileOpen, onMobileClose }: AdminSidebar
                 </li>
               );
             })}
+          </ul>
+
+          {/* Atalhos externos — site público e caixa de email */}
+          <p
+            className="mt-7 mb-2 px-3 text-[10px] tracking-[0.22em] uppercase"
+            style={{ color: 'rgba(212,175,110,0.7)' }}
+          >
+            Atalhos
+          </p>
+          <ul className="space-y-0.5">
+            <li>
+              <a
+                href="https://www.chisublime.pt"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onMobileClose}
+                className="group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all hover:bg-white/5"
+                style={{ color: 'rgba(250,247,242,0.85)' }}
+              >
+                <Globe size={16} strokeWidth={1.5} />
+                <span>Ver site</span>
+                <span
+                  className="ml-auto text-[10px]"
+                  style={{ color: 'rgba(250,247,242,0.4)' }}
+                  aria-hidden
+                >
+                  ↗
+                </span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://mail.hostinger.com/mailboxes/INBOX"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onMobileClose}
+                className="group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all hover:bg-white/5"
+                style={{ color: 'rgba(250,247,242,0.85)' }}
+              >
+                <Mail size={16} strokeWidth={1.5} />
+                <span>Email Chi Sublime</span>
+                <span
+                  className="ml-auto text-[10px]"
+                  style={{ color: 'rgba(250,247,242,0.4)' }}
+                  aria-hidden
+                >
+                  ↗
+                </span>
+              </a>
+            </li>
           </ul>
         </nav>
 

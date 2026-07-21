@@ -28,22 +28,22 @@ const SECTIONS = [
     href: '/admin/definicoes/empresa',
     icon: Building2,
     title: 'Empresa',
-    description: 'Dados do salão, morada e contactos.',
-    ready: false,
+    description: 'Identidade fiscal, morada e contactos do salão.',
+    ready: true,
   },
   {
     href: '/admin/definicoes/notificacoes',
     icon: Bell,
     title: 'Notificações',
-    description: 'Emails, lembretes e comunicações.',
-    ready: false,
+    description: 'Estado dos emails e tarefas automáticas.',
+    ready: true,
   },
   {
     href: '/admin/definicoes/utilizadores',
     icon: Users,
     title: 'Utilizadores',
-    description: 'Acessos de administração.',
-    ready: false,
+    description: 'Contas com acesso ao painel de administração.',
+    ready: true,
   },
 ];
 
