@@ -100,23 +100,25 @@ export async function ServicesPreview() {
                 href={`/servicos/${cat.slug}`}
                 className="group border-chi-cream/15 relative grid grid-cols-[64px_1fr_auto] items-center gap-5 border-b py-6 transition-colors duration-500 md:grid-cols-[1fr_minmax(0,420px)_auto] md:gap-10 md:overflow-hidden md:py-10"
               >
-                {/* Thumbnail — sempre visível no mobile; em desktop
-                    revela-se DENTRO da linha (overflow cortado no Link),
-                    no espaço vazio entre o título e a descrição —
-                    nunca sobre texto. */}
-                <div className="relative aspect-square w-16 overflow-hidden md:absolute md:inset-y-3 md:left-[40%] md:z-10 md:aspect-auto md:w-44 md:opacity-0 md:transition-opacity md:duration-500 md:group-hover:opacity-100">
+                {/* Thumbnail — sempre visível no mobile; em desktop LARGO
+                    (lg+) revela-se no hover, ancorada no espaço vazio entre
+                    o título e a descrição. Fica ATRÁS do texto (z-0) e com
+                    pointer-events desligados: mesmo que encoste, nunca tapa
+                    uma letra nem rouba o hover. Em tablets (md–lg) não há
+                    espaço vazio, por isso não aparece de todo. */}
+                <div className="pointer-events-none relative z-0 aspect-square w-16 overflow-hidden md:hidden lg:absolute lg:inset-y-3 lg:left-[25%] lg:block lg:aspect-auto lg:w-40 lg:opacity-0 lg:transition-opacity lg:duration-500 lg:group-hover:opacity-100 xl:left-[30%] xl:w-44">
                   <Image
                     src={cat.image}
                     alt={cat.title}
                     fill
                     quality={85}
-                    sizes="(max-width: 768px) 64px, 176px"
-                    className="object-cover md:scale-105 md:transition-transform md:duration-700 md:group-hover:scale-100"
+                    sizes="(max-width: 1024px) 64px, 176px"
+                    className="object-cover lg:scale-105 lg:transition-transform lg:duration-700 lg:group-hover:scale-100"
                   />
                 </div>
 
                 {/* Nome da categoria */}
-                <div className="min-w-0">
+                <div className="relative z-10 min-w-0">
                   <h3 className="group-hover:text-chi-gold font-serif text-2xl leading-tight transition-colors duration-400 sm:text-3xl md:text-5xl">
                     {cat.title}
                   </h3>
@@ -126,7 +128,7 @@ export async function ServicesPreview() {
                 </div>
 
                 {/* Descrição — só a partir de md */}
-                <p className="text-chi-cream/60 hidden text-sm leading-[1.75] md:block">
+                <p className="text-chi-cream/60 relative z-10 hidden text-sm leading-[1.75] md:block">
                   {description(cat.slug)}
                 </p>
 
