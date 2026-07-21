@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { requestPasswordReset, resetPassword } from '@/lib/server-actions/auth';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 type Mode = 'request' | 'reset';
 
@@ -235,9 +236,8 @@ export function PasswordResetForm({ mode }: PasswordResetFormProps) {
         >
           Nova password
         </label>
-        <input
+        <PasswordInput
           id="new-password"
-          type="password"
           autoComplete="new-password"
           required
           value={password}
@@ -262,9 +262,8 @@ export function PasswordResetForm({ mode }: PasswordResetFormProps) {
         >
           Confirmar nova password
         </label>
-        <input
+        <PasswordInput
           id="new-password-confirm"
-          type="password"
           autoComplete="new-password"
           required
           value={passwordConfirm}

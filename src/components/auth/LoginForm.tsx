@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 type Variant = 'admin' | 'client';
 
@@ -143,9 +144,9 @@ export function LoginForm({ variant, defaultRedirect }: LoginFormProps) {
             </Link>
           )}
         </div>
-        <input
+        <PasswordInput
+          dark={isAdmin}
           id="login-password"
-          type="password"
           autoComplete="current-password"
           required
           value={password}

@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/Label';
 import { useToast } from '@/hooks/useToast';
+import { ImageUploadField } from '@/components/admin/shared/ImageUploadField';
 import { eurosToCents, centsToEuros } from '@/lib/utils/cents';
 import {
   createServiceAction,
@@ -102,6 +103,8 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
     reset,
     setError,
     formState: { errors, isSubmitting },
+    watch,
+    setValue,
   } = useForm<FormValues>({ defaultValues: toDefaults(service) });
 
   useEffect(() => {
@@ -270,11 +273,17 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
           </div>
         </div>
 
+        <div>
+          <Label>Imagem do serviço</Label>
+          <ImageUploadField
+            value={watch('image')}
+            onChange={(url) => setValue('image', url, { shouldDirty: true })}
+            folder="services"
+            hint="Aparece na página do serviço no site. Até 8 MB."
+          />
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Imagem (URL)</Label>
-            <Input {...register('image')} placeholder="https://…" error={!!errors.image} />
-          </div>
           <div>
             <Label>Ordem</Label>
             <Input type="number" min={0} {...register('order')} error={!!errors.order} />

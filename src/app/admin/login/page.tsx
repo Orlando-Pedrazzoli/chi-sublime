@@ -38,7 +38,7 @@ export default async function AdminLoginPage() {
         {/* Logo */}
         <Link href="/" className="mb-12 flex flex-col items-center gap-3">
           <Image
-            src="/images/logo.png"
+            src="/images/logo_new.png"
             alt="Chi Sublime"
             width={64}
             height={64}

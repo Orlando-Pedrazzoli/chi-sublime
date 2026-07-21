@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Shield } from 'lucide-react';
 import { changePassword } from '@/lib/server-actions/auth';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 export function ChangePasswordForm() {
   const [isPending, startTransition] = useTransition();
@@ -49,9 +50,8 @@ export function ChangePasswordForm() {
         >
           Password actual
         </label>
-        <input
+        <PasswordInput
           id="current-password"
-          type="password"
           autoComplete="current-password"
           required
           value={currentPassword}
@@ -77,9 +77,8 @@ export function ChangePasswordForm() {
         >
           Nova password
         </label>
-        <input
+        <PasswordInput
           id="new-password"
-          type="password"
           autoComplete="new-password"
           required
           value={newPassword}
@@ -106,9 +105,8 @@ export function ChangePasswordForm() {
         >
           Confirmar nova password
         </label>
-        <input
+        <PasswordInput
           id="new-password-confirm"
-          type="password"
           autoComplete="new-password"
           required
           value={newPasswordConfirm}

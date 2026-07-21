@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { registerUser } from '@/lib/server-actions/auth';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 type RegisterFormProps = {
   defaultRedirect?: string;
@@ -215,9 +216,8 @@ export function RegisterForm({ defaultRedirect = '/conta' }: RegisterFormProps) 
         >
           Password
         </label>
-        <input
+        <PasswordInput
           id="reg-password"
-          type="password"
           autoComplete="new-password"
           required
           value={form.password}
@@ -243,9 +243,8 @@ export function RegisterForm({ defaultRedirect = '/conta' }: RegisterFormProps) 
         >
           Confirmar password
         </label>
-        <input
+        <PasswordInput
           id="reg-password-confirm"
-          type="password"
           autoComplete="new-password"
           required
           value={form.passwordConfirm}

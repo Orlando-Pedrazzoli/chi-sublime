@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/Label';
 import { useToast } from '@/hooks/useToast';
+import { ImageUploadField } from '@/components/admin/shared/ImageUploadField';
 import { createStaffAction, updateStaffAction } from '@/lib/server-actions/staff';
 import type { StaffDetail } from '@/types/staff';
 
@@ -81,6 +82,8 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
     reset,
     setError,
     formState: { errors, isSubmitting },
+    watch,
+    setValue,
   } = useForm<FormValues>({ defaultValues: toDefaults(staff) });
 
   useEffect(() => {
@@ -205,11 +208,17 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
           </div>
         </div>
 
+        <div>
+          <Label>Fotografia</Label>
+          <ImageUploadField
+            value={watch('photo')}
+            onChange={(url) => setValue('photo', url, { shouldDirty: true })}
+            folder="team"
+            hint="Foto do profissional — aparece no site e na agenda. Até 8 MB."
+          />
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Foto (URL)</Label>
-            <Input {...register('photo')} placeholder="https://…" error={!!errors.photo} />
-          </div>
           <div>
             <Label>Comissão (%)</Label>
             <Input
