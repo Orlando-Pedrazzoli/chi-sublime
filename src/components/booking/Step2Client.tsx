@@ -9,11 +9,14 @@
  *  - CalendarPicker agora recebe serviceIds + staffId e pinta
  *    os estados de cada dia via getMonthAvailabilityAction
  *    (passado / fechado / folga / esgotado / disponivel).
- *  - FIX: o botao "Continuar" ATIVO nao tinha background nenhum
- *    (ficava invisivel) — agora verde profundo com cor inline.
  *  - TimeSlotGrid so mostra o nome do staff quando o cliente
  *    escolheu "qualquer profissional".
  *  - CTAs empilham confortavelmente no mobile.
+ *
+ * ⚠️ FIX botões "espremidos" (bug Tailwind v4 + Next 16): as
+ * classes de PADDING (py-3.5/py-4) estavam a ser ignoradas em
+ * produção. Padding, border-radius (8px) e cores dos CTAs
+ * passaram para INLINE STYLE — regra do projeto.
  */
 
 import { useState, useTransition } from 'react';
@@ -24,6 +27,28 @@ import { getAvailableSlotsAction } from '@/lib/server-actions/bookings';
 import { StaffPicker, type StaffOption } from './StaffPicker';
 import { CalendarPicker } from './CalendarPicker';
 import { TimeSlotGrid, type SlotData } from './TimeSlotGrid';
+
+/* Estilos críticos dos CTAs — sempre inline */
+const CTA_PRIMARY: React.CSSProperties = {
+  backgroundColor: '#1F3D2E',
+  color: '#FAF7F2',
+  padding: '15px 32px',
+  borderRadius: '8px',
+};
+
+const CTA_DISABLED: React.CSSProperties = {
+  backgroundColor: '#9A9A9A',
+  color: '#FAF7F2',
+  padding: '15px 32px',
+  borderRadius: '8px',
+};
+
+const CTA_CONFIRM: React.CSSProperties = {
+  backgroundColor: '#1F3D2E',
+  color: '#FAF7F2',
+  padding: '14px 24px',
+  borderRadius: '8px',
+};
 
 type FetchState = {
   status: 'idle' | 'loading' | 'loaded' | 'closed' | 'error';
@@ -163,10 +188,11 @@ export function Step2Client({ staffOptions }: Props) {
           {/* Confirmação contextual — aparece colada ao horário escolhido */}
           {canContinue && date && time && (
             <div
-              className="mt-5 rounded-lg border p-5"
+              className="mt-5 border p-5"
               style={{
                 borderColor: 'rgba(212,175,110,0.5)',
                 backgroundColor: 'rgba(212,175,110,0.08)',
+                borderRadius: '10px',
               }}
             >
               <p
@@ -193,8 +219,8 @@ export function Step2Client({ staffOptions }: Props) {
               <button
                 type="button"
                 onClick={handleContinue}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
-                style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] hover:opacity-95"
+                style={CTA_CONFIRM}
               >
                 {t('confirmSlot')}
                 <span>→</span>
@@ -211,31 +237,31 @@ export function Step2Client({ staffOptions }: Props) {
       <div className="border-chi-border mt-4 border-t pt-8">
         {/* Helper text quando não pode continuar */}
         {!canContinue && (
-          <p className="text-chi-charcoal-light mb-6 text-center text-sm italic">
+          <p className="mb-6 text-center text-sm italic" style={{ color: '#8A8A8A' }}>
             {!date ? t('chooseDateHint') : t('chooseTimeHint')}
           </p>
         )}
 
         {/* Linha de botões */}
         <div className="flex items-center justify-between gap-4">
-          {/* Voltar — link discreto à esquerda */}
+          {/* Voltar — link discreto à esquerda (cor inline por segurança) */}
           <button
             type="button"
             onClick={handleBack}
-            className="text-chi-charcoal-soft hover:text-chi-charcoal inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors"
+            className="inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors hover:opacity-70"
+            style={{ color: '#5A5A5A', padding: '8px 0' }}
           >
             <span>←</span>
             {t('back')}
           </button>
 
-          {/* Continuar — cores SEMPRE inline (bug Tailwind v4 + Next 16:
-              bg-chi-* via classe não renderiza e o botão ficava ilegível) */}
+          {/* Continuar — padding, radius e cores SEMPRE inline */}
           {canContinue ? (
             <button
               type="button"
               onClick={handleContinue}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px] sm:flex-none sm:px-12"
-              style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+              className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] hover:opacity-95 sm:flex-none"
+              style={CTA_PRIMARY}
             >
               {t('continue')}
               <span>→</span>
@@ -244,11 +270,8 @@ export function Step2Client({ staffOptions }: Props) {
             <button
               type="button"
               disabled
-              className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-md px-8 py-4 text-xs font-semibold tracking-[0.22em] uppercase opacity-50 sm:flex-none sm:px-12"
-              style={{
-                backgroundColor: '#9A9A9A',
-                color: '#FAF7F2',
-              }}
+              className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase opacity-50 sm:flex-none"
+              style={CTA_DISABLED}
             >
               {t('continue')}
               <span>→</span>

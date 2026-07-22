@@ -4,9 +4,12 @@
  * ============================================================
  *
  * Lógica intocada (sessão, dropdowns, scroll, mobile).
- * Refinamento visual: CTA de cantos retos sem glow/translate,
- * dropdowns sem gradientes decorativos, chevrons em vez de "▾".
- * Cores críticas em inline style (regra Tailwind v4 + Next 16).
+ *
+ * ⚠️ FIX (bug Tailwind v4 + Next 16): as classes de cor
+ * `text-chi-cream` no menu MOBILE estavam a ser ignoradas →
+ * links pretos ilegíveis sobre fundo verde. Todas as cores do
+ * menu mobile passaram para INLINE STYLE, tal como padding e
+ * border-radius (8px) dos CTAs MARCAR (desktop + mobile).
  */
 
 'use client';
@@ -50,6 +53,12 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: 'gallery', anchor: '#gallery' },
   { labelKey: 'contact', anchor: '#contact' },
 ];
+
+/* Tokens críticos (inline — bug Tailwind v4 + Next 16) */
+const CREAM = '#FAF7F2';
+const GOLD = '#D4AF6E';
+const GREEN_DEEP = '#1F3D2E';
+const CTA_RADIUS = '8px';
 
 export function NavLinks({ categories, session }: NavLinksProps) {
   const t = useTranslations('nav');
@@ -120,7 +129,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                   href={getHref(item.anchor)}
                   className="group hover:text-chi-gold relative inline-flex items-center gap-1.5 text-xs tracking-[0.18em] uppercase transition-colors"
                   style={{
-                    color: '#FAF7F2',
+                    color: CREAM,
                     textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                   }}
                 >
@@ -154,7 +163,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                             <Link
                               href={`/servicos/${cat.slug}`}
                               className="group flex items-center justify-between px-5 py-3 font-serif text-base transition-colors duration-300"
-                              style={{ color: '#FAF7F2' }}
+                              style={{ color: CREAM }}
                             >
                               <span className="group-hover:text-chi-gold transition-colors duration-300">
                                 {cat.title}
@@ -170,7 +179,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                         <Link
                           href={getHref('#services')}
                           className="hover:text-chi-gold block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-colors duration-300"
-                          style={{ color: '#D4AF6E' }}
+                          style={{ color: GOLD }}
                         >
                           Ver todos os serviços
                         </Link>
@@ -193,7 +202,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 href="/entrar"
                 className="hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors"
                 style={{
-                  color: '#FAF7F2',
+                  color: CREAM,
                   textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                 }}
               >
@@ -208,7 +217,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 href="/admin/dashboard"
                 className="hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors"
                 style={{
-                  color: '#FAF7F2',
+                  color: CREAM,
                   textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                 }}
               >
@@ -228,7 +237,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                   type="button"
                   className="hover:text-chi-gold flex items-center gap-2 transition-colors"
                   style={{
-                    color: '#FAF7F2',
+                    color: CREAM,
                     textShadow: scrolled ? 'none' : '0 2px 8px rgba(0,0,0,0.7)',
                   }}
                 >
@@ -266,10 +275,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       >
                         Sessão iniciada
                       </p>
-                      <p
-                        className="mt-0.5 truncate font-serif text-base"
-                        style={{ color: '#FAF7F2' }}
-                      >
+                      <p className="mt-0.5 truncate font-serif text-base" style={{ color: CREAM }}>
                         {session.name}
                       </p>
                     </div>
@@ -280,7 +286,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                         <Link
                           href="/conta"
                           className="group flex items-center justify-between px-5 py-2.5 text-sm transition-colors duration-300"
-                          style={{ color: '#FAF7F2' }}
+                          style={{ color: CREAM }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
                             {t('myAccount')}
@@ -294,7 +300,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                         <Link
                           href="/conta/reservas"
                           className="group flex items-center justify-between px-5 py-2.5 text-sm transition-colors duration-300"
-                          style={{ color: '#FAF7F2' }}
+                          style={{ color: CREAM }}
                         >
                           <span className="group-hover:text-chi-gold transition-colors">
                             {t('myBookings')}
@@ -325,11 +331,16 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               </div>
             )}
 
-            {/* CTA Reservar — cantos retos, sem glow nem translate */}
+            {/* CTA Marcar — padding/radius/cores inline (à prova do bug) */}
             <Link
               href="/reservar"
-              className="bg-chi-gold hover:bg-chi-gold-soft px-6 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
-              style={{ color: '#1F3D2E' }}
+              className="text-xs font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
+              style={{
+                backgroundColor: GOLD,
+                color: GREEN_DEEP,
+                padding: '12px 24px',
+                borderRadius: CTA_RADIUS,
+              }}
             >
               {t('book')}
             </Link>
@@ -342,28 +353,28 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             aria-label={t('menu')}
           >
             <span
-              className={cn(
-                'bg-chi-cream h-px w-6 transition',
-                mobileOpen && 'translate-y-2 rotate-45',
-              )}
+              className={cn('h-px w-6 transition', mobileOpen && 'translate-y-2 rotate-45')}
+              style={{ backgroundColor: CREAM }}
             />
-            <span className={cn('bg-chi-cream h-px w-6 transition', mobileOpen && 'opacity-0')} />
             <span
-              className={cn(
-                'bg-chi-cream h-px w-6 transition',
-                mobileOpen && '-translate-y-2 -rotate-45',
-              )}
+              className={cn('h-px w-6 transition', mobileOpen && 'opacity-0')}
+              style={{ backgroundColor: CREAM }}
+            />
+            <span
+              className={cn('h-px w-6 transition', mobileOpen && '-translate-y-2 -rotate-45')}
+              style={{ backgroundColor: CREAM }}
             />
           </button>
         </div>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — TODAS as cores inline (links estavam pretos) */}
       <div
         className={cn(
-          'bg-chi-green-deep fixed inset-0 z-40 transition-all duration-500 lg:hidden',
+          'fixed inset-0 z-40 transition-all duration-500 lg:hidden',
           mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
+        style={{ backgroundColor: GREEN_DEEP }}
       >
         <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto px-8 py-24">
           {NAV_ITEMS.map((item) => (
@@ -371,7 +382,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               key={item.anchor}
               href={getHref(item.anchor)}
               onClick={() => setMobileOpen(false)}
-              className="text-chi-cream hover:text-chi-gold font-serif text-3xl"
+              className="hover:text-chi-gold font-serif text-3xl transition-colors"
+              style={{ color: CREAM }}
             >
               {t(item.labelKey)}
             </Link>
@@ -381,13 +393,14 @@ export function NavLinks({ categories, session }: NavLinksProps) {
           <LangSwitcher variant="mobile" />
 
           {/* Account section */}
-          <div className="bg-chi-gold/30 my-4 h-px w-24" />
+          <div className="my-4 h-px w-24" style={{ backgroundColor: 'rgba(212,175,110,0.3)' }} />
 
           {!session && (
             <Link
               href="/entrar"
               onClick={() => setMobileOpen(false)}
-              className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
+              className="hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase transition-colors"
+              style={{ color: CREAM }}
             >
               <User size={18} strokeWidth={1.5} />
               {t('login')}
@@ -398,7 +411,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             <Link
               href="/admin/dashboard"
               onClick={() => setMobileOpen(false)}
-              className="text-chi-cream hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase"
+              className="hover:text-chi-gold flex items-center gap-2 text-lg tracking-[0.18em] uppercase transition-colors"
+              style={{ color: CREAM }}
             >
               <User size={18} strokeWidth={1.5} />
               {t('adminPanel')}
@@ -410,7 +424,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               <Link
                 href="/conta"
                 onClick={() => setMobileOpen(false)}
-                className="text-chi-cream hover:text-chi-gold flex items-center gap-2 font-serif text-2xl"
+                className="hover:text-chi-gold flex items-center gap-2 font-serif text-2xl transition-colors"
+                style={{ color: CREAM }}
               >
                 <User size={20} strokeWidth={1.5} />
                 {t('greeting', { name: firstName })}
@@ -418,7 +433,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               <Link
                 href="/conta/reservas"
                 onClick={() => setMobileOpen(false)}
-                className="text-chi-cream/80 hover:text-chi-gold text-sm tracking-[0.18em] uppercase"
+                className="hover:text-chi-gold text-sm tracking-[0.18em] uppercase transition-colors"
+                style={{ color: 'rgba(250,247,242,0.8)' }}
               >
                 {t('myBookings')}
               </Link>
@@ -428,7 +444,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                   setMobileOpen(false);
                   handleLogout();
                 }}
-                className="text-chi-cream/60 hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase"
+                className="hover:text-chi-gold flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors"
+                style={{ color: 'rgba(250,247,242,0.6)' }}
               >
                 <LogOut size={14} strokeWidth={1.5} />
                 {t('signOut')}
@@ -436,11 +453,17 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             </>
           )}
 
+          {/* CTA Marcar mobile — padding/radius/cores inline */}
           <Link
             href="/reservar"
             onClick={() => setMobileOpen(false)}
-            className="bg-chi-gold mt-6 px-8 py-4 text-sm font-semibold tracking-[0.22em] uppercase"
-            style={{ color: '#1F3D2E' }}
+            className="mt-6 text-sm font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
+            style={{
+              backgroundColor: GOLD,
+              color: GREEN_DEEP,
+              padding: '16px 40px',
+              borderRadius: CTA_RADIUS,
+            }}
           >
             {t('book')}
           </Link>

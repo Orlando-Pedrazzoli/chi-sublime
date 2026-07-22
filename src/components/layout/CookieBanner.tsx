@@ -1,26 +1,21 @@
 // 📄 src/components/layout/CookieBanner.tsx
 /**
- * Chi Sublime — CookieBanner (RGPD)
+ * Chi Sublime — CookieBanner (RGPD) · v3 final
  * ============================================================
  *
- * Banner de consentimento alinhado com a identidade do site:
- * - Cantos retos, fundo cream, régua superior dourada
- * - Título em Fraunces (font-serif) + eyebrow dourado
- * - CTA principal dourado (mesma linguagem do botão "Reservar")
- * - "Rejeitar tudo" com igual destaque (exigência RGPD/CNPD)
+ * Corner card compacto (mobile: fundo do ecrã; desktop: canto
+ * inferior esquerdo, 400px). Boas práticas:
+ * - Texto curto, ações visíveis sem scroll
+ * - "Rejeitar tudo" com igual acesso a "Aceitar tudo" (RGPD)
+ * - Consentimento granular em "Personalizar"
+ * - Botões SEMPRE numa linha (whiteSpace: nowrap)
  *
- * Preferências:
- * - Granular: necessários (fixo) / análise / marketing
- * - Persistidas em cookie `chi_cookie_consent` (12 meses,
- *   SameSite=Lax, Secure) — legível no servidor no futuro
- * - Toggles pré-carregam o consentimento existente
- * - Reabrível via openCookiePreferences() — usar num link
- *   "Gerir cookies" no footer ou na página /cookies
- * - Evento 'chi:cookie-consent' disparado a cada decisão
- *   (GA4/pixels devem ouvir este evento para arrancar)
+ * Persistência: cookie `chi_cookie_consent` (12 meses).
+ * Reabrível via openCookiePreferences(). Evento
+ * 'chi:cookie-consent' disparado a cada decisão.
  *
- * Cores críticas em inline style (bug Tailwind v4 + Next 16),
- * valores copiados dos tokens do globals.css.
+ * ⚠️ Padding, border-radius e cores em INLINE STYLE
+ * (bug Tailwind v4 + Next 16 ignora classes de spacing/cor).
  */
 
 'use client';
@@ -29,19 +24,30 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-/* ── Tokens (espelho do globals.css — cores críticas inline) ── */
+/* ── Tokens (espelho do globals.css) ───────────────────────── */
 
 const C = {
   greenDeep: '#1f3d2e',
   gold: '#d4af6e',
   goldDeep: '#b8924a',
   cream: '#faf7f2',
-  sand: '#efe9dd',
   sandDeep: '#d9d2c2',
   charcoal: '#1a1a1a',
   charcoalSoft: '#5a5a5a',
   border: '#e8e4da',
 } as const;
+
+const RADIUS_CARD = '12px';
+const RADIUS_BTN = '8px';
+
+/* Estilo base partilhado pelos botões de ação — garante 1 linha */
+const BTN_BASE: React.CSSProperties = {
+  padding: '12px 14px',
+  borderRadius: RADIUS_BTN,
+  whiteSpace: 'nowrap',
+  fontSize: '11px',
+  letterSpacing: '0.08em',
+};
 
 /* ── Consentimento ─────────────────────────────────────────── */
 
@@ -94,7 +100,7 @@ function persistConsent(analytics: boolean, marketing: boolean): CookieConsent {
   return consent;
 }
 
-/* ── Toggle (switch acessível, linguagem do site) ──────────── */
+/* ── Toggle compacto ───────────────────────────────────────── */
 
 function ConsentToggle({
   label,
@@ -110,20 +116,12 @@ function ConsentToggle({
   onChange?: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-5 py-4">
+    <div className="flex items-start justify-between gap-4" style={{ padding: '10px 0' }}>
       <div>
-        <p className="text-[13px] font-semibold tracking-[0.04em]" style={{ color: C.charcoal }}>
+        <p className="text-[13px] font-semibold" style={{ color: C.charcoal }}>
           {label}
-          {disabled && (
-            <span
-              className="ml-2 text-[10px] font-medium tracking-[0.18em] uppercase"
-              style={{ color: C.goldDeep }}
-            >
-              ✓
-            </span>
-          )}
         </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: C.charcoalSoft }}>
+        <p className="mt-0.5 text-xs leading-snug" style={{ color: C.charcoalSoft }}>
           {description}
         </p>
       </div>
@@ -134,16 +132,24 @@ function ConsentToggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange?.(!checked)}
-        className="relative mt-1 h-[22px] w-11 shrink-0 transition-colors duration-300 disabled:cursor-not-allowed"
+        className="relative shrink-0 transition-colors duration-300 disabled:cursor-not-allowed"
         style={{
+          marginTop: '2px',
+          height: '22px',
+          width: '42px',
+          borderRadius: '999px',
           backgroundColor: checked ? C.greenDeep : C.sandDeep,
           opacity: disabled ? 0.55 : 1,
         }}
       >
         <span
-          className="absolute top-[3px] h-4 w-4 transition-all duration-300"
+          className="absolute transition-all duration-300"
           style={{
-            left: checked ? '25px' : '3px',
+            top: '3px',
+            left: checked ? '23px' : '3px',
+            height: '16px',
+            width: '16px',
+            borderRadius: '999px',
             backgroundColor: checked ? C.gold : C.cream,
           }}
         />
@@ -189,115 +195,135 @@ export function CookieBanner() {
     setCustomizing(false);
   };
 
+  const openCustomize = () => {
+    const current = getCookieConsent();
+    setAnalytics(current?.analytics ?? false);
+    setMarketing(current?.marketing ?? false);
+    setCustomizing(true);
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="false"
       aria-label={t('title')}
-      className="fixed inset-x-0 bottom-0 z-[100] px-4 pb-4 sm:px-6 sm:pb-6"
+      className="fixed bottom-0 left-0 z-[100] w-full sm:bottom-6 sm:left-6 sm:w-[400px]"
+      style={{ padding: '0 12px 12px' }}
     >
       <div
-        className="animate-in slide-in-from-bottom-4 fade-in mx-auto w-full max-w-2xl shadow-2xl duration-500"
+        className="shadow-2xl"
         style={{
           backgroundColor: C.cream,
-          borderTop: `2px solid ${C.gold}`,
           border: `1px solid ${C.border}`,
-          borderTopColor: C.gold,
-          borderTopWidth: '2px',
+          borderTop: `2px solid ${C.gold}`,
+          borderRadius: RADIUS_CARD,
+          padding: '18px 20px 20px',
         }}
       >
-        <div className="p-6 sm:p-8">
-          {/* Eyebrow + título — mesma hierarquia das secções do site */}
-          <span
-            className="mb-3 block text-[10px] font-semibold tracking-[0.28em] uppercase"
+        <h2
+          className="font-serif"
+          style={{ color: C.greenDeep, fontSize: '17px', marginBottom: '6px' }}
+        >
+          {t('title')}
+        </h2>
+        <p
+          className="leading-relaxed"
+          style={{ color: C.charcoalSoft, fontSize: '13px', marginBottom: '14px' }}
+        >
+          {t('description')}{' '}
+          <Link
+            href="/cookies"
+            className="underline underline-offset-2 hover:opacity-80"
             style={{ color: C.goldDeep }}
           >
-            Chi Sublime
-          </span>
-          <h2 className="mb-3 font-serif text-xl" style={{ color: C.greenDeep }}>
-            {t('title')}
-          </h2>
-          <p className="mb-6 max-w-lg text-sm leading-[1.8]" style={{ color: C.charcoalSoft }}>
-            {t('description')}{' '}
-            <Link
-              href="/cookies"
-              className="underline underline-offset-2 transition-colors duration-300 hover:opacity-80"
-              style={{ color: C.goldDeep }}
-            >
-              {t('policyLink')}
-            </Link>
-          </p>
+            {t('policyLink')}
+          </Link>
+        </p>
 
-          {/* Painel de personalização */}
-          {customizing && (
-            <div className="mb-6 divide-y border-t border-b" style={{ borderColor: C.border }}>
-              <ConsentToggle
-                label={t('necessary')}
-                description={t('necessaryDescription')}
-                checked
-                disabled
-              />
-              <ConsentToggle
-                label={t('analytics')}
-                description={t('analyticsDescription')}
-                checked={analytics}
-                onChange={setAnalytics}
-              />
-              <ConsentToggle
-                label={t('marketing')}
-                description={t('marketingDescription')}
-                checked={marketing}
-                onChange={setMarketing}
-              />
-            </div>
-          )}
+        {/* Painel de personalização */}
+        {customizing && (
+          <div
+            className="divide-y"
+            style={{
+              borderTop: `1px solid ${C.border}`,
+              borderBottom: `1px solid ${C.border}`,
+              marginBottom: '14px',
+            }}
+          >
+            <ConsentToggle
+              label={t('necessary')}
+              description={t('necessaryDescription')}
+              checked
+              disabled
+            />
+            <ConsentToggle
+              label={t('analytics')}
+              description={t('analyticsDescription')}
+              checked={analytics}
+              onChange={setAnalytics}
+            />
+            <ConsentToggle
+              label={t('marketing')}
+              description={t('marketingDescription')}
+              checked={marketing}
+              onChange={setMarketing}
+            />
+          </div>
+        )}
 
-          {/* Ações — CTA dourado (linguagem "Reservar"); rejeitar com igual peso */}
-          <div className="flex flex-wrap items-center gap-3">
-            {customizing ? (
-              <button
-                type="button"
-                onClick={() => decide(analytics, marketing)}
-                className="px-8 py-3.5 text-[11px] font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
-                style={{ backgroundColor: C.gold, color: C.greenDeep }}
-              >
-                {t('savePreferences')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => decide(true, true)}
-                className="px-8 py-3.5 text-[11px] font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
-                style={{ backgroundColor: C.gold, color: C.greenDeep }}
-              >
-                {t('acceptAll')}
-              </button>
-            )}
+        {/* Ações — lado a lado, SEMPRE numa linha cada */}
+        <div className="flex items-stretch gap-2.5">
+          {customizing ? (
             <button
               type="button"
-              onClick={() => decide(false, false)}
-              className="border px-8 py-3.5 text-[11px] font-semibold tracking-[0.22em] uppercase transition-colors duration-300 hover:opacity-80"
-              style={{ borderColor: C.greenDeep, color: C.greenDeep }}
+              onClick={() => decide(analytics, marketing)}
+              className="flex-1 font-semibold uppercase transition-opacity duration-300 hover:opacity-90"
+              style={{ ...BTN_BASE, backgroundColor: C.gold, color: C.greenDeep }}
             >
-              {t('rejectAll')}
+              {t('savePreferences')}
             </button>
-            {!customizing && (
-              <button
-                type="button"
-                onClick={() => {
-                  const current = getCookieConsent();
-                  setAnalytics(current?.analytics ?? false);
-                  setMarketing(current?.marketing ?? false);
-                  setCustomizing(true);
-                }}
-                className="px-4 py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase underline underline-offset-4 transition-opacity duration-300 hover:opacity-80"
-                style={{ color: C.charcoalSoft }}
-              >
-                {t('customize')}
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => decide(true, true)}
+              className="flex-1 font-semibold uppercase transition-opacity duration-300 hover:opacity-90"
+              style={{ ...BTN_BASE, backgroundColor: C.gold, color: C.greenDeep }}
+            >
+              {t('acceptAll')}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => decide(false, false)}
+            className="flex-1 font-semibold uppercase transition-colors duration-300 hover:opacity-80"
+            style={{
+              ...BTN_BASE,
+              border: `1px solid ${C.greenDeep}`,
+              color: C.greenDeep,
+              backgroundColor: 'transparent',
+            }}
+          >
+            {t('rejectAll')}
+          </button>
         </div>
+
+        {/* Personalizar — link discreto por baixo */}
+        {!customizing && (
+          <button
+            type="button"
+            onClick={openCustomize}
+            className="font-medium uppercase underline underline-offset-4 hover:opacity-80"
+            style={{
+              color: C.charcoalSoft,
+              marginTop: '12px',
+              padding: '2px 0',
+              fontSize: '11px',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {t('customize')}
+          </button>
+        )}
       </div>
     </div>
   );
