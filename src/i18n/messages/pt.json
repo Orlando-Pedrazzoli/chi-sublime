@@ -22,13 +22,13 @@
     "gallery": "Galeria",
     "about": "Sobre",
     "contact": "Contacto",
-    "book": "Reservar",
+    "book": "Marcar",
     "myAccount": "A minha conta",
     "login": "Entrar",
     "register": "Registar",
     "logout": "Sair",
     "adminPanel": "Painel",
-    "myBookings": "As minhas reservas",
+    "myBookings": "As minhas marcações",
     "signOut": "Terminar sessão",
     "menu": "Menu",
     "greeting": "Olá, {name}"
@@ -38,9 +38,17 @@
       "eyebrow": "Hair Style & Beauty · Cascais",
       "title": "Beleza que <em>respira</em><br></br>o tempo",
       "subtitle": "Um espaço de cuidado refinado na Quinta da Bicuda, onde cada gesto é pensado para revelar a sua essência.",
-      "ctaPrimary": "Reservar",
+      "ctaPrimary": "Marcar",
       "ctaSecondary": "Descobrir os serviços",
-      "imageAlt": "Interior do salão Chi Sublime"
+      "imageAlt": "Interior do salão Chi Sublime",
+      "status": {
+        "open": "Aberto · até às {time}",
+        "closingSoon": "Fecha em breve · {time}",
+        "openingSoon": "Abre em breve · {time}",
+        "opensToday": "Fechado · Abre hoje às {time}",
+        "opensTomorrow": "Fechado · Abre amanhã às {time}",
+        "opensMonday": "Fechado · Abre segunda às {time}"
+      }
     },
     "philosophy": {
       "eyebrow": "A nossa filosofia",
@@ -57,7 +65,7 @@
       "intro": "Do cabelo ao gesto mais pequeno, cada serviço é executado com a precisão de quem trata cada cliente como única.",
       "count": "{count, plural, one {# serviço} other {# serviços}}",
       "viewServices": "Ver serviços",
-      "cta": "Reservar online",
+      "cta": "Marcar online",
       "descriptions": {
         "cabelereiro": "Cortes, coloração, madeixas, alisamentos, tratamentos vegan, extensões fio a fio.",
         "sobrancelhas": "Design personalizado, brow lamination, pigmentação e limpeza.",
@@ -95,17 +103,16 @@
     },
     "contact": {
       "eyebrow": "Visite-nos",
-      "title": "O seu momento começa com uma reserva",
-      "ctaBook": "Reservar online",
+      "title": "O seu momento começa com uma marcação",
+      "ctaBook": "Marcar online",
       "ctaWhatsapp": "Falar por WhatsApp",
       "addressTitle": "Morada",
       "viewMap": "Ver no mapa",
       "contactTitle": "Contacto",
       "hoursTitle": "Horário",
       "hours": {
-        "tueFri": "Terça a Sexta",
-        "sat": "Sábado",
-        "sunMon": "Domingo e Segunda",
+        "monFri": "Segunda a Sexta",
+        "satSun": "Sábado e Domingo",
         "closed": "Encerrado"
       }
     }
@@ -122,18 +129,18 @@
     "duration": "Duração",
     "price": "Preço",
     "minutes": "min",
-    "bookThis": "Reservar este serviço",
+    "bookThis": "Marcar este serviço",
     "page": {
       "emptyCategory": "Em breve — estamos a preparar a carta desta categoria.",
       "popular": "Popular",
-      "bookCta": "Reservar {category}",
-      "bookHint": "Reserva online em menos de um minuto — escolhe o serviço, o profissional e o horário que te convém.",
+      "bookCta": "Marcar {category}",
+      "bookHint": "Marcação online em menos de um minuto — escolhe o serviço, o profissional e o horário que te convém.",
       "explore": "Explorar também"
     }
   },
   "booking": {
     "stepper": {
-      "aria": "Progresso da reserva",
+      "aria": "Progresso da marcação",
       "service": "Serviço",
       "time": "Horário",
       "confirm": "Confirmar"
@@ -142,7 +149,7 @@
       "selectedCount": "{count, plural, one {# selecionado} other {# selecionados}}",
       "servicesCount": "{count, plural, one {# serviço} other {# serviços}}",
       "popular": "Popular",
-      "maxReached": "Atingiu o máximo de {max} serviços por reserva. Para escolher outro, remova um dos selecionados."
+      "maxReached": "Atingiu o máximo de {max} serviços por marcação. Para escolher outro, remova um dos selecionados."
     },
     "staff": {
       "title": "Profissional",
@@ -191,7 +198,7 @@
       },
       "tooltips": {
         "past": "Data passada",
-        "outOfRange": "Fora do período de reserva",
+        "outOfRange": "Fora do período de marcação",
         "closed": "Salão encerrado",
         "staffOff": "Profissional indisponível",
         "full": "Sem horários livres"
@@ -206,14 +213,14 @@
     "pages": {
       "stepLabel": "Passo {current} de {total}",
       "step1Title": "Escolha os serviços",
-      "step1Intro": "Pode combinar até 5 serviços numa única reserva. O total e a duração aparecem no resumo à medida que escolhe.",
+      "step1Intro": "Pode combinar até 5 serviços numa única marcação. O total e a duração aparecem no resumo à medida que escolhe.",
       "step1Cta": "Continuar",
       "step1CtaHelper": "Próximo passo: escolher data e horário",
       "step2Title": "Data e horário",
       "step2Intro": "Escolha o profissional e o momento que lhe convém. Mostramos apenas horários realmente disponíveis."
     },
     "summary": {
-      "title": "A sua reserva",
+      "title": "A sua marcação",
       "empty": "Escolha pelo menos um serviço para continuar.",
       "totalDuration": "Duração total",
       "total": "Total",
@@ -251,9 +258,9 @@
   "footer": {
     "tagline": "Hair Style & Beauty\nUm refúgio sensorial em Cascais.",
     "navigation": "Navegação",
-    "bookings": "Reservas",
+    "bookings": "Marcações",
     "legal": "Legal",
-    "bookOnline": "Reservar Online",
+    "bookOnline": "Marcar Online",
     "myAccount": "A minha conta",
     "cancellationPolicy": "Política de Cancelamento",
     "vouchers": "Vouchers",
@@ -314,6 +321,7 @@
     "analytics": "Análise",
     "analyticsDescription": "Ajudam-nos a entender como o site é utilizado.",
     "marketing": "Marketing",
-    "marketingDescription": "Permitem mostrar conteúdo personalizado."
+    "marketingDescription": "Permitem mostrar conteúdo personalizado.",
+    "policyLink": "Política de Cookies"
   }
 }

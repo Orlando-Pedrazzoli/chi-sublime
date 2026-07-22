@@ -10,10 +10,8 @@
  * i18n: getTranslations('home.contact'). Dias do horário nos
  * JSONs; horas ficam no código (dados, não texto).
  *
- * ⚠️ TODO (confirmar com o Jean Pierre antes do deploy):
- *   - Morada completa (rua e código postal)
- *   - Horário de funcionamento real
- *   - Link exato do Google Maps
+ * ✅ Horário confirmado (Google Business Profile):
+ *    Segunda a Sexta 10:00–19:00 · Sábado e Domingo encerrado
  */
 
 import Link from 'next/link';
@@ -23,14 +21,12 @@ import { Reveal } from '@/components/shared/Reveal';
 const PHONE_DISPLAY = '+351 932 932 691';
 const PHONE_TEL = 'tel:+351932932691';
 const WHATSAPP = 'https://wa.me/351932932691';
-const MAPS_URL = 'https://maps.google.com/?q=Chi+Sublime+Quinta+da+Bicuda+Cascais';
+const MAPS_URL = 'https://maps.google.com/?q=38.709560,-9.446915';
 
-// TODO: confirmar horários reais com o cliente
-// daysKey → home.contact.hours.* | timeKey 'closed' → traduzido; string literal → hora fixa
-const HOURS: Array<{ daysKey: 'tueFri' | 'sat' | 'sunMon'; time: string | 'closed' }> = [
-  { daysKey: 'tueFri', time: '09:30 – 19:00' },
-  { daysKey: 'sat', time: '09:00 – 18:00' },
-  { daysKey: 'sunMon', time: 'closed' },
+// daysKey → home.contact.hours.* | 'closed' → traduzido; string literal → hora fixa
+const HOURS: Array<{ daysKey: 'monFri' | 'satSun'; time: string | 'closed' }> = [
+  { daysKey: 'monFri', time: '10:00 – 19:00' },
+  { daysKey: 'satSun', time: 'closed' },
 ];
 
 export async function ContactPreview() {

@@ -40,7 +40,15 @@
       "subtitle": "A refined sanctuary of care at Quinta da Bicuda, where every gesture is designed to reveal your essence.",
       "ctaPrimary": "Book now",
       "ctaSecondary": "Discover our services",
-      "imageAlt": "Chi Sublime salon interior"
+      "imageAlt": "Chi Sublime salon interior",
+      "status": {
+        "open": "Open now · until {time}",
+        "closingSoon": "Closing soon · {time}",
+        "openingSoon": "Opening soon · {time}",
+        "opensToday": "Closed · Opens today at {time}",
+        "opensTomorrow": "Closed · Opens tomorrow at {time}",
+        "opensMonday": "Closed · Opens Monday at {time}"
+      }
     },
     "philosophy": {
       "eyebrow": "Our philosophy",
@@ -103,9 +111,8 @@
       "contactTitle": "Contact",
       "hoursTitle": "Opening hours",
       "hours": {
-        "tueFri": "Tuesday to Friday",
-        "sat": "Saturday",
-        "sunMon": "Sunday and Monday",
+        "monFri": "Monday to Friday",
+        "satSun": "Saturday and Sunday",
         "closed": "Closed"
       }
     }
@@ -314,6 +321,7 @@
     "analytics": "Analytics",
     "analyticsDescription": "Help us understand how the site is used.",
     "marketing": "Marketing",
-    "marketingDescription": "Allow showing personalized content."
+    "marketingDescription": "Allow showing personalized content.",
+    "policyLink": "Cookie Policy"
   }
 }

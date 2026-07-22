@@ -1,9 +1,11 @@
+// 📄 src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import { SessionProvider } from '@/components/auth/SessionProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
+import { CookieBanner } from '@/components/layout/CookieBanner';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -65,10 +67,10 @@ export const metadata: Metadata = {
     description: 'Um refúgio de beleza premium em Quinta da Bicuda, Cascais.',
     images: [
       {
-        url: '/images/logo.png',
+        url: '/images/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Chi Sublime — Hair Style & Beauty',
+        alt: 'Chi Sublime — Hair Style & Beauty, Cascais',
       },
     ],
   },
@@ -77,7 +79,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Chi Sublime — Hair Style & Beauty | Cascais',
     description: 'Um refúgio de beleza premium em Cascais.',
-    images: ['/images/logo.png'],
+    images: ['/images/og-image.jpg'],
   },
 
   robots: {
@@ -92,17 +94,25 @@ export const metadata: Metadata = {
   },
 
   /* ── Verificação de propriedade — Search Console / Webmaster Tools ──
+     DESATIVADO até teres os códigos reais (os placeholders estavam a
+     renderizar meta tags inválidas em produção).
+
+     Quando tiveres os códigos, descomenta e preenche:
      Google Search Console → método "Meta tag HTML" → copiar APENAS o
      valor do atributo content (não a tag inteira).
-     Bing Webmaster Tools → "Meta tag" → valor do content de msvalidate.01.
-     Dica: no Bing, usa "Importar do Google Search Console" e nem
-     precisas do código — mas deixo o campo pronto na mesma. */
+     Bing Webmaster Tools → "Meta tag" → valor do content de msvalidate.01
+     (ou usa "Importar do Google Search Console" e nem precisas).
+
+     Se verificares via DNS na Hostinger (recomendado), podes apagar
+     este bloco de vez.
+
   verification: {
-    google: 'COLAR_AQUI_CODIGO_GOOGLE', // <meta name="google-site-verification" content="...">
+    google: 'CODIGO_GOOGLE',
     other: {
-      'msvalidate.01': 'COLAR_AQUI_CODIGO_BING', // <meta name="msvalidate.01" content="...">
+      'msvalidate.01': 'CODIGO_BING',
     },
   },
+  */
 
   category: 'beauty',
 };
@@ -142,6 +152,8 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           <SessionProvider>
             <ToastProvider>{children}</ToastProvider>
+            {/* Banner RGPD — client component, só renderiza sem consentimento */}
+            <CookieBanner />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>

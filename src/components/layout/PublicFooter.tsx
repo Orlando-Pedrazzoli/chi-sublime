@@ -22,7 +22,7 @@ const NAV_LINKS = [
 ];
 
 const BOOKING_LINKS = [
-  { label: 'Reservar Online', href: '/reservar' },
+  { label: 'Marcar Online', href: '/reservar' },
   { label: 'A Minha Conta', href: '/conta' },
   { label: 'Política de Cancelamento', href: '/cancelamento' },
 ];
@@ -157,7 +157,7 @@ export function PublicFooter() {
           {/* Coluna 3 — Reservas */}
           <div>
             <h6 className="text-chi-green-deep mb-6 text-xs font-semibold tracking-[0.25em] uppercase">
-              Reservas
+              Marcações
             </h6>
             <ul className="space-y-3">
               {BOOKING_LINKS.map((link) => (

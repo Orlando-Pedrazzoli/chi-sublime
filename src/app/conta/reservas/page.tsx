@@ -6,7 +6,7 @@ import { getMyBookingsAction } from '@/lib/server-actions/bookings';
 import { MyBookings } from '@/components/client-area/MyBookings';
 
 export const metadata: Metadata = {
-  title: 'Reservas',
+  title: 'Marcações',
 };
 
 export default async function ClientBookingsPage() {

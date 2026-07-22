@@ -12,6 +12,9 @@
  * mensagem, permitindo que a palavra em itálico mude de
  * posição entre idiomas ("respira" / "breathes").
  *
+ * OpenStatusBadge (client) acima do eyebrow: estado
+ * aberto/fechado em tempo real, fuso Europe/Lisbon.
+ *
  * ⚠️ Cores críticas em INLINE STYLE (regra do projeto:
  * Tailwind v4 + Next 16 falha a aplicar classes de cor em
  * alguns elementos — o link secundário renderizava escuro).
@@ -23,6 +26,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { OpenStatusBadge } from '@/components/home/OpenStatusBadge';
 
 export async function Hero() {
   const t = await getTranslations('home.hero');
@@ -50,6 +54,11 @@ export async function Hero() {
       {/* Conteúdo — bottom-left */}
       <div className="relative z-20 mx-auto w-full max-w-7xl px-6 pt-40 pb-16 md:px-12 md:pb-24">
         <div className="max-w-4xl">
+          {/* Estado do salão em tempo real (fuso Europe/Lisbon) */}
+          <div className="animate-fade-up animate-fade-up-delay-1">
+            <OpenStatusBadge />
+          </div>
+
           <p
             className="animate-fade-up animate-fade-up-delay-1 eyebrow mb-8"
             style={{ color: '#D4AF6E', textShadow: '0 1px 12px rgba(0,0,0,0.4)' }}

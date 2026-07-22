@@ -22,7 +22,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 
 export const metadata: Metadata = {
-  title: 'Reserva confirmada | Chi Sublime',
+  title: 'Marcação confirmada | Chi Sublime',
   description: 'Detalhes da sua reserva no Chi Sublime.',
 };
 

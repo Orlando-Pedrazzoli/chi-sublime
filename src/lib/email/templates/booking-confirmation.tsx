@@ -1,6 +1,6 @@
 // 📄 src/lib/email/templates/booking-confirmation.tsx
 /**
- * Chi Sublime — Template: Confirmação de reserva
+ * Chi Sublime — Template: Confirmação de marcação
  * Componente puro. Dados e detailUrl vêm por props.
  */
 
@@ -30,9 +30,9 @@ export function BookingConfirmationEmail({
   detailUrl,
 }: BookingConfirmationEmailProps) {
   return (
-    <EmailShell preview={`Reserva confirmada · ${bookingNumber}`}>
+    <EmailShell preview={`Marcação confirmada · ${bookingNumber}`}>
       <Greeting name={name} />
-      <Paragraph>A tua reserva está confirmada. Aqui ficam os detalhes:</Paragraph>
+      <Paragraph>A tua marcação está confirmada. Aqui ficam os detalhes:</Paragraph>
       <InfoTable
         rows={[
           { label: 'Número', value: bookingNumber },
@@ -44,7 +44,7 @@ export function BookingConfirmationEmail({
         ]}
       />
       <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
-        <ActionButton href={detailUrl}>Ver detalhes da reserva</ActionButton>
+        <ActionButton href={detailUrl}>Ver detalhes da marcação</ActionButton>
       </Section>
       <Muted>
         Precisas de reagendar ou cancelar? Fá-lo na tua conta ou contacta-nos com antecedência.

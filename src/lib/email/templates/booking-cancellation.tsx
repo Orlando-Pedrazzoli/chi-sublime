@@ -1,6 +1,6 @@
 // 📄 src/lib/email/templates/booking-cancellation.tsx
 /**
- * Chi Sublime — Template: Cancelamento de reserva
+ * Chi Sublime — Template: Cancelamento de marcação
  * Componente puro. `reason` e `rebookUrl` são opcionais.
  */
 
@@ -33,15 +33,15 @@ export function BookingCancellationEmail({
   if (reason) rows.push({ label: 'Motivo', value: reason });
 
   return (
-    <EmailShell preview={`Reserva cancelada · ${bookingNumber}`}>
+    <EmailShell preview={`Marcação cancelada · ${bookingNumber}`}>
       <Greeting name={name} />
-      <Paragraph>A reserva abaixo foi cancelada.</Paragraph>
+      <Paragraph>A marcação abaixo foi cancelada.</Paragraph>
       <InfoTable rows={rows} />
       {rebookUrl ? (
         <>
           <Paragraph>Queres remarcar? Estamos cá para ti.</Paragraph>
           <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
-            <ActionButton href={rebookUrl}>Marcar nova reserva</ActionButton>
+            <ActionButton href={rebookUrl}>Fazer nova marcação</ActionButton>
           </Section>
         </>
       ) : (

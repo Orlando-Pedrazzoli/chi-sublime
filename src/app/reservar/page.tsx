@@ -24,9 +24,9 @@ import { BookingSummary } from '@/components/booking/BookingSummary';
 import { ServicePicker, type CategoryWithServices } from '@/components/booking/ServicePicker';
 
 export const metadata: Metadata = {
-  title: 'Reservar Online | Chi Sublime',
+  title: 'Marcar Online | Chi Sublime',
   description:
-    'Reserve o seu serviço no Chi Sublime — Hair Style & Beauty. Cabelereiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais.',
+    'Marque o seu serviço no Chi Sublime — Hair Style & Beauty. Cabelereiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais.',
   alternates: { canonical: '/reservar' },
 };
 

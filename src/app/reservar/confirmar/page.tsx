@@ -20,7 +20,7 @@ import { BookingSummaryReadOnly } from '@/components/booking/BookingSummaryReadO
 import { Step3Client } from '@/components/booking/Step3Client';
 
 export const metadata: Metadata = {
-  title: 'Confirmar Reserva | Chi Sublime',
+  title: 'Confirmar Marcação | Chi Sublime',
   description: 'Os seus dados para finalizar a reserva no Chi Sublime.',
 };
 

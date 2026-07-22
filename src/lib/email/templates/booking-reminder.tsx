@@ -1,6 +1,6 @@
 // 📄 src/lib/email/templates/booking-reminder.tsx
 /**
- * Chi Sublime — Template: Lembrete de reserva
+ * Chi Sublime — Template: Lembrete de marcação
  * Componente puro. Dados e detailUrl vêm por props.
  */
 
@@ -28,7 +28,7 @@ export function BookingReminderEmail({
   detailUrl,
 }: BookingReminderEmailProps) {
   return (
-    <EmailShell preview={`Lembrete: a tua reserva é ${date} às ${time}`}>
+    <EmailShell preview={`Lembrete: a tua marcação é ${date} às ${time}`}>
       <Greeting name={name} />
       <Paragraph>É já! Este é um lembrete da tua próxima visita ao Chi Sublime.</Paragraph>
       <InfoTable
@@ -41,7 +41,7 @@ export function BookingReminderEmail({
         ]}
       />
       <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
-        <ActionButton href={detailUrl}>Ver a minha reserva</ActionButton>
+        <ActionButton href={detailUrl}>Ver a minha marcação</ActionButton>
       </Section>
       <Muted>Se precisares de alterar, avisa-nos o quanto antes. Até já!</Muted>
     </EmailShell>

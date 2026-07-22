@@ -19,7 +19,7 @@ export function WelcomeEmail({ name, loginUrl }: WelcomeEmailProps) {
       <Greeting name={name} />
       <Paragraph>
         A tua conta foi criada com sucesso. A partir de agora podes marcar serviços, gerir as tuas
-        reservas e ver o histórico, tudo num só sítio.
+        marcações e ver o histórico, tudo num só sítio.
       </Paragraph>
       <Section style={{ textAlign: 'center' as const, margin: '28px 0' }}>
         <ActionButton href={loginUrl}>Entrar na minha conta</ActionButton>

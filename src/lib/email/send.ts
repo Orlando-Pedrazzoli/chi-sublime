@@ -137,7 +137,7 @@ export async function sendBookingConfirmationEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Reserva confirmada · ${params.bookingNumber} — Chi Sublime`,
+    subject: `Marcação confirmada · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });
@@ -169,7 +169,7 @@ export async function sendNewBookingAdminEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: SALON_NOTIFICATION_EMAIL,
-    subject: `🗓 Nova reserva ${params.time} · ${params.clientName} — ${params.bookingNumber}`,
+    subject: `🗓 Nova marcação ${params.time} · ${params.clientName} — ${params.bookingNumber}`,
     html,
     text,
   });
@@ -196,7 +196,7 @@ export async function sendBookingReminderEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Lembrete da tua reserva · ${params.bookingNumber} — Chi Sublime`,
+    subject: `Lembrete da tua marcação · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });
@@ -221,7 +221,7 @@ export async function sendBookingCancellationEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Reserva cancelada · ${params.bookingNumber} — Chi Sublime`,
+    subject: `Marcação cancelada · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });

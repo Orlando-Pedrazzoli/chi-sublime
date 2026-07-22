@@ -13,7 +13,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/conta', label: 'Resumo', icon: LayoutDashboard },
-  { href: '/conta/reservas', label: 'Reservas', icon: Calendar },
+  { href: '/conta/reservas', label: 'Marcações', icon: Calendar },
   { href: '/conta/perfil', label: 'Perfil', icon: UserIcon },
   { href: '/conta/seguranca', label: 'Segurança', icon: Shield },
 ];

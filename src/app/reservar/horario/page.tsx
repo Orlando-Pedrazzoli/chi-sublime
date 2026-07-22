@@ -25,7 +25,7 @@ import type { StaffOption } from '@/components/booking/StaffPicker';
 
 export const metadata: Metadata = {
   title: 'Escolher horário | Chi Sublime',
-  description: 'Escolha a data e o profissional para a sua reserva no Chi Sublime.',
+  description: 'Escolha a data e o profissional para a sua marcação no Chi Sublime.',
 };
 
 // ============================================================

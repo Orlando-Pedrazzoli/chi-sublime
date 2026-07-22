@@ -1,9 +1,9 @@
 // 📄 src/lib/email/templates/new-booking-admin.tsx
 /**
- * Chi Sublime — Template: Nova reserva (notificação ao SALÃO)
+ * Chi Sublime — Template: Nova marcação (notificação ao SALÃO)
  * ============================================================
  *
- * Substitui o push do Noona HQ: cada reserva nova dispara este
+ * Substitui o push do Noona HQ: cada marcação nova dispara este
  * email para o endereço do salão. Componente puro; dados vêm
  * por props.
  */
@@ -46,9 +46,9 @@ export function NewBookingAdminEmail({
   agendaUrl,
 }: NewBookingAdminEmailProps) {
   return (
-    <EmailShell preview={`Nova reserva · ${time} ${date} · ${clientName}`}>
+    <EmailShell preview={`Nova marcação · ${time} ${date} · ${clientName}`}>
       <Paragraph>
-        <strong>Nova reserva no Chi Sublime</strong> — {SOURCE_LABELS[source] ?? source}.
+        <strong>Nova marcação no Chi Sublime</strong> — {SOURCE_LABELS[source] ?? source}.
       </Paragraph>
       <InfoTable
         rows={[
@@ -65,7 +65,7 @@ export function NewBookingAdminEmail({
       <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
         <ActionButton href={agendaUrl}>Abrir agenda</ActionButton>
       </Section>
-      <Muted>Email automático do sistema de reservas — não responder.</Muted>
+      <Muted>Email automático do sistema de marcações — não responder.</Muted>
     </EmailShell>
   );
 }
