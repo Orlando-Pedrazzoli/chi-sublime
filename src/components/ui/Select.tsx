@@ -1,7 +1,17 @@
+// 📄 src/components/ui/Select.tsx
+/**
+ * Chi Sublime — Select (UI partilhado)
+ * ⚠️ FIX bug Tailwind v4 + Next 16: dimensões, padding, borda
+ * e posição do chevron em INLINE STYLE. API inalterada.
+ */
+
 import { forwardRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { SelectOption } from '@/types/common';
+
+const BORDER = '#e8e4da';
+const DANGER = '#b23c3c';
 
 export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   error?: boolean;
@@ -12,23 +22,30 @@ export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
 };
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { error, options, placeholder, className, children, value, ...props },
+  { error, options, placeholder, className, style, children, value, ...props },
   ref,
 ) {
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <select
         ref={ref}
         value={value}
         className={cn(
-          'h-11 w-full appearance-none rounded-md border bg-white pr-9 pl-3 text-sm text-chi-charcoal transition-colors',
-          'focus:ring-2 focus:ring-chi-gold/40 focus:outline-none',
-          'disabled:cursor-not-allowed disabled:bg-chi-border-light disabled:opacity-70',
-          error
-            ? 'border-chi-danger focus:border-chi-danger'
-            : 'border-chi-border focus:border-chi-gold',
+          'w-full appearance-none transition-colors',
+          'focus:ring-chi-gold/40 focus:ring-2 focus:outline-none',
+          'disabled:cursor-not-allowed disabled:opacity-70',
           className,
         )}
+        style={{
+          height: '44px',
+          padding: '0 36px 0 12px',
+          borderRadius: '8px',
+          border: `1px solid ${error ? DANGER : BORDER}`,
+          backgroundColor: '#ffffff',
+          fontSize: '14px',
+          color: '#1a1a1a',
+          ...style,
+        }}
         {...props}
       >
         {placeholder && (
@@ -46,7 +63,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       </select>
       <ChevronDown
         size={16}
-        className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-chi-charcoal-soft"
+        style={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: '50%',
+          right: '12px',
+          transform: 'translateY(-50%)',
+          color: '#5a5a5a',
+        }}
       />
     </div>
   );

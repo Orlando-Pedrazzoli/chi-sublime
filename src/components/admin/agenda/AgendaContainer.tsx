@@ -198,8 +198,13 @@ export function AgendaContainer({
             onClick={handleRefresh}
             disabled={isPending}
             aria-label="Recarregar"
-            className="rounded-md border p-2 transition-colors hover:bg-white disabled:opacity-50"
-            style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#1F3D2E' }}
+            className="border transition-colors hover:bg-white disabled:opacity-50"
+            style={{
+              padding: '8px',
+              borderRadius: '8px',
+              borderColor: 'rgba(31,61,46,0.2)',
+              color: '#1F3D2E',
+            }}
           >
             <RotateCw size={16} strokeWidth={1.5} className={isPending ? 'animate-spin' : ''} />
           </button>
@@ -207,15 +212,19 @@ export function AgendaContainer({
 
         {/* View toggle + Nova reserva */}
         <div className="flex items-center gap-3">
-          <div className="flex rounded-md border" style={{ borderColor: 'rgba(31,61,46,0.2)' }}>
+          <div
+            className="flex overflow-hidden border"
+            style={{ borderRadius: '8px', borderColor: 'rgba(31,61,46,0.2)' }}
+          >
             <button
               type="button"
               onClick={() => handleViewChange('day')}
               className={cn(
-                'rounded-l-md px-4 py-2 text-xs font-medium tracking-wide transition-colors',
+                'text-xs font-medium tracking-wide transition-colors',
                 view === 'day' ? '' : 'hover:bg-white',
               )}
               style={{
+                padding: '9px 16px',
                 backgroundColor: view === 'day' ? '#1F3D2E' : 'transparent',
                 color: view === 'day' ? '#FAF7F2' : '#1F3D2E',
               }}
@@ -226,10 +235,11 @@ export function AgendaContainer({
               type="button"
               onClick={() => handleViewChange('week')}
               className={cn(
-                'px-4 py-2 text-xs font-medium tracking-wide transition-colors',
+                'text-xs font-medium tracking-wide transition-colors',
                 view === 'week' ? '' : 'hover:bg-white',
               )}
               style={{
+                padding: '9px 16px',
                 borderLeft: '1px solid rgba(31,61,46,0.2)',
                 backgroundColor: view === 'week' ? '#1F3D2E' : 'transparent',
                 color: view === 'week' ? '#FAF7F2' : '#1F3D2E',
@@ -241,10 +251,11 @@ export function AgendaContainer({
               type="button"
               onClick={() => handleViewChange('list')}
               className={cn(
-                'rounded-r-md px-4 py-2 text-xs font-medium tracking-wide transition-colors',
+                'text-xs font-medium tracking-wide transition-colors',
                 view === 'list' ? '' : 'hover:bg-white',
               )}
               style={{
+                padding: '9px 16px',
                 borderLeft: '1px solid rgba(31,61,46,0.2)',
                 backgroundColor: view === 'list' ? '#1F3D2E' : 'transparent',
                 color: view === 'list' ? '#FAF7F2' : '#1F3D2E',
@@ -257,8 +268,15 @@ export function AgendaContainer({
           <button
             type="button"
             onClick={() => openNewBooking()}
-            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px]"
-            style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
+            className="inline-flex items-center text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px]"
+            style={{
+              gap: '8px',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              whiteSpace: 'nowrap',
+              backgroundColor: '#D4AF6E',
+              color: '#1F3D2E',
+            }}
           >
             <Plus size={14} strokeWidth={2} />
             <span className="hidden sm:inline">Nova reserva</span>
@@ -282,8 +300,14 @@ export function AgendaContainer({
           <button
             type="button"
             onClick={() => handleViewChange('list')}
-            className="rounded-md px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all hover:-translate-y-[1px]"
-            style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
+            className="text-xs font-semibold tracking-wide uppercase transition-all hover:-translate-y-[1px]"
+            style={{
+              padding: '7px 12px',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              backgroundColor: '#D4AF6E',
+              color: '#1F3D2E',
+            }}
           >
             Ver próximas reservas
           </button>

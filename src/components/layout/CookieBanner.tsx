@@ -207,7 +207,7 @@ export function CookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-label={t('title')}
-      className="fixed bottom-0 left-0 z-[100] w-full sm:bottom-6 sm:left-6 sm:w-[400px]"
+      className="fixed bottom-0 left-0 z-[100] w-full sm:right-6 sm:bottom-6 sm:left-auto sm:w-[400px]"
       style={{ padding: '0 12px 12px' }}
     >
       <div

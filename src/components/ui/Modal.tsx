@@ -1,3 +1,11 @@
+// 📄 src/components/ui/Modal.tsx
+/**
+ * Chi Sublime — Modal (UI partilhado)
+ * ⚠️ FIX bug Tailwind v4 + Next 16: paddings do header/corpo/
+ * footer, gaps, radius e backdrop em INLINE STYLE — o conteúdo
+ * ficava todo colado. API inalterada.
+ */
+
 'use client';
 
 import { useEffect } from 'react';
@@ -13,6 +21,8 @@ const SIZES: Record<Size, string> = {
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
 };
+
+const BORDER_LIGHT = '#f1eee6';
 
 export type ModalProps = {
   open: boolean;
@@ -60,7 +70,8 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-chi-green-darker/40 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(20, 40, 32, 0.4)' }}
         onClick={() => dismissable && onClose()}
         aria-hidden
       />
@@ -70,26 +81,45 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={cn(
-          'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-strong sm:rounded-2xl',
-          SIZES[size],
-        )}
+        className={cn('relative z-10 flex max-h-[92vh] w-full flex-col', SIZES[size])}
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '14px',
+          boxShadow: '0 16px 40px rgba(31, 61, 46, 0.16)',
+        }}
       >
         {(title || dismissable) && (
-          <div className="flex items-start justify-between gap-4 border-b border-chi-border-light px-6 py-4">
-            <div className="space-y-0.5">
+          <div
+            className="flex items-start justify-between"
+            style={{
+              gap: '16px',
+              padding: '16px 24px',
+              borderBottom: `1px solid ${BORDER_LIGHT}`,
+            }}
+          >
+            <div>
               {title && (
-                <h2 className="font-serif text-xl text-chi-green-darker">{title}</h2>
+                <h2 className="font-serif" style={{ fontSize: '20px', color: '#142820' }}>
+                  {title}
+                </h2>
               )}
               {description && (
-                <p className="text-sm text-chi-charcoal-soft">{description}</p>
+                <p style={{ marginTop: '2px', fontSize: '14px', color: '#5a5a5a' }}>
+                  {description}
+                </p>
               )}
             </div>
             {dismissable && (
               <button
                 onClick={onClose}
                 aria-label="Fechar"
-                className="-mr-2 rounded-md p-1.5 text-chi-charcoal-soft transition-colors hover:bg-chi-sand hover:text-chi-charcoal"
+                className="hover:bg-chi-sand transition-colors"
+                style={{
+                  marginRight: '-8px',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  color: '#5a5a5a',
+                }}
               >
                 <X size={20} />
               </button>
@@ -97,10 +127,19 @@ export function Modal({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto" style={{ padding: '20px 24px' }}>
+          {children}
+        </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t border-chi-border-light px-6 py-4">
+          <div
+            className="flex items-center justify-end"
+            style={{
+              gap: '12px',
+              padding: '16px 24px',
+              borderTop: `1px solid ${BORDER_LIGHT}`,
+            }}
+          >
             {footer}
           </div>
         )}

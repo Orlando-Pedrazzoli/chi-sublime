@@ -304,14 +304,19 @@ export function NewBookingModal({
           {/* Cliente */}
           <Section label="Cliente">
             <div
-              className="mb-3 flex rounded-md border"
-              style={{ borderColor: 'rgba(31,61,46,0.2)' }}
+              className="flex overflow-hidden border"
+              style={{
+                marginBottom: '12px',
+                borderRadius: '8px',
+                borderColor: 'rgba(31,61,46,0.2)',
+              }}
             >
               <button
                 type="button"
                 onClick={() => setClientMode('search')}
-                className="flex-1 rounded-l-md px-4 py-2 text-xs font-medium tracking-wide transition-colors"
+                className="flex-1 text-xs font-medium tracking-wide transition-colors"
                 style={{
+                  padding: '9px 16px',
                   backgroundColor: clientMode === 'search' ? '#1F3D2E' : 'transparent',
                   color: clientMode === 'search' ? '#FAF7F2' : '#1A1A1A',
                 }}
@@ -321,8 +326,9 @@ export function NewBookingModal({
               <button
                 type="button"
                 onClick={() => setClientMode('new')}
-                className="flex-1 rounded-r-md px-4 py-2 text-xs font-medium tracking-wide transition-colors"
+                className="flex-1 text-xs font-medium tracking-wide transition-colors"
                 style={{
+                  padding: '9px 16px',
                   borderLeft: '1px solid rgba(31,61,46,0.2)',
                   backgroundColor: clientMode === 'new' ? '#1F3D2E' : 'transparent',
                   color: clientMode === 'new' ? '#FAF7F2' : '#1A1A1A',
@@ -389,7 +395,8 @@ export function NewBookingModal({
                             setSearchQuery('');
                             setSearchResults([]);
                           }}
-                          className="block w-full px-4 py-2 text-left transition-colors hover:bg-amber-50/30"
+                          className="block w-full text-left transition-colors hover:bg-amber-50/30"
+                          style={{ padding: '9px 16px' }}
                         >
                           <p className="text-sm" style={{ color: '#1A1A1A' }}>
                             {c.name}
@@ -456,8 +463,12 @@ export function NewBookingModal({
           >
             {/* Tabs de categorias */}
             <div
-              className="mb-2 flex gap-1 overflow-x-auto rounded-md border p-1"
+              className="flex overflow-x-auto border"
               style={{
+                gap: '4px',
+                padding: '4px',
+                marginBottom: '8px',
+                borderRadius: '8px',
                 borderColor: 'rgba(31,61,46,0.15)',
                 backgroundColor: 'rgba(250,247,242,0.5)',
               }}
@@ -471,8 +482,12 @@ export function NewBookingModal({
                     key={slug}
                     type="button"
                     onClick={() => setActiveTab(slug)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide transition-colors"
+                    className="flex shrink-0 items-center text-xs font-medium tracking-wide transition-colors"
                     style={{
+                      gap: '6px',
+                      padding: '7px 12px',
+                      borderRadius: '6px',
+                      whiteSpace: 'nowrap',
                       backgroundColor: isActive ? '#FFFFFF' : 'transparent',
                       color: isActive ? meta.color : '#5A5A5A',
                       boxShadow: isActive ? '0 1px 2px rgba(31,61,46,0.08)' : 'none',
@@ -652,23 +667,36 @@ export function NewBookingModal({
 
           {/* Submit */}
           <div
-            className="flex justify-end gap-2 border-t pt-4"
-            style={{ borderColor: 'rgba(31,61,46,0.08)' }}
+            className="flex justify-end border-t"
+            style={{ gap: '10px', paddingTop: '16px', borderColor: 'rgba(31,61,46,0.08)' }}
           >
             <button
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="rounded-md border px-4 py-2.5 text-xs font-medium tracking-wide hover:bg-gray-50"
-              style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#1A1A1A' }}
+              className="border text-xs font-medium tracking-wide hover:bg-gray-50"
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+                borderColor: 'rgba(31,61,46,0.2)',
+                color: '#1A1A1A',
+              }}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] disabled:opacity-50"
-              style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
+              className="inline-flex items-center text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] disabled:opacity-50"
+              style={{
+                gap: '8px',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+                backgroundColor: '#D4AF6E',
+                color: '#1F3D2E',
+              }}
             >
               <Plus size={14} strokeWidth={2} />
               {isPending ? 'A criar...' : 'Criar reserva'}
@@ -710,8 +738,11 @@ function SourceButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-md border px-3 py-3 text-xs font-medium tracking-wide transition-all hover:-translate-y-[1px]"
+      className="flex flex-col items-center border text-xs font-medium tracking-wide transition-all hover:-translate-y-[1px]"
       style={{
+        gap: '4px',
+        padding: '12px',
+        borderRadius: '8px',
         backgroundColor: active ? '#1F3D2E' : 'transparent',
         borderColor: active ? '#1F3D2E' : 'rgba(31,61,46,0.2)',
         color: active ? '#FAF7F2' : '#1A1A1A',
