@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { PasswordInput } from '@/components/ui/PasswordInput';
+import { GoogleAuthButton, AuthDivider } from './GoogleAuthButton';
 
 type Variant = 'admin' | 'client';
 
@@ -84,6 +85,14 @@ export function LoginForm({ variant, defaultRedirect }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      {/* OAuth Google — só para clientes; admin mantém credenciais */}
+      {!isAdmin && (
+        <>
+          <GoogleAuthButton redirectTo={targetUrl} />
+          <AuthDivider />
+        </>
+      )}
+
       {/* Honeypot — escondido visualmente e dos screen readers */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>

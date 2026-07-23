@@ -1,9 +1,13 @@
 // 📄 src/components/admin/checkout/InvoiceSection.tsx
 'use client';
 
+/**
+ * ⚠️ FIX bug Tailwind v4 + Next 16: espaçamentos, caixas e
+ * inputs em INLINE STYLE. Lógica e API inalteradas.
+ */
+
 import { useEffect, useState } from 'react';
 import { Search, X, UserPlus, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/Label';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -59,12 +63,19 @@ export function InvoiceSection({
   };
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <Checkbox
         checked={enabled}
         onChange={(e) => onEnabledChange(e.target.checked)}
         label={
-          <span className="inline-flex items-center gap-1.5 font-medium">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 500,
+            }}
+          >
             <FileText size={15} />
             Emitir fatura
           </span>
@@ -72,42 +83,91 @@ export function InvoiceSection({
       />
 
       {enabled && (
-        <div className="border-chi-border-light bg-chi-cream/40 space-y-3 rounded-md border p-3">
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            padding: '12px',
+            borderRadius: '8px',
+            border: '1px solid #f1eee6',
+            backgroundColor: 'rgba(250,247,242,0.5)',
+          }}
+        >
           {/* Cliente */}
           {client ? (
-            <div className="border-chi-gold bg-chi-gold-soft/30 flex items-center justify-between rounded-md border px-3 py-2">
-              <span className="text-chi-charcoal text-sm font-medium">{client.name}</span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #d4af6e',
+                backgroundColor: 'rgba(212,175,110,0.15)',
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a1a' }}>
+                {client.name}
+              </span>
               <button
                 type="button"
                 onClick={() => onClientChange(null)}
                 aria-label="Remover cliente"
-                className="text-chi-charcoal-soft hover:text-chi-charcoal rounded-md p-1 transition-colors hover:bg-white"
+                className="transition-colors hover:bg-white"
+                style={{ padding: '4px', borderRadius: '6px', color: '#5a5a5a' }}
               >
                 <X size={15} />
               </button>
             </div>
           ) : (
-            <div className="relative">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
                   <Search
                     size={15}
-                    className="text-chi-charcoal-light pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+                    style={{
+                      pointerEvents: 'none',
+                      position: 'absolute',
+                      top: '50%',
+                      left: '10px',
+                      transform: 'translateY(-50%)',
+                      color: '#9a9a9a',
+                    }}
                   />
                   <input
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                     placeholder="Associar cliente…"
-                    className={cn(
-                      'border-chi-border h-10 w-full rounded-md border bg-white pr-3 pl-8 text-sm',
-                      'placeholder:text-chi-charcoal-light focus:border-chi-gold focus:ring-chi-gold/40 focus:ring-2 focus:outline-none',
-                    )}
+                    className="placeholder:text-chi-charcoal-light focus:ring-chi-gold/40 w-full focus:ring-2 focus:outline-none"
+                    style={{
+                      height: '40px',
+                      padding: '0 12px 0 32px',
+                      borderRadius: '8px',
+                      border: '1px solid #e8e4da',
+                      backgroundColor: '#ffffff',
+                      fontSize: '14px',
+                    }}
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => setQuickOpen(true)}
-                  className="border-chi-border text-chi-charcoal hover:bg-chi-sand inline-flex h-10 items-center gap-1.5 rounded-md border bg-white px-3 text-sm transition-colors"
+                  className="hover:bg-chi-sand transition-colors"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    height: '40px',
+                    padding: '0 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e8e4da',
+                    backgroundColor: '#ffffff',
+                    fontSize: '13.5px',
+                    color: '#1a1a1a',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   <UserPlus size={15} />
                   Novo
@@ -115,16 +175,38 @@ export function InvoiceSection({
               </div>
 
               {results.length > 0 && (
-                <ul className="border-chi-border shadow-strong absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-md border bg-white">
+                <ul
+                  style={{
+                    position: 'absolute',
+                    zIndex: 10,
+                    marginTop: '4px',
+                    maxHeight: '208px',
+                    width: '100%',
+                    overflow: 'auto',
+                    borderRadius: '8px',
+                    border: '1px solid #e8e4da',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 16px 40px rgba(31, 61, 46, 0.16)',
+                  }}
+                >
                   {results.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
                         onClick={() => selectClient({ id: c.id, name: c.name })}
-                        className="hover:bg-chi-sand flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors"
+                        className="hover:bg-chi-sand w-full transition-colors"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          padding: '9px 12px',
+                          textAlign: 'left',
+                          fontSize: '14px',
+                        }}
                       >
-                        <span className="text-chi-charcoal">{c.name}</span>
-                        <span className="text-chi-charcoal-light text-xs">{c.phone}</span>
+                        <span style={{ color: '#1a1a1a' }}>{c.name}</span>
+                        <span style={{ fontSize: '12px', color: '#9a9a9a' }}>{c.phone}</span>
                       </button>
                     </li>
                   ))}
@@ -137,7 +219,7 @@ export function InvoiceSection({
           <div>
             <Label>NIF na fatura</Label>
             <NifInput value={nif} onChange={onNifChange} />
-            <p className="text-chi-charcoal-light mt-1 text-xs">
+            <p style={{ marginTop: '4px', fontSize: '12px', color: '#9a9a9a' }}>
               {client
                 ? 'Se o cliente tiver NIF, é usado automaticamente. Preenche aqui para sobrepor.'
                 : 'Sem NIF, a fatura sai como Consumidor Final.'}

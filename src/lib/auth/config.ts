@@ -1,7 +1,10 @@
 import type { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 import { connectDB } from '@/lib/db/connect';
 import { User } from '@/lib/models/User';
+import { Client } from '@/lib/models/Client';
+import { logAudit } from '@/lib/models/AuditLog';
 import { verifyPassword, needsRehash, hashPassword } from '@/lib/auth/password';
 import { loginSchema } from '@/lib/validation/auth';
 
@@ -75,6 +78,17 @@ export const authConfig: NextAuthConfig = {
         };
       },
     }),
+
+    /**
+     * Google OAuth — "Continuar com Google".
+     * Env: AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET (Auth.js v5
+     * deteta-as automaticamente; explícitas por clareza).
+     * A criação/vínculo da conta é feita no callback `signIn`.
+     */
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
   ],
 
   // ──────────────────────────────────────────────────────────
@@ -82,12 +96,121 @@ export const authConfig: NextAuthConfig = {
   // ──────────────────────────────────────────────────────────
   callbacks: {
     /**
+     * `signIn` — porteiro do OAuth Google.
+     * - Email tem de vir verificado pela Google
+     * - Conta existente com o mesmo email → account linking
+     *   (entra na conta existente, seja client ou admin)
+     * - Conta nova → replica o fluxo do registo: cria/vincula
+     *   Client (regra do modelo: client exige clientId) + User
+     *   sem passwordHash (login passa a ser via Google; o user
+     *   pode definir password depois via "recuperar password")
+     */
+    async signIn({ account, profile }) {
+      if (account?.provider !== 'google') return true;
+
+      const email = profile?.email?.toLowerCase().trim();
+      const emailVerified =
+        profile && 'email_verified' in profile ? Boolean(profile.email_verified) : false;
+      if (!email || !emailVerified) return false;
+
+      await connectDB();
+
+      const existing = await User.findOne({ email }).lean();
+      if (existing) return existing.active !== false; // linking por email verificado
+
+      // ── Conta nova: criar/vincular Client + User ──
+      const displayName = (profile?.name ?? email.split('@')[0]).trim();
+
+      let clientDoc = await Client.findOne({
+        email,
+        userId: { $exists: false },
+        active: true,
+      });
+      let clientCreated = false;
+
+      if (!clientDoc) {
+        try {
+          clientDoc = await Client.create({
+            name: displayName,
+            phone: '+351000000000', // placeholder — pedido depois na 1ª marcação
+            email,
+            source: 'online',
+            marketingConsent: false,
+            active: true,
+          });
+          clientCreated = true;
+        } catch (err) {
+          console.error('[google-signin] falha ao criar Client:', err);
+          return false;
+        }
+      }
+
+      try {
+        const userDoc = await User.create({
+          email,
+          name: displayName,
+          role: 'client',
+          clientId: clientDoc._id,
+          active: true,
+          // sem passwordHash — autenticação via Google
+        });
+        await Client.updateOne({ _id: clientDoc._id }, { $set: { userId: userDoc._id } });
+
+        await logAudit({
+          action: 'create',
+          resource: 'user',
+          resourceId: userDoc._id.toString(),
+          resourceLabel: userDoc.name,
+          userId: userDoc._id,
+          userName: userDoc.name,
+          userEmail: userDoc.email,
+          userRole: userDoc.role,
+          message: `Novo registo de cliente via Google: ${userDoc.email}`,
+          severity: 'info',
+          metadata: {
+            provider: 'google',
+            clientCreated,
+            clientId: clientDoc._id.toString(),
+            autoMatched: !clientCreated,
+          },
+        }).catch(() => {});
+      } catch (err) {
+        if (clientCreated) await Client.deleteOne({ _id: clientDoc._id }).catch(() => {});
+        console.error('[google-signin] falha ao criar User:', err);
+        return false;
+      }
+
+      return true;
+    },
+
+    /**
      * `jwt` corre sempre que o token é criado ou actualizado.
      * Aqui copiamos os dados do `user` (devolvido pelo authorize)
      * para o token, que vai parar ao cookie httpOnly.
      */
-    async jwt({ token, user, trigger, session }) {
-      // Login inicial
+    async jwt({ token, user, account, trigger, session }) {
+      // Login via Google — o `user` vem do perfil OAuth (sem role/
+      // clientId nossos), por isso vamos buscar o User ao Mongo
+      if (account?.provider === 'google' && token.email) {
+        await connectDB();
+        const dbUser = await User.findOne({
+          email: (token.email as string).toLowerCase(),
+          active: true,
+        }).lean();
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.email = dbUser.email;
+          token.name = dbUser.name;
+          token.role = dbUser.role;
+          token.clientId = dbUser.clientId?.toString();
+          await User.updateOne({ _id: dbUser._id }, { $set: { lastLoginAt: new Date() } }).catch(
+            () => {},
+          );
+        }
+        return token;
+      }
+
+      // Login inicial (credentials)
       if (user) {
         token.id = user.id as string;
         token.email = user.email as string;

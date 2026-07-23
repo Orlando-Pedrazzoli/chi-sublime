@@ -1,8 +1,13 @@
 // 📄 src/components/admin/checkout/ServiceLines.tsx
 'use client';
 
+/**
+ * ⚠️ FIX bug Tailwind v4 + Next 16: espaçamentos, steppers e
+ * separadores em INLINE STYLE — as linhas do carrinho ficavam
+ * coladas. Lógica e API inalteradas.
+ */
+
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
 
 export type CartLine = {
   serviceId: string;
@@ -29,49 +34,98 @@ export type ServiceLinesProps = {
   onRemove: (serviceId: string) => void;
 };
 
+const STEP_BTN: React.CSSProperties = {
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#5a5a5a',
+};
+
 export function ServiceLines({ lines, onQuantity, onDiscount, onRemove }: ServiceLinesProps) {
   if (lines.length === 0) {
     return (
-      <div className="border-chi-border text-chi-charcoal-light flex h-full min-h-[160px] items-center justify-center rounded-md border border-dashed text-center text-sm">
+      <div
+        style={{
+          minHeight: '140px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '28px 16px',
+          borderRadius: '8px',
+          border: '1px dashed #d9d2c2',
+          fontSize: '13.5px',
+          color: '#9a9a9a',
+          textAlign: 'center',
+        }}
+      >
         Toca num serviço para começar.
       </div>
     );
   }
 
   return (
-    <div className="divide-chi-border-light divide-y">
-      {lines.map((line) => (
-        <div key={line.serviceId} className="flex items-center gap-3 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-chi-charcoal truncate font-medium">{line.name}</p>
-            <p className="text-chi-charcoal-light text-xs">{money(line.price)} /un.</p>
+    <div>
+      {lines.map((line, i) => (
+        <div
+          key={line.serviceId}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 0',
+            borderTop: i === 0 ? 'none' : '1px solid #f1eee6',
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p className="truncate" style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a1a' }}>
+              {line.name}
+            </p>
+            <p style={{ marginTop: '1px', fontSize: '11.5px', color: '#9a9a9a' }}>
+              {money(line.price)} /un.
+            </p>
           </div>
 
           {/* Stepper de quantidade */}
-          <div className="border-chi-border flex items-center rounded-md border">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: '1px solid #e8e4da',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              backgroundColor: '#ffffff',
+            }}
+          >
             <button
               type="button"
               onClick={() => onQuantity(line.serviceId, Math.max(1, line.quantity - 1))}
               aria-label="Menos"
-              className="text-chi-charcoal-soft hover:bg-chi-sand flex h-9 w-9 items-center justify-center transition-colors"
+              className="hover:bg-chi-sand transition-colors"
+              style={STEP_BTN}
             >
               <Minus size={14} />
             </button>
-            <span className="w-8 text-center text-sm font-medium tabular-nums">
+            <span
+              className="tabular-nums"
+              style={{ width: '28px', textAlign: 'center', fontSize: '13.5px', fontWeight: 500 }}
+            >
               {line.quantity}
             </span>
             <button
               type="button"
               onClick={() => onQuantity(line.serviceId, Math.min(99, line.quantity + 1))}
               aria-label="Mais"
-              className="text-chi-charcoal-soft hover:bg-chi-sand flex h-9 w-9 items-center justify-center transition-colors"
+              className="hover:bg-chi-sand transition-colors"
+              style={STEP_BTN}
             >
               <Plus size={14} />
             </button>
           </div>
 
           {/* Desconto */}
-          <div className="flex items-center gap-1">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <input
               type="number"
               min={0}
@@ -82,16 +136,31 @@ export function ServiceLines({ lines, onQuantity, onDiscount, onRemove }: Servic
               }
               placeholder="0"
               aria-label="Desconto %"
-              className={cn(
-                'border-chi-border h-9 w-12 rounded-md border bg-white px-1 text-center text-sm',
-                'focus:border-chi-gold focus:ring-chi-gold/40 focus:ring-2 focus:outline-none',
-              )}
+              className="focus:ring-chi-gold/40 focus:ring-2 focus:outline-none"
+              style={{
+                width: '46px',
+                height: '32px',
+                borderRadius: '6px',
+                border: '1px solid #e8e4da',
+                backgroundColor: '#ffffff',
+                textAlign: 'center',
+                fontSize: '13px',
+              }}
             />
-            <span className="text-chi-charcoal-light text-xs">%</span>
+            <span style={{ fontSize: '11.5px', color: '#9a9a9a' }}>%</span>
           </div>
 
           {/* Total da linha */}
-          <span className="text-chi-charcoal w-20 text-right text-sm font-semibold tabular-nums">
+          <span
+            className="tabular-nums"
+            style={{
+              width: '72px',
+              textAlign: 'right',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              color: '#1a1a1a',
+            }}
+          >
             {money(lineNet(line))}
           </span>
 
@@ -99,7 +168,8 @@ export function ServiceLines({ lines, onQuantity, onDiscount, onRemove }: Servic
             type="button"
             onClick={() => onRemove(line.serviceId)}
             aria-label="Remover"
-            className="text-chi-charcoal-soft hover:bg-chi-danger-bg hover:text-chi-danger rounded-md p-1.5 transition-colors"
+            className="hover:bg-chi-danger-bg hover:text-chi-danger transition-colors"
+            style={{ padding: '6px', borderRadius: '6px', color: '#5a5a5a' }}
           >
             <Trash2 size={16} />
           </button>

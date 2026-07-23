@@ -1,8 +1,13 @@
 // 📄 src/components/admin/checkout/PaymentMethodPicker.tsx
 'use client';
 
+/**
+ * ⚠️ FIX bug Tailwind v4 + Next 16: grid, gaps, paddings e
+ * cores em INLINE STYLE — os métodos apareciam colados.
+ * Alvos táteis ≥ 56px (boas práticas POS). API inalterada.
+ */
+
 import { Banknote, Smartphone, Landmark, CreditCard, ArrowRightLeft } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
 
 export type PaymentMethod = 'cash' | 'mb_way' | 'multibanco' | 'card_terminal' | 'transfer';
 
@@ -23,10 +28,15 @@ export type PaymentMethodPickerProps = {
   onChange: (m: PaymentMethod) => void;
 };
 
-/** Botões grandes (alvos táteis ≥ 44px) para escolha rápida do método. */
 export function PaymentMethodPicker({ value, onChange }: PaymentMethodPickerProps) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
+        gap: '8px',
+      }}
+    >
       {METHODS.map(({ id, label, icon: Icon }) => {
         const active = id === value;
         return (
@@ -35,12 +45,23 @@ export function PaymentMethodPicker({ value, onChange }: PaymentMethodPickerProp
             type="button"
             onClick={() => onChange(id)}
             aria-pressed={active}
-            className={cn(
-              'flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
-              active
-                ? 'border-chi-green-deep bg-chi-green-deep text-chi-cream'
-                : 'border-chi-border text-chi-charcoal hover:border-chi-gold hover:bg-chi-sand bg-white',
-            )}
+            className="transition-colors"
+            style={{
+              minHeight: '56px',
+              padding: '8px 6px',
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontSize: '12.5px',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              border: `1px solid ${active ? '#1f3d2e' : '#e8e4da'}`,
+              backgroundColor: active ? '#1f3d2e' : '#ffffff',
+              color: active ? '#faf7f2' : '#1a1a1a',
+            }}
           >
             <Icon size={20} />
             {label}

@@ -1,13 +1,31 @@
 // 📄 src/components/admin/checkout/CheckoutModal.tsx
 'use client';
 
+/**
+ * Chi Sublime — CheckoutModal (POS de balcão)
+ * ============================================================
+ *
+ * Redesenho UX/UI:
+ * - Duas colunas no desktop: grelha de serviços à esquerda,
+ *   carrinho fixo à direita (padrão POS)
+ * - Cabeçalhos de categoria fixos (sticky) durante o scroll
+ * - Tiles de serviço com alvo tátil generoso e preço destacado
+ * - Contador de itens no carrinho; labels nos selects;
+ *   secção "Pagamento" identificada
+ *
+ * ⚠️ Layout crítico (grid, gaps, paddings, cores) em INLINE
+ * STYLE — bug Tailwind v4 + Next 16. Breakpoint desktop via
+ * matchMedia (inline styles não suportam media queries).
+ *
+ * Lógica de negócio 100% inalterada.
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
-import { cn } from '@/lib/utils/cn';
 import { useToast } from '@/hooks/useToast';
 import { eurosToCents } from '@/lib/utils/cents';
 import { cleanNIF, isValidNIF } from '@/lib/utils/nif';
@@ -30,6 +48,38 @@ function parseEuros(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Breakpoint lg via matchMedia (inline styles não têm media queries). */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isDesktop;
+}
+
+/** Micro-label de secção do painel de venda. */
+function MiniLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        marginBottom: '6px',
+        fontSize: '10px',
+        fontWeight: 600,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: '#5a5a5a',
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
 export type CheckoutModalProps = {
   open: boolean;
   onClose: () => void;
@@ -38,6 +88,7 @@ export type CheckoutModalProps = {
 
 export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps) {
   const toast = useToast();
+  const isDesktop = useIsDesktop();
 
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState<ServiceListItem[]>([]);
@@ -99,6 +150,7 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
   const vat = Math.round((net * vatRate) / 100);
   const tipCents = eurosToCents(parseEuros(tip));
   const total = net + vat + tipCents;
+  const itemCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines]);
 
   const addService = (s: ServiceListItem) => {
     setLines((prev) => {
@@ -187,38 +239,95 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
   return (
     <Modal open={open} onClose={onClose} title="Nova venda" size="xl" dismissable={!submitting}>
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
+        <div
+          style={{ height: '256px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
           <Spinner />
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-          {/* Grelha de serviços */}
-          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1 lg:max-h-[70vh]">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isDesktop ? 'minmax(0, 1fr) 380px' : '1fr',
+            gap: '20px',
+            alignItems: 'start',
+          }}
+        >
+          {/* ── Grelha de serviços ─────────────────────────── */}
+          <div
+            style={{
+              maxHeight: isDesktop ? '70vh' : '38vh',
+              overflowY: 'auto',
+              paddingRight: '4px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+          >
             {grouped.length === 0 ? (
-              <p className="text-chi-charcoal-light py-8 text-center text-sm">
+              <p
+                style={{
+                  padding: '32px 0',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  color: '#9a9a9a',
+                }}
+              >
                 Sem serviços ativos. Cria serviços em Serviços.
               </p>
             ) : (
               grouped.map(([category, items]) => (
                 <div key={category}>
-                  <p className="text-chi-charcoal-soft mb-2 text-xs font-medium tracking-wide uppercase">
+                  {/* Cabeçalho fixo da categoria durante o scroll */}
+                  <p
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 1,
+                      padding: '2px 0 8px',
+                      backgroundColor: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: '#b8924a',
+                    }}
+                  >
                     {category}
                   </p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
                     {items.map((s) => (
                       <button
                         key={s.id}
                         type="button"
                         onClick={() => addService(s)}
-                        className={cn(
-                          'border-chi-border flex min-h-[64px] flex-col justify-between rounded-md border bg-white p-2.5 text-left transition-colors',
-                          'hover:border-chi-gold hover:bg-chi-sand active:scale-[0.98]',
-                        )}
+                        className="hover:border-chi-gold hover:bg-chi-sand transition-colors active:scale-[0.98]"
+                        style={{
+                          minHeight: '68px',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e8e4da',
+                          backgroundColor: '#ffffff',
+                          textAlign: 'left',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                        }}
                       >
-                        <span className="text-chi-charcoal line-clamp-2 text-sm font-medium">
+                        <span
+                          className="line-clamp-2"
+                          style={{ fontSize: '13.5px', fontWeight: 500, color: '#1a1a1a' }}
+                        >
                           {s.name.pt}
                         </span>
-                        <span className="text-chi-charcoal-soft text-xs">
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#b8924a' }}>
                           {money(s.priceWithVat)}
                         </span>
                       </button>
@@ -229,14 +338,40 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
             )}
           </div>
 
-          {/* Carrinho + checkout */}
-          <div className="border-chi-border bg-chi-cream/30 flex flex-col gap-4 rounded-lg border p-4">
-            <div className="text-chi-green-deep flex items-center gap-2">
+          {/* ── Carrinho + checkout ────────────────────────── */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #e8e4da',
+              backgroundColor: 'rgba(250,247,242,0.5)',
+            }}
+          >
+            {/* Header do carrinho com contador */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1f3d2e' }}>
               <ShoppingCart size={16} />
-              <span className="text-sm font-medium">Venda</span>
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>Venda</span>
+              {itemCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    backgroundColor: '#1f3d2e',
+                    color: '#faf7f2',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {itemCount} {itemCount === 1 ? 'item' : 'itens'}
+                </span>
+              )}
             </div>
 
-            <div className="max-h-[28vh] overflow-y-auto">
+            <div style={{ maxHeight: '26vh', overflowY: 'auto' }}>
               <ServiceLines
                 lines={lines}
                 onQuantity={setQuantity}
@@ -246,54 +381,110 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
             </div>
 
             {/* Totais */}
-            <div className="border-chi-border-light space-y-1.5 border-t pt-3 text-sm">
-              <div className="text-chi-charcoal-soft flex justify-between">
+            <div style={{ borderTop: '1px solid #f1eee6', paddingTop: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  color: '#5a5a5a',
+                }}
+              >
                 <span>Líquido</span>
-                <span>{money(net)}</span>
+                <span className="tabular-nums">{money(net)}</span>
               </div>
-              <div className="text-chi-charcoal-soft flex justify-between">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  color: '#5a5a5a',
+                }}
+              >
                 <span>IVA ({vatRate}%)</span>
-                <span>{money(vat)}</span>
+                <span className="tabular-nums">{money(vat)}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-chi-charcoal-soft">Gorjeta (€)</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  color: '#5a5a5a',
+                }}
+              >
+                <span>Gorjeta (€)</span>
                 <input
                   inputMode="decimal"
                   value={tip}
                   onChange={(e) => setTip(e.target.value)}
                   placeholder="0,00"
-                  className="border-chi-border focus:border-chi-gold focus:ring-chi-gold/40 h-8 w-20 rounded-md border bg-white px-2 text-right text-sm focus:ring-2 focus:outline-none"
+                  className="focus:ring-chi-gold/40 focus:ring-2 focus:outline-none"
+                  style={{
+                    height: '34px',
+                    width: '84px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #e8e4da',
+                    backgroundColor: '#ffffff',
+                    textAlign: 'right',
+                    fontSize: '14px',
+                  }}
                 />
               </div>
-              <div className="border-chi-border-light text-chi-green-deep flex justify-between border-t pt-2 text-base font-semibold">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  borderTop: '1px solid #f1eee6',
+                  paddingTop: '10px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  color: '#1f3d2e',
+                }}
+              >
                 <span>Total</span>
-                <span>{money(total)}</span>
+                <span className="tabular-nums">{money(total)}</span>
               </div>
             </div>
 
-            {/* Categoria + profissional */}
-            <div className="grid grid-cols-1 gap-2">
-              <Select
-                value={incomeCategoryId}
-                onChange={(e) => setIncomeCategoryId(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-              <Select value={staffId} onChange={(e) => setStaffId(e.target.value)}>
-                <option value="">Sem profissional</option>
-                {staff.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </Select>
+            {/* Categoria + profissional, com labels */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <MiniLabel>Categoria</MiniLabel>
+                <Select
+                  value={incomeCategoryId}
+                  onChange={(e) => setIncomeCategoryId(e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <MiniLabel>Profissional</MiniLabel>
+                <Select value={staffId} onChange={(e) => setStaffId(e.target.value)}>
+                  <option value="">Sem profissional</option>
+                  {staff.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
-            <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+            {/* Pagamento */}
+            <div>
+              <MiniLabel>Pagamento</MiniLabel>
+              <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+            </div>
 
             <InvoiceSection
               enabled={invoiceEnabled}
@@ -308,7 +499,8 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
               onClick={charge}
               loading={submitting}
               disabled={lines.length === 0}
-              className="w-full justify-center py-3 text-base"
+              size="lg"
+              fullWidth
             >
               Cobrar {money(total)}
             </Button>

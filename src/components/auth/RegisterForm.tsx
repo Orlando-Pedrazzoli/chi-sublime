@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { registerUser } from '@/lib/server-actions/auth';
 import { PasswordInput } from '@/components/ui/PasswordInput';
+import { GoogleAuthButton, AuthDivider } from './GoogleAuthButton';
 
 type RegisterFormProps = {
   defaultRedirect?: string;
@@ -110,6 +111,10 @@ export function RegisterForm({ defaultRedirect = '/conta' }: RegisterFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      {/* OAuth Google — regista/entra numa só ação */}
+      <GoogleAuthButton redirectTo={targetUrl} />
+      <AuthDivider />
+
       {/* Honeypot escondido */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>

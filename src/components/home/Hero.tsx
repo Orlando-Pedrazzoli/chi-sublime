@@ -18,6 +18,7 @@
  * ⚠️ Cores críticas em INLINE STYLE (regra do projeto:
  * Tailwind v4 + Next 16 falha a aplicar classes de cor em
  * alguns elementos — o link secundário renderizava escuro).
+ * Border-radius de 8px nos CTAs, alinhado com o resto do site.
  *
  * Secundário = ghost button com borda + backdrop-blur, para
  * garantir leitura sobre qualquer zona da fotografia.
@@ -88,11 +89,11 @@ export async function Hero() {
           </p>
 
           <div className="animate-fade-up animate-fade-up-delay-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-            {/* PRIMARY — dourado, cantos retos */}
+            {/* PRIMARY — dourado, radius 8px */}
             <Link
               href="/reservar"
               className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
-              style={{ color: '#1F3D2E' }}
+              style={{ color: '#1F3D2E', borderRadius: '8px' }}
             >
               {t('ctaPrimary')}
             </Link>
@@ -107,6 +108,7 @@ export async function Hero() {
                 color: '#FAF7F2',
                 borderColor: 'rgba(250,247,242,0.65)',
                 backgroundColor: 'rgba(20,40,32,0.25)',
+                borderRadius: '8px',
               }}
             >
               <span>{t('ctaSecondary')}</span>
