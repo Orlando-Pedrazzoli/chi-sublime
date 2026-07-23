@@ -189,10 +189,12 @@ export function LoginForm({ variant, defaultRedirect }: LoginFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all duration-300 hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+        className="w-full text-xs font-semibold tracking-[0.22em] uppercase transition-all duration-300 hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
         style={{
           backgroundColor: '#D4AF6E',
           color: '#1F3D2E',
+          padding: '14px 16px',
+          borderRadius: '8px',
         }}
       >
         {isPending ? 'A entrar...' : 'Entrar'}

@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { auth } from '@/lib/auth';
@@ -37,14 +36,6 @@ export default async function AdminLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="mb-12 flex flex-col items-center gap-3">
-          <Image
-            src="/images/logo_new.png"
-            alt="Chi Sublime"
-            width={64}
-            height={64}
-            className="h-14 w-14"
-            priority
-          />
           <span className="font-serif text-2xl tracking-wider italic" style={{ color: '#FAF7F2' }}>
             Chi <span style={{ color: '#D4AF6E' }}>Sublime</span>
           </span>

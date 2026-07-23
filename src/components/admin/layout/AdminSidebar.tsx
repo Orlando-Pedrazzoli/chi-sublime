@@ -2,7 +2,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -94,14 +93,6 @@ export function AdminSidebar({ user, isMobileOpen, onMobileClose }: AdminSidebar
             href="/admin/dashboard"
             className="flex items-center gap-3 transition-opacity hover:opacity-80"
           >
-            <Image
-              src="/images/logo_new.png"
-              alt="Chi Sublime"
-              width={36}
-              height={36}
-              className="h-9 w-9"
-              priority
-            />
             <div className="flex flex-col">
               <span
                 className="font-serif text-lg leading-none tracking-wider italic"

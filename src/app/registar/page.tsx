@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -9,7 +8,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 
 export const metadata: Metadata = {
   title: 'Criar conta · Chi Sublime',
-  description: 'Cria a tua conta Chi Sublime para fazer reservas online.',
+  description: 'Cria a tua conta Chi Sublime para fazer marcações online.',
   robots: { index: false, follow: false },
 };
 
@@ -36,18 +35,6 @@ export default async function RegisterPage({
 
       <main className="min-h-screen px-6 py-32 md:px-12" style={{ backgroundColor: '#FAF7F2' }}>
         <div className="mx-auto max-w-md">
-          {/* Logo */}
-          <div className="mb-6 flex justify-center">
-            <Image
-              src="/images/logo_new.png"
-              alt="Chi Sublime"
-              width={64}
-              height={64}
-              className="h-14 w-14"
-              priority
-            />
-          </div>
-
           {/* Eyebrow */}
           <p
             className="mb-3 text-center text-[10px] tracking-[0.3em] uppercase"

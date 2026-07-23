@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -9,7 +8,7 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 
 export const metadata: Metadata = {
   title: 'Entrar · Chi Sublime',
-  description: 'Entra na tua conta Chi Sublime para gerir as tuas reservas.',
+  description: 'Entra na tua conta Chi Sublime para gerir as tuas marcações.',
   robots: { index: false, follow: false },
 };
 
@@ -34,18 +33,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
       <main className="min-h-screen px-6 py-32 md:px-12" style={{ backgroundColor: '#FAF7F2' }}>
         <div className="mx-auto max-w-md">
-          {/* Logo */}
-          <div className="mb-6 flex justify-center">
-            <Image
-              src="/images/logo_new.png"
-              alt="Chi Sublime"
-              width={64}
-              height={64}
-              className="h-14 w-14"
-              priority
-            />
-          </div>
-
           {/* Eyebrow */}
           <p
             className="mb-3 text-center text-[10px] tracking-[0.3em] uppercase"
@@ -60,7 +47,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </h1>
 
           <p className="mb-8 text-center text-sm" style={{ color: '#5A5A5A' }}>
-            Bem-vindo de volta. Entra para gerir as tuas reservas.
+            Bem-vindo de volta. Entra para gerir as tuas marcações.
           </p>
 
           {/* Decorative divider */}
