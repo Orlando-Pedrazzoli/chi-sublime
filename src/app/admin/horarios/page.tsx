@@ -27,6 +27,7 @@ import {
   ExceptionsManager,
   type ExceptionDTO,
 } from '@/components/admin/schedule/ExceptionsManager';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 
 export const metadata: Metadata = {
   title: 'Horários | Admin',
@@ -52,8 +53,8 @@ async function getScheduleData(): Promise<{
     .map((d) => ({
       dayOfWeek: d.dayOfWeek!,
       open: d.open,
-      start: d.start ?? '10:00',
-      end: d.end ?? '19:00',
+      start: d.start ?? SALON_DEFAULT_START,
+      end: d.end ?? SALON_DEFAULT_END,
       breaks: (d.breaks ?? []).map((b) => ({ start: b.start, end: b.end })),
     }));
 

@@ -3,12 +3,18 @@
  * Chi Sublime — Seed: Horário semanal do salão
  * ============================================================
  *
- * Cria/atualiza os 7 documentos Schedule type='regular' com o
- * horário REAL do salão (fonte: perfil Noona, jul/2026):
+ * Cria/atualiza os 7 documentos Schedule type='regular' a partir
+ * de SALON_HOURS (src/lib/constants/business.ts) — a fonte de
+ * verdade. Horário atual (confirmado por Jean Pierre, jul/2026):
  *
- *   Segunda a Sexta  10:00 – 19:00
- *   Sábado           Encerrado
+ *   Segunda          Encerrado
+ *   Terça a Sábado   09:00 – 18:00
  *   Domingo          Encerrado
+ *
+ * ⚠️ Este script trata SÓ do horário do SALÃO. O availability.ts
+ * cruza-o com Staff.workingHours — se os profissionais tiverem
+ * outro horário gravado, os slots continuam errados. Para corrigir
+ * salão + profissionais de uma vez: scripts/fix-salon-hours.ts
  *
  * Sem estes documentos, o schedule-resolver devolve "fechado"
  * para todos os dias e o site não mostra disponibilidade.
@@ -26,6 +32,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import mongoose from 'mongoose';
 import { Schedule } from '../src/lib/models/Schedule';
+import { SALON_HOURS, type WeekDayIndex } from '../src/lib/constants/business';
 
 // ------------------------------------------------------------
 // Carregar MONGODB_URI (.env.local se não estiver no ambiente)
@@ -49,20 +56,34 @@ function loadMongoUri(): string {
 }
 
 // ------------------------------------------------------------
-// Horário real do salão (Noona)
+// Horário derivado da fonte de verdade (constants/business.ts)
 // ------------------------------------------------------------
+
+const DAY_LABELS: Record<WeekDayIndex, string> = {
+  0: 'Domingo',
+  1: 'Segunda',
+  2: 'Terça',
+  3: 'Quarta',
+  4: 'Quinta',
+  5: 'Sexta',
+  6: 'Sábado',
+};
+
+/** Ordem de escrita/log: Segunda → Domingo */
+const WEEK_ORDER: WeekDayIndex[] = [1, 2, 3, 4, 5, 6, 0];
 
 type WeekEntry = { dayOfWeek: number; label: string; open: boolean; start?: string; end?: string };
 
-const SALON_WEEK: WeekEntry[] = [
-  { dayOfWeek: 1, label: 'Segunda', open: true, start: '10:00', end: '19:00' },
-  { dayOfWeek: 2, label: 'Terça', open: true, start: '10:00', end: '19:00' },
-  { dayOfWeek: 3, label: 'Quarta', open: true, start: '10:00', end: '19:00' },
-  { dayOfWeek: 4, label: 'Quinta', open: true, start: '10:00', end: '19:00' },
-  { dayOfWeek: 5, label: 'Sexta', open: true, start: '10:00', end: '19:00' },
-  { dayOfWeek: 6, label: 'Sábado', open: false },
-  { dayOfWeek: 0, label: 'Domingo', open: false },
-];
+const SALON_WEEK: WeekEntry[] = WEEK_ORDER.map((dayOfWeek) => {
+  const hours = SALON_HOURS[dayOfWeek];
+  return {
+    dayOfWeek,
+    label: DAY_LABELS[dayOfWeek],
+    open: hours.open,
+    start: hours.start,
+    end: hours.end,
+  };
+});
 
 // ------------------------------------------------------------
 // SEED

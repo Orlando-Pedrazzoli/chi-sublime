@@ -1,3 +1,4 @@
+// 📄 scripts/test-availability.ts
 /**
  * Chi Sublime — Test Availability Algorithm
  * ============================================================
@@ -18,6 +19,7 @@ config({ path: resolve(process.cwd(), '.env.local') });
 import mongoose from 'mongoose';
 import { Booking, Category, Service, Staff, Schedule } from '../src/lib/models';
 import { getAvailableSlots } from '../src/lib/booking/availability';
+import { SALON_DEFAULT_START, SALON_HOURS, type WeekDayIndex } from '../src/lib/constants/business';
 
 // ============================================================
 // Helpers
@@ -82,21 +84,35 @@ async function runScenario1_NormalDay() {
   assert(result.metadata.salonOpen, 'Salao aberto');
   assert(result.slots.length > 0, `Slots disponiveis (${result.slots.length})`);
   assert(
-    result.slots[0].time === '10:00' || result.slots[0].time === '10:30',
-    `Primeiro slot e ${result.slots[0]?.time} (esperado ~10:00)`,
+    result.slots[0].time === SALON_DEFAULT_START || result.slots[0].time === '09:30',
+    `Primeiro slot e ${result.slots[0]?.time} (esperado ~${SALON_DEFAULT_START})`,
   );
 }
 
-async function runScenario2_Saturday() {
+/**
+ * CENARIO 2 — Dia de ENCERRAMENTO semanal.
+ *
+ * Nao assume "sabado/domingo". O dia fechado e derivado de
+ * SALON_HOURS, para o teste acompanhar qualquer mudanca de horario.
+ * Com o horario atual (Ter-Sab 09:00-18:00) o alvo e a SEGUNDA.
+ */
+async function runScenario2_ClosedDay() {
   log.divider();
-  log.info('CENARIO 2 — Sabado (salao fechado)');
+
+  const closedDay = ([1, 2, 3, 4, 5, 6, 0] as WeekDayIndex[]).find((d) => !SALON_HOURS[d].open);
+  if (closedDay === undefined) {
+    log.warn('Salao nao tem dia de encerramento semanal — cenario ignorado');
+    return;
+  }
+
+  log.info(`CENARIO 2 — Dia de encerramento (dayOfWeek=${closedDay}, salao fechado)`);
 
   const services = await Service.find({ active: true }).limit(1).lean();
   if (!services.length) return;
 
-  const saturday = getNextWeekday(6, 1);
+  const target = getNextWeekday(closedDay, 1);
   const result = await getAvailableSlots({
-    date: saturday,
+    date: target,
     serviceIds: [String(services[0]._id)],
     staffId: 'any',
   });
@@ -104,6 +120,40 @@ async function runScenario2_Saturday() {
   assert(!result.metadata.salonOpen, 'Salao fechado');
   assert(result.slots.length === 0, 'Zero slots devolvidos');
   assert(result.metadata.closedReason === 'closed', `Razao = "closed"`);
+}
+
+/**
+ * CENARIO 2b — Dia de ABERTURA que antes estava fechado.
+ *
+ * Regressao direta do bug reportado pelo cliente: o sabado passou a
+ * ser dia de trabalho. Se Staff.workingHours nao tiver sido migrado
+ * (scripts/fix-salon-hours.ts), este teste falha com zero slots —
+ * que e exatamente o sintoma que o cliente veria no site.
+ */
+async function runScenario2b_NewlyOpenDay() {
+  log.divider();
+
+  const openDays = ([1, 2, 3, 4, 5, 6, 0] as WeekDayIndex[]).filter((d) => SALON_HOURS[d].open);
+  const lastOpen = openDays[openDays.length - 1];
+  if (lastOpen === undefined) return;
+
+  log.info(`CENARIO 2b — Dia aberto no fim da semana (dayOfWeek=${lastOpen})`);
+
+  const services = await Service.find({ active: true }).limit(1).lean();
+  if (!services.length) return;
+
+  const target = getNextWeekday(lastOpen, 1);
+  const result = await getAvailableSlots({
+    date: target,
+    serviceIds: [String(services[0]._id)],
+    staffId: 'any',
+  });
+
+  assert(result.metadata.salonOpen, 'Salao aberto');
+  assert(
+    result.slots.length > 0,
+    `Slots disponiveis (${result.slots.length}) — se 0, correr scripts/fix-salon-hours.ts`,
+  );
 }
 
 async function runScenario3_Holiday() {
@@ -340,7 +390,8 @@ async function main() {
   console.log('\n🧪 A correr testes do algoritmo de availability...\n');
 
   await runScenario1_NormalDay();
-  await runScenario2_Saturday();
+  await runScenario2_ClosedDay();
+  await runScenario2b_NewlyOpenDay();
   await runScenario3_Holiday();
   await runScenario4_TooFar();
   await runScenario5_Past();

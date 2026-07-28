@@ -11,11 +11,32 @@
  * - Bing Places
  *
  * ✅ Dados confirmados:
- *    Horário: Seg–Sex 10:00–19:00 · Sáb/Dom encerrado
+ *    Horário: derivado de SALON_HOURS (constants/business.ts)
+ *    → Terça a Sábado 09:00–18:00 · Segunda e Domingo encerrado
  *    GPS: 38.709560, -9.446915 (Google Maps do salão)
+ *
+ * ⚠️ Não escrever horas à mão aqui. O openingHoursSpecification
+ * é gerado a partir da fonte de verdade — assim o que o Google
+ * mostra no SERP nunca diverge do que o site mostra.
  */
 
+import { groupSalonHours, SCHEMA_ORG_DAYS } from '@/lib/constants/business';
+
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chisublime.pt';
+
+/**
+ * Gera o openingHoursSpecification a partir de SALON_HOURS.
+ * Só os dias ABERTOS entram — a ausência de um dia já significa
+ * "encerrado" para o Schema.org, e é o que o Google espera.
+ */
+const openingHoursSpecification = groupSalonHours()
+  .filter((g) => g.open)
+  .map((g) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: g.days.map((d) => SCHEMA_ORG_DAYS[d]),
+    opens: g.start!,
+    closes: g.end!,
+  }));
 
 const schema = {
   '@context': 'https://schema.org',
@@ -45,14 +66,7 @@ const schema = {
     longitude: -9.446915,
   },
   hasMap: 'https://maps.google.com/?q=38.709560,-9.446915',
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      opens: '10:00',
-      closes: '19:00',
-    },
-  ],
+  openingHoursSpecification,
   areaServed: [
     { '@type': 'City', name: 'Cascais' },
     { '@type': 'City', name: 'Estoril' },

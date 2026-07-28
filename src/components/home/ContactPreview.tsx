@@ -7,30 +7,76 @@
  * final à reserva + informação prática em três colunas
  * (morada, contacto, horário).
  *
- * i18n: getTranslations('home.contact'). Dias do horário nos
- * JSONs; horas ficam no código (dados, não texto).
+ * i18n: getTranslations('home.contact'). NOMES dos dias nos JSONs
+ * (texto, traduzível); HORAS e agrupamento vêm de SALON_HOURS
+ * (dados — fonte de verdade em constants/business.ts).
  *
- * ✅ Horário confirmado (Google Business Profile):
- *    Segunda a Sexta 10:00–19:00 · Sábado e Domingo encerrado
+ * ✅ Horário confirmado (Jean Pierre, jul/2026):
+ *    Terça a Sábado 09:00–18:00 · Segunda e Domingo encerrado
+ *
+ * O bloco é gerado por groupSalonHours(): dias consecutivos com o
+ * mesmo horário colapsam numa linha e os dias fechados juntam-se
+ * numa única linha "Encerrado". Mudar o horário na constante
+ * reescreve este bloco sozinho.
  */
 
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Reveal } from '@/components/shared/Reveal';
+import { groupSalonHours, type WeekDayIndex } from '@/lib/constants/business';
 
 const PHONE_DISPLAY = '+351 932 932 691';
 const PHONE_TEL = 'tel:+351932932691';
 const WHATSAPP = 'https://wa.me/351932932691';
 const MAPS_URL = 'https://maps.google.com/?q=38.709560,-9.446915';
 
-// daysKey → home.contact.hours.* | 'closed' → traduzido; string literal → hora fixa
-const HOURS: Array<{ daysKey: 'monFri' | 'satSun'; time: string | 'closed' }> = [
-  { daysKey: 'monFri', time: '10:00 – 19:00' },
-  { daysKey: 'satSun', time: 'closed' },
-];
+/** WeekDayIndex → chave de tradução em home.contact.hours.days.* */
+const DAY_KEYS: Record<WeekDayIndex, string> = {
+  0: 'sun',
+  1: 'mon',
+  2: 'tue',
+  3: 'wed',
+  4: 'thu',
+  5: 'fri',
+  6: 'sat',
+};
 
 export async function ContactPreview() {
   const t = await getTranslations('home.contact');
+
+  const groups = groupSalonHours();
+  const dayName = (d: WeekDayIndex) => t(`hours.days.${DAY_KEYS[d]}`);
+
+  /** [Ter, Qua, Qui, Sex, Sáb] → "Terça a Sábado"; [Seg, Dom] → "Segunda e Domingo" */
+  const joinDays = (days: WeekDayIndex[], consecutive: boolean) => {
+    if (days.length === 1) return dayName(days[0]);
+    const from = dayName(days[0]);
+    const to = dayName(days[days.length - 1]);
+    if (consecutive && days.length > 2) return t('hours.range', { from, to });
+    return t('hours.and', { from, to });
+  };
+
+  // Dias abertos: uma linha por bloco de horário
+  const openRows = groups
+    .filter((g) => g.open)
+    .map((g) => ({
+      key: `open-${g.days.join('-')}`,
+      label: joinDays(g.days, true),
+      value: `${g.start} – ${g.end}`,
+    }));
+
+  // Dias fechados: colapsados numa única linha
+  const closedDays = groups.filter((g) => !g.open).flatMap((g) => g.days);
+  const closedRow =
+    closedDays.length > 0
+      ? {
+          key: 'closed',
+          label: joinDays(closedDays, false),
+          value: t('hours.closed'),
+        }
+      : null;
+
+  const hourRows = [...openRows, ...(closedRow ? [closedRow] : [])];
 
   return (
     <section id="contact" className="bg-chi-green-deep text-chi-cream py-28 md:py-40">
@@ -117,12 +163,10 @@ export async function ContactPreview() {
               {t('hoursTitle')}
             </h3>
             <dl className="text-chi-cream/80 space-y-2 text-base leading-[1.7]">
-              {HOURS.map((h) => (
-                <div key={h.daysKey} className="flex items-baseline justify-between gap-6">
-                  <dt>{t(`hours.${h.daysKey}`)}</dt>
-                  <dd className="text-chi-cream/60 m-0 shrink-0 text-sm">
-                    {h.time === 'closed' ? t('hours.closed') : h.time}
-                  </dd>
+              {hourRows.map((row) => (
+                <div key={row.key} className="flex items-baseline justify-between gap-6">
+                  <dt>{row.label}</dt>
+                  <dd className="text-chi-cream/60 m-0 shrink-0 text-sm">{row.value}</dd>
                 </div>
               ))}
             </dl>

@@ -1,5 +1,11 @@
+// 📄 src/lib/models/Staff.ts
 import mongoose, { Schema, model, models, type Model } from 'mongoose';
 import { slugify } from './Category';
+import {
+  SALON_DEFAULT_END,
+  SALON_DEFAULT_START,
+  SALON_HOURS_BY_NAME,
+} from '@/lib/constants/business';
 
 export type WeekDay =
   | 'monday'
@@ -80,12 +86,12 @@ const workDayConfigSchema = new Schema<WorkDayConfig>(
     enabled: { type: Boolean, default: false },
     start: {
       type: String,
-      default: '10:00',
+      default: SALON_DEFAULT_START,
       match: /^([01]\d|2[0-3]):[0-5]\d$/,
     },
     end: {
       type: String,
-      default: '19:00',
+      default: SALON_DEFAULT_END,
       match: /^([01]\d|2[0-3]):[0-5]\d$/,
     },
     breaks: { type: [workBreakSchema], default: [] },
@@ -102,28 +108,26 @@ const vacationPeriodSchema = new Schema<VacationPeriod>(
   { _id: false },
 );
 
+/**
+ * Horário por defeito de um NOVO profissional = horário do salão.
+ * Derivado de SALON_HOURS_BY_NAME — nunca hardcoded, para um staff
+ * novo nunca nascer com um horário que o salão já não pratica.
+ *
+ * ⚠️ Isto só afeta documentos NOVOS. Os profissionais já gravados
+ * mantêm o que está em BD — usar scripts/fix-salon-hours.ts.
+ */
 function defaultWorkingHours(): Record<WeekDay, WorkDayConfig> {
-  const weekday: WorkDayConfig = {
-    enabled: true,
-    start: '10:00',
-    end: '19:00',
-    breaks: [],
-  };
-  const weekend: WorkDayConfig = {
-    enabled: false,
-    start: '10:00',
-    end: '19:00',
-    breaks: [],
-  };
-  return {
-    monday: { ...weekday },
-    tuesday: { ...weekday },
-    wednesday: { ...weekday },
-    thursday: { ...weekday },
-    friday: { ...weekday },
-    saturday: { ...weekend },
-    sunday: { ...weekend },
-  };
+  const out = {} as Record<WeekDay, WorkDayConfig>;
+  for (const day of WEEKDAYS) {
+    const salon = SALON_HOURS_BY_NAME[day];
+    out[day] = {
+      enabled: salon.open,
+      start: salon.open ? salon.start : SALON_DEFAULT_START,
+      end: salon.open ? salon.end : SALON_DEFAULT_END,
+      breaks: [],
+    };
+  }
+  return out;
 }
 
 const staffSchema = new Schema<IStaff>(

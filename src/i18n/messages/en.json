@@ -47,7 +47,7 @@
         "openingSoon": "Opening soon · {time}",
         "opensToday": "Closed · Opens today at {time}",
         "opensTomorrow": "Closed · Opens tomorrow at {time}",
-        "opensMonday": "Closed · Opens Monday at {time}"
+        "opensLater": "Closed · Opens {day} at {time}"
       }
     },
     "philosophy": {
@@ -111,8 +111,17 @@
       "contactTitle": "Contact",
       "hoursTitle": "Opening hours",
       "hours": {
-        "monFri": "Monday to Friday",
-        "satSun": "Saturday and Sunday",
+        "days": {
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday"
+        },
+        "range": "{from} to {to}",
+        "and": "{from} and {to}",
         "closed": "Closed"
       }
     }

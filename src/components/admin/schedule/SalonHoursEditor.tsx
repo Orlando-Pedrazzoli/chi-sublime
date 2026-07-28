@@ -23,6 +23,7 @@ import { TimePicker } from '@/components/ui/TimePicker';
 import { cn } from '@/lib/utils/cn';
 import { useToast } from '@/hooks/useToast';
 import { setSalonWeekAction } from '@/lib/server-actions/schedule';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 
 type Break = { start: string; end: string };
 
@@ -48,8 +49,8 @@ const DAYS: { dayOfWeek: number; label: string }[] = [
 const DEFAULT_DAY = (dayOfWeek: number): SalonDayDTO => ({
   dayOfWeek,
   open: false,
-  start: '10:00',
-  end: '19:00',
+  start: SALON_DEFAULT_START,
+  end: SALON_DEFAULT_END,
   breaks: [],
 });
 
@@ -63,8 +64,8 @@ function normalize(initial: SalonDayDTO[]): Map<number, SalonDayDTO> {
         ? {
             dayOfWeek,
             open: Boolean(found.open),
-            start: found.start || '10:00',
-            end: found.end || '19:00',
+            start: found.start || SALON_DEFAULT_START,
+            end: found.end || SALON_DEFAULT_END,
             breaks: (found.breaks ?? []).map((b) => ({ start: b.start, end: b.end })),
           }
         : DEFAULT_DAY(dayOfWeek),

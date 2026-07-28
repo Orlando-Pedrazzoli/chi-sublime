@@ -1,9 +1,11 @@
+// 📄 src/components/admin/agenda/CalendarDayView.tsx
 'use client';
 
 import { useMemo } from 'react';
 import { Clock, User as UserIcon, Phone, Globe, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
+import { salonHoursBounds } from '@/lib/constants/business';
 
 type StatusColors = { bg: string; border: string; text: string };
 
@@ -38,8 +40,14 @@ type CalendarDayViewProps = {
   onEmptySlotClick?: (time: string, staffId: string) => void;
 };
 
-const HOUR_START = 9;
-const HOUR_END = 20;
+/**
+ * Grelha horária derivada de SALON_HOURS + 1h de folga no fim,
+ * para uma reserva que termine à hora de fecho continuar visível.
+ * Nunca hardcoded: se o horário do salão mudar, a agenda acompanha.
+ */
+const { earliestHour, latestHour } = salonHoursBounds();
+const HOUR_START = earliestHour;
+const HOUR_END = latestHour + 1;
 const SLOT_HEIGHT = 80;
 const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 

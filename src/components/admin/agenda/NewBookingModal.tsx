@@ -22,6 +22,7 @@ import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { X, Phone, Globe, User as UserIcon, Plus, AlertTriangle } from 'lucide-react';
 import { createManualBookingAction } from '@/lib/server-actions/manual-bookings';
 import { searchClientsAction } from '@/lib/server-actions/admin-bookings';
+import { SALON_DEFAULT_START } from '@/lib/constants/business';
 
 type StaffOption = { id: string; name: string; photo?: string };
 type ServiceOption = {
@@ -81,7 +82,7 @@ export function NewBookingModal({
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [staffId, setStaffId] = useState(prefillStaffId ?? staff[0]?.id ?? '');
   const [date, setDate] = useState(defaultDate);
-  const [time, setTime] = useState(prefillTime ?? '10:00');
+  const [time, setTime] = useState(prefillTime ?? SALON_DEFAULT_START);
   const [source, setSource] = useState<Source>('phone');
   const [notes, setNotes] = useState('');
   const [force, setForce] = useState(false);

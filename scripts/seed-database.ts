@@ -1,3 +1,4 @@
+// 📄 scripts/seed-database.ts
 /**
  * Chi Sublime — Seed Database
  * ============================================================
@@ -31,6 +32,12 @@ import {
 import { hashPassword } from '../src/lib/auth/password';
 import { fromZonedTime } from 'date-fns-tz';
 import { SALON_TIMEZONE } from '../src/lib/constants/business';
+import {
+  SALON_DEFAULT_END,
+  SALON_DEFAULT_START,
+  SALON_HOURS,
+  type WeekDayIndex,
+} from '../src/lib/constants/business';
 
 /** Grava um feriado ao MEIO-DIA de Lisboa — meio-dia nunca cruza fronteira de
  *  horário de verão, garantindo que o dia/mês lidos (no fuso de Lisboa) são estáveis. */
@@ -279,15 +286,16 @@ async function linkServicesToStaff(
 
 async function seedSchedule() {
   log('📅', 'A criar horário base e feriados...');
+  // Derivado de SALON_HOURS — nunca hardcoded aqui.
   const regular = WEEKDAYS.map((day, i) => {
-    const dayOfWeek = (i + 1) % 7;
-    const isWeekend = day === 'saturday' || day === 'sunday';
+    const dayOfWeek = ((i + 1) % 7) as WeekDayIndex;
+    const hours = SALON_HOURS[dayOfWeek];
     return {
       type: 'regular' as const,
       dayOfWeek,
-      open: !isWeekend,
-      start: '10:00',
-      end: '19:00',
+      open: hours.open,
+      start: hours.open ? hours.start : SALON_DEFAULT_START,
+      end: hours.open ? hours.end : SALON_DEFAULT_END,
       breaks: [],
       recurringYearly: false,
     };

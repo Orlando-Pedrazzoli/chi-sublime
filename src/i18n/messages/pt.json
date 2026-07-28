@@ -47,7 +47,7 @@
         "openingSoon": "Abre em breve · {time}",
         "opensToday": "Fechado · Abre hoje às {time}",
         "opensTomorrow": "Fechado · Abre amanhã às {time}",
-        "opensMonday": "Fechado · Abre segunda às {time}"
+        "opensLater": "Fechado · Abre {day} às {time}"
       }
     },
     "philosophy": {
@@ -111,8 +111,17 @@
       "contactTitle": "Contacto",
       "hoursTitle": "Horário",
       "hours": {
-        "monFri": "Segunda a Sexta",
-        "satSun": "Sábado e Domingo",
+        "days": {
+          "mon": "Segunda",
+          "tue": "Terça",
+          "wed": "Quarta",
+          "thu": "Quinta",
+          "fri": "Sexta",
+          "sat": "Sábado",
+          "sun": "Domingo"
+        },
+        "range": "{from} a {to}",
+        "and": "{from} e {to}",
         "closed": "Encerrado"
       }
     }

@@ -1,3 +1,4 @@
+// 📄 src/lib/validation/staff.ts
 /**
  * Chi Sublime — Staff Validation Schemas (Zod)
  * ============================================================
@@ -19,6 +20,7 @@ import {
   timeSchema,
   paginationSchema,
 } from './shared';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 
 // ------------------------------------------------------------
 // Horário semanal
@@ -34,8 +36,8 @@ const workBreakSchema = z
 const workDaySchema = z
   .object({
     enabled: z.boolean().default(false),
-    start: timeSchema.default('10:00'),
-    end: timeSchema.default('19:00'),
+    start: timeSchema.default(SALON_DEFAULT_START),
+    end: timeSchema.default(SALON_DEFAULT_END),
     breaks: z.array(workBreakSchema).max(4).default([]),
   })
   .refine((d) => !d.enabled || d.start < d.end, {

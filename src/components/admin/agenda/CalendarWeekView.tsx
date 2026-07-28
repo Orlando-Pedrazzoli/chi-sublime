@@ -1,8 +1,10 @@
+// 📄 src/components/admin/agenda/CalendarWeekView.tsx
 'use client';
 
 import { useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
+import { SALON_HOURS, type WeekDayIndex } from '@/lib/constants/business';
 
 type StatusColors = { bg: string; border: string; text: string };
 
@@ -81,7 +83,10 @@ export function CalendarWeekView({
           const dateStr = toDateString(day);
           const dayBookings = bookingsByDay.get(dateStr) ?? [];
           const isToday = dateStr === today;
-          const isWeekend = idx === 5 || idx === 6;
+          // Dia de encerramento do SALÃO — derivado de SALON_HOURS,
+          // não de "é fim de semana". O salão fecha à segunda e abre
+          // ao sábado; presumir sáb/dom sombreava o dia mais cheio.
+          const isClosed = !SALON_HOURS[day.getDay() as WeekDayIndex].open;
 
           return (
             <DayColumn
@@ -90,7 +95,7 @@ export function CalendarWeekView({
               weekdayLabel={WEEKDAYS_PT[idx]}
               bookings={dayBookings}
               isToday={isToday}
-              isWeekend={isWeekend}
+              isClosed={isClosed}
               onBookingClick={onBookingClick}
               onDayClick={() => onDayClick(dateStr)}
             />
@@ -106,7 +111,7 @@ function DayColumn({
   weekdayLabel,
   bookings,
   isToday,
-  isWeekend,
+  isClosed,
   onBookingClick,
   onDayClick,
 }: {
@@ -114,7 +119,7 @@ function DayColumn({
   weekdayLabel: string;
   bookings: AdminBookingForList[];
   isToday: boolean;
-  isWeekend: boolean;
+  isClosed: boolean;
   onBookingClick: (b: AdminBookingForList) => void;
   onDayClick: () => void;
 }) {
@@ -125,7 +130,7 @@ function DayColumn({
       className="flex flex-col"
       style={{
         borderRight: '1px solid rgba(31,61,46,0.06)',
-        backgroundColor: isWeekend ? 'rgba(250,247,242,0.5)' : '#FFFFFF',
+        backgroundColor: isClosed ? 'rgba(250,247,242,0.5)' : '#FFFFFF',
       }}
     >
       <button

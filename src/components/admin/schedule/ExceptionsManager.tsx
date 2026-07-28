@@ -23,6 +23,7 @@ import { RadioGroup } from '@/components/ui/RadioGroup';
 import { TimePicker } from '@/components/ui/TimePicker';
 import { useToast } from '@/hooks/useToast';
 import { deleteScheduleEntryAction, upsertExceptionAction } from '@/lib/server-actions/schedule';
+import { SALON_DEFAULT_START } from '@/lib/constants/business';
 
 export type ExceptionDTO = {
   id: string;
@@ -48,7 +49,7 @@ export function ExceptionsManager({ initial }: ExceptionsManagerProps) {
 
   const [date, setDate] = useState('');
   const [mode, setMode] = useState<'closed' | 'open'>('closed');
-  const [start, setStart] = useState('10:00');
+  const [start, setStart] = useState(SALON_DEFAULT_START);
   const [end, setEnd] = useState('14:00');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);

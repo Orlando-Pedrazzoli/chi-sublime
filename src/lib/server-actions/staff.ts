@@ -1,3 +1,4 @@
+// 📄 src/lib/server-actions/staff.ts
 'use server';
 
 // 📄 src/lib/server-actions/staff.ts
@@ -31,6 +32,7 @@ import {
   setWorkingHoursSchema,
   setVacationsSchema,
 } from '@/lib/validation/staff';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 
 // ============================================================
 // DTOs
@@ -91,7 +93,12 @@ function isDuplicateKey(err: unknown): boolean {
   );
 }
 
-const DEFAULT_DAY: WorkDayDTO = { enabled: false, start: '10:00', end: '19:00', breaks: [] };
+const DEFAULT_DAY: WorkDayDTO = {
+  enabled: false,
+  start: SALON_DEFAULT_START,
+  end: SALON_DEFAULT_END,
+  breaks: [],
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function normalizeWorkingHours(raw: any): WorkingHoursDTO {
@@ -101,8 +108,8 @@ function normalizeWorkingHours(raw: any): WorkingHoursDTO {
     out[day] = d
       ? {
           enabled: Boolean(d.enabled),
-          start: d.start ?? '10:00',
-          end: d.end ?? '19:00',
+          start: d.start ?? SALON_DEFAULT_START,
+          end: d.end ?? SALON_DEFAULT_END,
           breaks: (d.breaks ?? []).map((b: any) => ({ start: b.start, end: b.end })),
         }
       : { ...DEFAULT_DAY };

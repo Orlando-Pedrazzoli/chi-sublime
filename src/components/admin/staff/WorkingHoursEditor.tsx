@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils/cn';
 import { useToast } from '@/hooks/useToast';
 import { setWorkingHoursAction } from '@/lib/server-actions/staff';
 import type { WorkingHoursDTO } from '@/types/staff';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 
 type WeekDay = keyof WorkingHoursDTO;
 type Break = { start: string; end: string };
@@ -25,7 +26,12 @@ const DAYS: { key: WeekDay; label: string }[] = [
   { key: 'sunday', label: 'Domingo' },
 ];
 
-const DEFAULT_DAY: DayConfig = { enabled: false, start: '10:00', end: '19:00', breaks: [] };
+const DEFAULT_DAY: DayConfig = {
+  enabled: false,
+  start: SALON_DEFAULT_START,
+  end: SALON_DEFAULT_END,
+  breaks: [],
+};
 
 function normalize(initial: WorkingHoursDTO | undefined): WorkingHoursDTO {
   const out = {} as WorkingHoursDTO;
@@ -34,8 +40,8 @@ function normalize(initial: WorkingHoursDTO | undefined): WorkingHoursDTO {
     out[key] = d
       ? {
           enabled: Boolean(d.enabled),
-          start: d.start ?? '10:00',
-          end: d.end ?? '19:00',
+          start: d.start ?? SALON_DEFAULT_START,
+          end: d.end ?? SALON_DEFAULT_END,
           breaks: (d.breaks ?? []).map((b) => ({ start: b.start, end: b.end })),
         }
       : { ...DEFAULT_DAY };
