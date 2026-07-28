@@ -182,8 +182,8 @@ export const BOOKING_RULES = {
   slotIntervalMinutes: 30,
   /** Antecedência mínima para reservar (horas) */
   minAdvanceHours: 1,
-  /** Antecedência máxima para reservar (dias) */
-  maxAdvanceDays: 30,
+  /** Antecedência máxima para reservar (dias) — 60 a pedido do Jean Pierre (jul/2026) */
+  maxAdvanceDays: 60,
   /** Buffer aplicado após cada reserva por defeito (min) */
   defaultBufferMinutes: 5,
   /** Janela mínima para o cliente cancelar/reagendar sozinho (horas) */

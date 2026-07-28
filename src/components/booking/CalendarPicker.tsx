@@ -29,6 +29,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getMonthAvailabilityAction } from '@/lib/server-actions/calendar';
 import type { CalendarDay } from '@/lib/booking/month-availability';
+import { BOOKING_RULES } from '@/lib/constants/business';
 import { cn } from '@/lib/utils/cn';
 
 const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -118,7 +119,10 @@ export function CalendarPicker({
   onSelectDate,
   serviceIds,
   staffId,
-  maxDaysAhead = 30,
+  // Default vem da fonte de verdade (BOOKING_RULES). Era 30 hardcoded,
+  // o que deixava a NAVEGAÇÃO do calendário presa a 30 dias mesmo com
+  // o backend a permitir mais — o Step2Client não passa esta prop.
+  maxDaysAhead = BOOKING_RULES.maxAdvanceDays,
 }: Props) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const maxDate = useMemo(() => {
@@ -319,6 +323,13 @@ export function CalendarPicker({
 
             const tooltip = dayInfo?.reason ?? STATE_TOOLTIP[state];
 
+            // ⚠️ Blur dos dias passados via INLINE STYLE (regra do projeto:
+            // Tailwind v4 + Next 16 descarta silenciosamente utilities
+            // arbitrárias como blur-[1.5px] em produção).
+            const pastStyle: React.CSSProperties | undefined = isPast
+              ? { filter: 'blur(1.5px)', opacity: 0.4 }
+              : undefined;
+
             return (
               <button
                 key={`${iso}-${idx}`}
@@ -330,13 +341,14 @@ export function CalendarPicker({
                 }`}
                 aria-pressed={isSelected}
                 aria-disabled={!isAvailable}
+                style={pastStyle}
                 className={cn(
                   'relative flex aspect-square items-center justify-center rounded-md text-sm font-medium transition-all md:text-base',
                   // DISPONIVEL — normal, hover dourado
                   isAvailable &&
                     'text-chi-charcoal hover:bg-chi-gold/15 hover:text-chi-green-deep cursor-pointer',
-                  // PASSADO — cor propria (areia), distinta dos indisponiveis
-                  isPast && 'text-chi-sand-deep cursor-default',
+                  // PASSADO — cor areia + blur (blur/opacity no inline style)
+                  isPast && 'text-chi-sand-deep cursor-default select-none',
                   // INDISPONIVEL — opaco (fechado / folga / fora do periodo)
                   isUnavailable && 'text-chi-charcoal cursor-not-allowed opacity-30',
                   // ESGOTADO — riscado (aberto mas sem vagas)
@@ -391,7 +403,9 @@ export function CalendarPicker({
           Esgotado
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="text-chi-sand-deep">00</span>
+          <span className="text-chi-sand-deep" style={{ filter: 'blur(1.5px)', opacity: 0.4 }}>
+            00
+          </span>
           Passado
         </span>
       </div>
