@@ -12,6 +12,12 @@
  * Este horário define a janela máxima de todos os agendamentos:
  * a disponibilidade real de cada profissional é a interseção
  * deste horário com o horário individual dele.
+ *
+ * FIX sincronização (jul/2026): checkbox "Alinhar horários da
+ * equipa" (default LIGADO). Sem o alinhamento, gravar horários
+ * novos aqui não mudava nada no site público — o motor de
+ * disponibilidade cruza este horário com Staff.workingHours,
+ * e a equipa continuava presa às janelas antigas.
  */
 
 import { useState } from 'react';
@@ -83,6 +89,7 @@ export function SalonHoursEditor({ initial }: SalonHoursEditorProps) {
   const router = useRouter();
   const [week, setWeek] = useState<Map<number, SalonDayDTO>>(() => normalize(initial));
   const [saving, setSaving] = useState(false);
+  const [syncStaff, setSyncStaff] = useState(true);
 
   const patchDay = (dayOfWeek: number, patch: Partial<SalonDayDTO>) =>
     setWeek((w) => {
@@ -136,11 +143,14 @@ export function SalonHoursEditor({ initial }: SalonHoursEditorProps) {
           breaks: d.open ? d.breaks : [],
         };
       }),
+      syncStaff,
     });
     setSaving(false);
 
     if (res.success) {
-      toast.success('Horário do salão atualizado');
+      toast.success(
+        syncStaff ? 'Horário do salão atualizado e equipa alinhada' : 'Horário do salão atualizado',
+      );
       router.refresh();
     } else {
       toast.error(res.error.message);
@@ -222,6 +232,25 @@ export function SalonHoursEditor({ initial }: SalonHoursEditorProps) {
           </div>
         );
       })}
+
+      {/* Alinhamento da equipa — SEM isto, horários novos do salão
+          não aparecem no site (interseção salão ∩ staff) */}
+      <div
+        className="border-chi-border-light bg-chi-cream/40 rounded-md border"
+        style={{ padding: '12px 14px' }}
+      >
+        <Checkbox
+          checked={syncStaff}
+          onChange={(e) => setSyncStaff(e.target.checked)}
+          label={<span className="font-medium">Alinhar horários da equipa com o salão</span>}
+        />
+        <p className="text-chi-charcoal-soft mt-1.5 pl-6 text-xs leading-relaxed">
+          Recomendado. Atualiza o horário de cada profissional para coincidir com o do salão (as
+          pausas individuais que couberem no novo horário são mantidas). Se desligar, os horários
+          novos do salão <strong>não ficam reserváveis</strong> até ajustar cada profissional
+          manualmente em Equipa.
+        </p>
+      </div>
 
       <div className="flex justify-end pt-1">
         <Button onClick={save} loading={saving}>

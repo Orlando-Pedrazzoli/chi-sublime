@@ -14,6 +14,24 @@
  * consequência, a disponibilidade do site público (calendário
  * e grelha de horários do cliente).
  *
+ * FIX SINCRONIZAÇÃO (jul/2026) — causa raiz do bug de
+ * /reservar/horario não refletir horários novos:
+ *
+ *   O motor de disponibilidade faz a INTERSEÇÃO de duas fontes:
+ *     1. Schedule type='regular'   → horário do SALÃO
+ *     2. Staff.workingHours        → horário de CADA profissional
+ *
+ *   Esta action gravava só (1). Um dia novo aberto ficava com
+ *   staff `enabled=false`, e horas estendidas eram cortadas por
+ *   `min(salonEnd, staffEnd)` — zero slots novos no site.
+ *
+ *   Agora, com `syncStaff=true` (default do editor), gravar o
+ *   horário semanal também alinha Staff.workingHours de TODOS
+ *   os profissionais: enabled/start/end espelham o salão e as
+ *   pausas individuais são preservadas (descartando apenas as
+ *   que caem fora da nova janela, para passar na validação do
+ *   modelo). Mesma política do scripts/fix-salon-hours.ts.
+ *
  * Segue o padrão de staff.ts: requireAdminSession local,
  * Zod + fieldErrors, ok/fail, logAudit, revalidatePath, e
  * validação pesada delegada ao pre('save') do modelo com
@@ -30,14 +48,23 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
-import { Schedule, logAudit } from '@/lib/models';
+import {
+  Schedule,
+  Staff,
+  WEEKDAYS,
+  logAudit,
+  type WeekDay,
+  type WorkDayConfig,
+} from '@/lib/models';
 import { combineDateAndTime, toISODate } from '@/lib/utils/time-utils';
+import { SALON_DEFAULT_END, SALON_DEFAULT_START } from '@/lib/constants/business';
 import { ok, fail, type ActionResult } from '@/types/common';
 import {
   setSalonWeekSchema,
   addHolidaySchema,
   upsertExceptionSchema,
   scheduleIdSchema,
+  type SalonDayInput,
 } from '@/lib/validation/schedule';
 
 // ============================================================
@@ -75,9 +102,100 @@ function dayWindow(isoDay: string): { start: Date; end: Date } {
 
 function revalidateScheduleViews() {
   revalidatePath('/admin/horarios');
+  revalidatePath('/admin/equipa');
   // A disponibilidade pública depende deste modelo
   revalidatePath('/reservar');
   revalidatePath('/reservar/horario');
+}
+
+/** dayOfWeek numérico (0=Dom … 6=Sáb) → nome usado em Staff.workingHours */
+const NUMBER_TO_WEEKDAY: Record<number, WeekDay> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
+
+/**
+ * Alinha Staff.workingHours de TODOS os profissionais com o
+ * horário semanal do salão acabado de gravar.
+ *
+ * Política (idêntica ao scripts/fix-salon-hours.ts):
+ *  - Dia fechado no salão  → enabled=false (janela mantida só
+ *    como placeholder, tal como o defaultWorkingHours faz)
+ *  - Dia aberto no salão   → enabled=true, start/end = salão
+ *  - Pausas individuais preservadas SE couberem na nova janela;
+ *    as que ficarem fora são descartadas (o pre('save') do Staff
+ *    rejeitaria breaks fora do horário e abortava a gravação).
+ *
+ * Devolve o nº de profissionais efetivamente alterados.
+ */
+async function syncStaffWorkingHours(week: SalonDayInput[]): Promise<number> {
+  const salonByName = new Map<WeekDay, SalonDayInput>();
+  for (const day of week) {
+    salonByName.set(NUMBER_TO_WEEKDAY[day.dayOfWeek], day);
+  }
+
+  // Todos (ativos e inativos): um staff reativado amanhã deve
+  // acordar já alinhado com o horário atual do salão.
+  const allStaff = await Staff.find({});
+  let changed = 0;
+
+  for (const staff of allStaff) {
+    const current = (staff.workingHours ?? {}) as Record<WeekDay, WorkDayConfig>;
+    const next = {} as Record<WeekDay, WorkDayConfig>;
+    let dirty = false;
+
+    for (const dayName of WEEKDAYS) {
+      const salonDay = salonByName.get(dayName);
+      const cfg: WorkDayConfig = current[dayName] ?? {
+        enabled: false,
+        start: SALON_DEFAULT_START,
+        end: SALON_DEFAULT_END,
+        breaks: [],
+      };
+
+      if (!salonDay || !salonDay.open) {
+        const target: WorkDayConfig = {
+          enabled: false,
+          start: cfg.start || SALON_DEFAULT_START,
+          end: cfg.end || SALON_DEFAULT_END,
+          breaks: [],
+        };
+        if (cfg.enabled !== target.enabled || (cfg.breaks?.length ?? 0) > 0) dirty = true;
+        next[dayName] = target;
+        continue;
+      }
+
+      const start = salonDay.start!;
+      const end = salonDay.end!;
+      const keptBreaks = (cfg.breaks ?? []).filter((b) => b.start >= start && b.end <= end);
+
+      const target: WorkDayConfig = { enabled: true, start, end, breaks: keptBreaks };
+
+      if (
+        cfg.enabled !== true ||
+        cfg.start !== start ||
+        cfg.end !== end ||
+        (cfg.breaks?.length ?? 0) !== keptBreaks.length
+      ) {
+        dirty = true;
+      }
+      next[dayName] = target;
+    }
+
+    if (!dirty) continue;
+
+    staff.set('workingHours', next);
+    staff.markModified('workingHours');
+    await staff.save();
+    changed++;
+  }
+
+  return changed;
 }
 
 // ============================================================
@@ -97,7 +215,12 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
 
   try {
     for (const day of parsed.data.week) {
-      let doc = await Schedule.findOne({ type: 'regular', dayOfWeek: day.dayOfWeek });
+      // sort por updatedAt: se existirem duplicados antigos na BD,
+      // editamos SEMPRE o mais recente — o mesmo que os leitores
+      // (schedule-resolver e month-availability) agora escolhem.
+      let doc = await Schedule.findOne({ type: 'regular', dayOfWeek: day.dayOfWeek }).sort({
+        updatedAt: -1,
+      });
       if (!doc) {
         doc = new Schedule({ type: 'regular', dayOfWeek: day.dayOfWeek, open: false, breaks: [] });
       }
@@ -113,6 +236,24 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
     return fail('server', 'Erro ao gravar o horário semanal');
   }
 
+  // ── FIX sincronização: alinhar o horário da equipa ──────────
+  let staffChanged = 0;
+  if (parsed.data.syncStaff) {
+    try {
+      staffChanged = await syncStaffWorkingHours(parsed.data.week);
+    } catch (err) {
+      // O salão JÁ foi gravado; reportar com clareza para o admin
+      // poder corrigir a equipa manualmente em /admin/equipa.
+      console.error('[setSalonWeekAction] syncStaffWorkingHours', err);
+      const detail = err instanceof Error ? ` (${err.message})` : '';
+      return fail(
+        'server',
+        `Horário do salão gravado, mas falhou o alinhamento da equipa${detail}. ` +
+          'Verifica os horários individuais em Equipa.',
+      );
+    }
+  }
+
   await logAudit({
     action: 'update',
     resource: 'schedule',
@@ -121,7 +262,9 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: 'Horário semanal do salão atualizado',
+    message: parsed.data.syncStaff
+      ? `Horário semanal do salão atualizado (equipa alinhada: ${staffChanged} profissional/is)`
+      : 'Horário semanal do salão atualizado (sem alinhar equipa)',
     severity: 'info',
   });
 
@@ -210,7 +353,7 @@ export async function upsertExceptionAction(input: unknown): Promise<ActionResul
     let doc = await Schedule.findOne({
       type: 'exception',
       date: { $gte: window.start, $lte: window.end },
-    });
+    }).sort({ updatedAt: -1 });
 
     if (!doc) {
       doc = new Schedule({ type: 'exception', date: anchorNoon(date), breaks: [] });

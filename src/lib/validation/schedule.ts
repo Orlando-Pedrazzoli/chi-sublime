@@ -7,6 +7,13 @@
  * Como nos restantes ficheiros de validação, NÃO importa
  * modelos Mongoose (enums/regex literais) para não arrastar
  * o Mongoose para o bundle de cliente via resolvers do RHF.
+ *
+ * FIX sincronização (jul/2026): setSalonWeekSchema ganhou a
+ * flag `syncStaff` (default true). Quando ativa, gravar o
+ * horário semanal do salão também alinha Staff.workingHours —
+ * sem isto, o motor de disponibilidade (que faz a INTERSEÇÃO
+ * salão ∩ staff) continuava a usar as janelas antigas e o
+ * site público não refletia os horários novos.
  */
 
 import { z } from 'zod';
@@ -57,6 +64,12 @@ export const salonDaySchema = z
 
 export const setSalonWeekSchema = z.object({
   week: z.array(salonDaySchema).length(7, 'A semana tem de ter os 7 dias'),
+  /**
+   * Alinhar Staff.workingHours com o horário do salão gravado.
+   * Default TRUE: sem o alinhamento, dias/horas novos do salão
+   * ficam invisíveis no site público (interseção salão ∩ staff).
+   */
+  syncStaff: z.boolean().default(true),
 });
 
 export type SetSalonWeekInput = z.infer<typeof setSalonWeekSchema>;

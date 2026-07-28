@@ -23,6 +23,15 @@
  * e resolve os dias em memória, reutilizando a MESMA lógica de
  * geração de slots do availability.ts (generateSlotsForStaff),
  * pelo que calendário e grelha de horários nunca divergem.
+ *
+ * FIX sincronização (jul/2026): os índices em memória de
+ * regular/exception deixaram de ser "último documento ganha".
+ * Com duplicados antigos na BD, este módulo podia escolher um
+ * documento DIFERENTE do que o schedule-resolver (findOne =
+ * primeiro em ordem natural) usava na grelha de slots — e o
+ * calendário mostrava um horário enquanto a grelha mostrava
+ * outro. Agora ambos escolhem o documento com updatedAt mais
+ * recente (ver putNewest e o sort no schedule-resolver).
  */
 
 import { formatInTimeZone } from 'date-fns-tz';
@@ -104,6 +113,27 @@ const WEEKDAY_TO_NUMBER: Record<string, number> = {
 };
 
 // ============================================================
+// Helpers de deduplicação (espelham o sort do schedule-resolver)
+// ============================================================
+
+/** Timestamp seguro de updatedAt (0 se ausente). */
+function updatedAtMs(s: ISchedule): number {
+  return s.updatedAt ? new Date(s.updatedAt).getTime() : 0;
+}
+
+/**
+ * Insere no map SÓ se for mais recente do que o já guardado.
+ * Garante que, havendo duplicados na BD, ganha SEMPRE o mesmo
+ * documento que o schedule-resolver escolhe (updatedAt desc).
+ */
+function putNewest<K>(map: Map<K, ISchedule>, key: K, doc: ISchedule): void {
+  const prev = map.get(key);
+  if (!prev || updatedAtMs(doc) > updatedAtMs(prev)) {
+    map.set(key, doc);
+  }
+}
+
+// ============================================================
 // FUNÇÃO PRINCIPAL
 // ============================================================
 
@@ -176,16 +206,18 @@ export async function getMonthAvailability(
     };
   }
 
-  // Índices de Schedule em memória (espelham o schedule-resolver)
+  // Índices de Schedule em memória (espelham o schedule-resolver).
+  // putNewest: com duplicados, ganha o updatedAt mais recente —
+  // NUNCA "o último do array" (ordem natural do Mongo é arbitrária).
   const regularByWeekday = new Map<number, ISchedule>();
   const exceptionsByISO = new Map<string, ISchedule>();
   const holidays: ISchedule[] = [];
 
   for (const s of allSchedules) {
     if (s.type === 'regular' && s.dayOfWeek !== undefined && s.dayOfWeek !== null) {
-      regularByWeekday.set(s.dayOfWeek, s);
+      putNewest(regularByWeekday, s.dayOfWeek, s);
     } else if (s.type === 'exception' && s.date) {
-      exceptionsByISO.set(toISODate(new Date(s.date)), s);
+      putNewest(exceptionsByISO, toISODate(new Date(s.date)), s);
     } else if (s.type === 'holiday' && s.date) {
       holidays.push(s);
     }

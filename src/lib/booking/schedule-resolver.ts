@@ -1,3 +1,4 @@
+// 📄 src/lib/booking/schedule-resolver.ts
 /**
  * Chi Sublime — Schedule Resolver
  * ============================================================
@@ -12,6 +13,15 @@
  * Output normalizado para o algoritmo de availability nao se
  * preocupar com qual o tipo de entry — recebe sempre uma
  * estrutura uniforme.
+ *
+ * FIX sincronização (jul/2026): TODOS os findOne levam
+ * .sort({ updatedAt: -1 }). Sem sort, o Mongo devolve o
+ * primeiro documento em ordem natural — se existirem
+ * duplicados antigos de type='regular' (criados antes do
+ * unique parcial estar sincronizado), este resolver lia UM
+ * documento e o month-availability (map "último ganha") lia
+ * OUTRO: calendário e grelha de horários divergiam. Agora os
+ * dois lados escolhem sempre o documento mais recente.
  */
 
 import { formatInTimeZone } from 'date-fns-tz';
@@ -96,10 +106,15 @@ export async function resolveSchedule(date: Date): Promise<ResolvedSchedule> {
   }
 
   // PASSO 3 — Usar regular do dia da semana
+  // sort por updatedAt: em caso de duplicados antigos, ganha
+  // SEMPRE o mais recente (o mesmo que o admin edita e que o
+  // month-availability escolhe).
   const regular = await Schedule.findOne({
     type: 'regular',
     dayOfWeek,
-  }).lean();
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
 
   if (!regular || !regular.open) {
     return {
@@ -135,7 +150,9 @@ async function findExceptionForDate(date: Date): Promise<ISchedule | null> {
   return Schedule.findOne({
     type: 'exception',
     date: { $gte: startOfDay, $lte: endOfDay },
-  }).lean();
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
 }
 
 /**
