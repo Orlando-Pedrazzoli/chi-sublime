@@ -55,7 +55,28 @@ const NAME_TO_INDEX: Record<WeekDay, WeekDayIndex> = {
   saturday: 6,
 };
 
+/**
+ * Mostra a que base de dados nos ligámos, SEM revelar a password.
+ * É o dado mais importante: evita migrar a base errada.
+ */
+function describeUri(uri: string): string {
+  try {
+    const withoutCreds = uri.replace(/\/\/[^@]+@/, '//<credenciais>@');
+    const dbName = uri.split('/').pop()?.split('?')[0] ?? '?';
+    const host = withoutCreds.match(/@([^/]+)/)?.[1] ?? '?';
+    return `host=${host}  db=${dbName}`;
+  } catch {
+    return '(não foi possível interpretar o URI)';
+  }
+}
+
 function loadMongoUri(): string {
+  // 1) --uri=... na linha de comandos (o mais fiável: não depende
+  //    da sessão do terminal nem de variáveis de ambiente)
+  const uriArg = process.argv.find((a) => a.startsWith('--uri='));
+  if (uriArg) return uriArg.slice('--uri='.length);
+
+  // 2) variável de ambiente
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
 
   try {
@@ -140,7 +161,10 @@ async function checkStaff(onlyId?: string): Promise<number> {
       // O que nunca pode é estar ligado num dia em que o salão fecha,
       // nem desligado num dia em que o salão abre.
       const dayOk = Boolean(cfg?.enabled) === salon.open;
-      const exact = actualStr === expectedStr;
+      // Em dias de encerramento, "Desligado" (staff) e "Encerrado"
+      // (salão) são a MESMA coisa — só mudam as palavras. Comparar
+      // as strings marcaria um ⚠️ falso todas as segundas e domingos.
+      const exact = salon.open ? actualStr === expectedStr : true;
       if (!dayOk) mismatches++;
 
       const flag = dayOk ? (exact ? '✅' : '⚠️  horário próprio') : '❌';
@@ -185,13 +209,16 @@ async function checkOverrides() {
 // ------------------------------------------------------------
 
 async function main() {
-  const onlyId = process.argv[2];
+  // ignorar flags (--uri=...) ao ler o id opcional do profissional
+  const onlyId = process.argv.slice(2).find((a) => !a.startsWith('--'));
 
-  await mongoose.connect(loadMongoUri());
+  const uri = loadMongoUri();
+  await mongoose.connect(uri);
 
   console.log('\n' + '═'.repeat(64));
   console.log('  CHI SUBLIME — Diagnóstico de horário (só leitura)');
   console.log('═'.repeat(64));
+  console.log(`  Ligado a: ${describeUri(uri)}`);
 
   const salonBad = await checkSalon();
   const staffBad = await checkStaff(onlyId);

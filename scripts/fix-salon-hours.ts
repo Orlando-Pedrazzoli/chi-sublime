@@ -92,7 +92,28 @@ const NAME_TO_INDEX: Record<WeekDay, WeekDayIndex> = {
 // MONGODB_URI (.env.local se não estiver no ambiente)
 // ------------------------------------------------------------
 
+/**
+ * Mostra a que base de dados nos ligámos, SEM revelar a password.
+ * É o dado mais importante: evita migrar a base errada.
+ */
+function describeUri(uri: string): string {
+  try {
+    const withoutCreds = uri.replace(/\/\/[^@]+@/, '//<credenciais>@');
+    const dbName = uri.split('/').pop()?.split('?')[0] ?? '?';
+    const host = withoutCreds.match(/@([^/]+)/)?.[1] ?? '?';
+    return `host=${host}  db=${dbName}`;
+  } catch {
+    return '(não foi possível interpretar o URI)';
+  }
+}
+
 function loadMongoUri(): string {
+  // 1) --uri=... na linha de comandos (o mais fiável: não depende
+  //    da sessão do terminal nem de variáveis de ambiente)
+  const uriArg = process.argv.find((a) => a.startsWith('--uri='));
+  if (uriArg) return uriArg.slice('--uri='.length);
+
+  // 2) variável de ambiente
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
 
   try {
@@ -319,7 +340,9 @@ async function main() {
   console.log('\n' + '═'.repeat(56));
   console.log('  CHI SUBLIME — Alinhamento de horário');
   console.log('═'.repeat(56));
+  console.log(`  Ligado a: ${describeUri(uri)}`);
   console.log(`  Modo: ${DRY_RUN ? '🧪 DRY RUN (nada é gravado)' : '💾 APLICAR'}`);
+  console.log('  ⚠️  Confirme a base ACIMA antes de continuar.');
   console.log('  Horário alvo:');
   for (const d of WEEK_ORDER) {
     const h = SALON_HOURS[d];
