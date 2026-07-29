@@ -6,7 +6,7 @@ import { connectDB } from '@/lib/db/connect';
 import { notifyBookingCreated, notifyBookingCancelled } from '@/lib/email/booking-notifications';
 import { Booking, Client, generateBookingNumber, logAudit, type IBooking } from '@/lib/models';
 import { auth } from '@/lib/auth';
-import { getAvailableSlots } from '@/lib/booking/availability';
+import { getAvailableSlots, validateDate } from '@/lib/booking/availability';
 import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
 import {
   createBookingSchema,
@@ -133,6 +133,19 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
   await connectDB();
 
   const dateObj = parseDateString(data.date);
+
+  // ── Guarda explícita do horizonte de reserva ────────────────
+  // O getAvailableSlots abaixo já valida isto, mas é uma função de
+  // LEITURA. Garantir uma invariante de ESCRITA através de um efeito
+  // secundário de uma leitura é frágil: qualquer caminho novo (API
+  // route, webhook, futuro reagendamento) perde a proteção sem que
+  // ninguém repare. Esta guarda vive na fronteira de escrita, que é
+  // onde pertence — e é barata.
+  const dateError = validateDate(dateObj);
+  if (dateError) {
+    return { success: false, error: { code: 'validation', message: dateError.message } };
+  }
+
   const availability = await getAvailableSlots({
     date: dateObj,
     serviceIds: data.serviceIds,

@@ -182,18 +182,28 @@ export const BOOKING_RULES = {
   slotIntervalMinutes: 30,
   /** Antecedência mínima para reservar (horas) */
   minAdvanceHours: 1,
-  /** Antecedência máxima para reservar (dias) */
-  maxAdvanceDays: 30,
+  /**
+   * Antecedência máxima para o CLIENTE reservar online (dias).
+   *
+   * 90 dias é o habitual num salão: clientes fiéis marcam o corte
+   * seguinte à saída, e casamentos/eventos planeiam-se com meses.
+   * O admin não está sujeito a este limite — o salão tem de poder
+   * marcar para qualquer data a pedido do cliente.
+   */
+  maxAdvanceDays: 90,
   /** Buffer aplicado após cada reserva por defeito (min) */
   defaultBufferMinutes: 5,
   /** Janela mínima para o cliente cancelar/reagendar sozinho (horas) */
   cancellationWindowHours: 24,
   /**
    * Janela da vista "Próximas" no /admin/reservas (dias).
-   * Tem de cobrir pelo menos maxAdvanceDays, senão o salão faz uma
-   * reserva que o cliente consegue marcar mas que não aparece na lista.
+   *
+   * ⚠️ INVARIANTE: upcomingViewDays >= maxAdvanceDays.
+   * Se for menor, o cliente consegue marcar para uma data que o
+   * salão não vê na lista — a reserva existe mas fica invisível.
+   * Foi assim que uma marcação legítima passou despercebida.
    */
-  upcomingViewDays: 60,
+  upcomingViewDays: 90,
 } as const;
 
 // ============================================================
