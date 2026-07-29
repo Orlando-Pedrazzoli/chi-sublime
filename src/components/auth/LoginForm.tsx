@@ -181,7 +181,40 @@ export function LoginForm({ variant, defaultRedirect }: LoginFormProps) {
             color: '#B23C3C',
           }}
         >
-          {error}
+          <p style={{ margin: 0 }}>{error}</p>
+
+          {/*
+            Contas criadas com "Continuar com Google" NÃO têm password
+            (ver src/lib/auth/config.ts: o callback signIn cria o User
+            sem passwordHash). Quem tentar entrar por email+password
+            recebe o erro genérico e fica sem saber porquê.
+
+            Esta dica é ESTÁTICA de propósito: aparece sempre que há
+            erro, para qualquer email. Não confirma nem desmente que
+            uma conta existe — evita enumeração de contas.
+          */}
+          {!isAdmin && (
+            <p
+              style={{
+                margin: '10px 0 0',
+                paddingTop: '10px',
+                borderTop: '1px solid rgba(178,60,60,0.2)',
+                color: '#7A4A4A',
+                lineHeight: 1.6,
+              }}
+            >
+              Criou a conta com o Google? Use{' '}
+              <strong style={{ fontWeight: 600 }}>Continuar com Google</strong> abaixo, ou defina
+              uma password em{' '}
+              <Link
+                href="/recuperar-password"
+                style={{ color: '#B23C3C', textDecoration: 'underline' }}
+              >
+                Recuperar password
+              </Link>
+              .
+            </p>
+          )}
         </div>
       )}
 

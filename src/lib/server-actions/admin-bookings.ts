@@ -15,6 +15,7 @@ import {
 } from '@/lib/models';
 import { auth } from '@/lib/auth';
 import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
+import { BOOKING_RULES } from '@/lib/constants/business';
 
 // ============================================================
 // TIPOS
@@ -257,7 +258,7 @@ export type UpcomingBookingsResult =
  */
 export async function getUpcomingBookingsAction(
   fromDateStr: string,
-  days = 14,
+  days = BOOKING_RULES.upcomingViewDays,
 ): Promise<UpcomingBookingsResult> {
   const admin = await requireAdminSession();
   if (!admin) return { success: false, error: 'Não autorizado' };
@@ -267,7 +268,7 @@ export async function getUpcomingBookingsAction(
   try {
     const from = startOfDay(parseDate(fromDateStr));
     const to = new Date(from);
-    to.setDate(to.getDate() + Math.min(Math.max(days, 1), 60));
+    to.setDate(to.getDate() + Math.min(Math.max(days, 1), BOOKING_RULES.upcomingViewDays));
 
     const bookings = await Booking.find({
       startTime: { $gte: from, $lt: to },

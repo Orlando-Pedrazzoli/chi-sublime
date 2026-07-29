@@ -13,6 +13,7 @@
 
 import { Clock, Phone, Globe, User as UserIcon, CalendarX2 } from 'lucide-react';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
+import { BOOKING_RULES } from '@/lib/constants/business';
 
 const STATUS_META: Record<string, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pendente', bg: 'rgba(212,175,110,0.15)', text: '#7A5A2A' },
@@ -68,7 +69,7 @@ export function UpcomingListView({ bookings, onBookingClick }: UpcomingListViewP
       >
         <CalendarX2 size={32} strokeWidth={1.25} style={{ color: '#D4AF6E' }} />
         <p className="mt-4 font-serif text-lg" style={{ color: '#1A1A1A' }}>
-          Sem reservas nos próximos 14 dias
+          Sem reservas nos próximos {BOOKING_RULES.upcomingViewDays} dias
         </p>
         <p className="mt-1 text-sm" style={{ color: '#5A5A5A' }}>
           As novas reservas online e manuais aparecem aqui automaticamente.

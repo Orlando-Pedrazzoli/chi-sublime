@@ -182,12 +182,18 @@ export const BOOKING_RULES = {
   slotIntervalMinutes: 30,
   /** Antecedência mínima para reservar (horas) */
   minAdvanceHours: 1,
-  /** Antecedência máxima para reservar (dias) — 60 a pedido do Jean Pierre (jul/2026) */
-  maxAdvanceDays: 60,
+  /** Antecedência máxima para reservar (dias) */
+  maxAdvanceDays: 30,
   /** Buffer aplicado após cada reserva por defeito (min) */
   defaultBufferMinutes: 5,
   /** Janela mínima para o cliente cancelar/reagendar sozinho (horas) */
   cancellationWindowHours: 24,
+  /**
+   * Janela da vista "Próximas" no /admin/reservas (dias).
+   * Tem de cobrir pelo menos maxAdvanceDays, senão o salão faz uma
+   * reserva que o cliente consegue marcar mas que não aparece na lista.
+   */
+  upcomingViewDays: 60,
 } as const;
 
 // ============================================================
