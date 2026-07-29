@@ -22,7 +22,7 @@ const NAV_LINKS = [
 ];
 
 const BOOKING_LINKS = [
-  { label: 'Marcar Online', href: '/reservar' },
+  { label: 'Marcações Online', href: '/reservar' },
   { label: 'A Minha Conta', href: '/conta' },
   { label: 'Política de Cancelamento', href: '/cancelamento' },
 ];

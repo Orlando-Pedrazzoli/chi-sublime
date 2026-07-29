@@ -13,8 +13,15 @@
  *
  * O slug é gerado na action (mesma razão que services.ts: o
  * pre('save') corre depois da validação e o slug é required).
- * "delete" é soft (active=false) — a equipa é referenciada por
- * reservas e transações.
+ * "delete" é HARD (remove o documento) com salvaguardas:
+ *   - bloqueia se existirem reservas futuras ativas (pending/
+ *     confirmed/in-progress) — têm de ser canceladas/reatribuídas;
+ *   - limpa referências vivas (Service.staffIds e
+ *     Client.preferredStaffId);
+ *   - reservas/transações históricas mantêm o ObjectId órfão —
+ *     os formatters já tratam populate null ("staff: null").
+ * Para afastar temporariamente um membro, usar o toggle
+ * "Membro ativo" no formulário de edição (soft via update).
  */
 
 import mongoose from 'mongoose';
@@ -22,7 +29,17 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
-import { Staff, WEEKDAYS, slugify, logAudit, type WeekDay } from '@/lib/models';
+import {
+  Staff,
+  Booking,
+  Service,
+  Client,
+  SLOT_BLOCKING_STATUSES,
+  WEEKDAYS,
+  slugify,
+  logAudit,
+  type WeekDay,
+} from '@/lib/models';
 import { ok, fail, type ActionResult, type Paginated } from '@/types/common';
 import {
   createStaffSchema,
@@ -272,7 +289,7 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
 }
 
 // ============================================================
-// DELETE (soft)
+// DELETE (hard — remove o documento)
 // ============================================================
 
 export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
@@ -287,23 +304,54 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
   const staff = await Staff.findById(parsed.data.id);
   if (!staff) return fail('not_found', 'Membro não encontrado');
 
-  staff.active = false;
-  await staff.save();
+  // Salvaguarda: não eliminar com reservas futuras ativas —
+  // ficariam na agenda sem profissional atribuído.
+  const futureBookings = await Booking.countDocuments({
+    staffId: staff._id,
+    status: { $in: SLOT_BLOCKING_STATUSES },
+    startTime: { $gte: new Date() },
+  });
+  if (futureBookings > 0) {
+    return fail(
+      'conflict',
+      `${staff.name} tem ${futureBookings} reserva(s) futura(s) ativa(s). ` +
+        'Cancela ou reatribui essas reservas antes de eliminar, ou desativa o membro na edição do perfil.',
+    );
+  }
+
+  const staffName = staff.name;
+  const staffId = staff._id;
+
+  try {
+    // Limpar referências vivas antes de remover o documento.
+    await Promise.all([
+      Service.updateMany({ staffIds: staffId }, { $pull: { staffIds: staffId } }),
+      Client.updateMany({ preferredStaffId: staffId }, { $unset: { preferredStaffId: 1 } }),
+    ]);
+
+    await Staff.deleteOne({ _id: staffId });
+  } catch (err) {
+    console.error('[deleteStaffAction]', err);
+    return fail('server', 'Erro ao eliminar membro da equipa');
+  }
 
   await logAudit({
     action: 'delete',
     resource: 'staff',
-    resourceId: String(staff._id),
-    resourceLabel: staff.name,
+    resourceId: String(staffId),
+    resourceLabel: staffName,
     userId: new mongoose.Types.ObjectId(admin.id),
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Membro desativado: ${staff.name}`,
+    message: `Membro eliminado permanentemente: ${staffName}`,
     severity: 'warning',
   });
 
   revalidatePath('/admin/equipa');
+  revalidatePath('/');
+  revalidatePath('/reservar');
+  revalidatePath(`/equipa/${staff.slug}`);
   return ok(undefined);
 }
 

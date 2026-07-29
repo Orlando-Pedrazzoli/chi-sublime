@@ -92,7 +92,7 @@ export function StaffTable() {
     const res = await deleteStaffAction({ id: deleteTarget.id });
     setBusy(false);
     if (res.success) {
-      toast.success('Membro desativado');
+      toast.success('Membro eliminado');
       setDeleteTarget(null);
       fetchStaff();
     } else {
@@ -249,8 +249,8 @@ export function StaffTable() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(m)}
-                          aria-label="Desativar"
-                          title="Desativar"
+                          aria-label="Eliminar"
+                          title="Eliminar"
                           className="text-chi-charcoal-soft hover:bg-chi-danger-bg hover:text-chi-danger rounded-md p-2.5 transition-colors"
                         >
                           <Trash2 size={16} />
@@ -284,7 +284,7 @@ export function StaffTable() {
       <Modal
         open={!!deleteTarget}
         onClose={() => !busy && setDeleteTarget(null)}
-        title="Desativar membro"
+        title="Eliminar membro"
         description={deleteTarget?.name}
         size="sm"
         dismissable={!busy}
@@ -294,14 +294,16 @@ export function StaffTable() {
               Cancelar
             </Button>
             <Button variant="danger" onClick={confirmDelete} loading={busy}>
-              Desativar
+              Eliminar
             </Button>
           </>
         }
       >
         <p className="text-chi-charcoal-soft text-sm">
-          O membro deixa de aparecer nas marcações, mas o histórico mantém-se. Podes reativá-lo
-          depois.
+          Esta ação é <strong>permanente</strong>: o membro é removido da equipa, das marcações e
+          dos serviços associados. Reservas passadas mantêm-se no histórico, sem profissional
+          atribuído. Se existirem reservas futuras ativas, a eliminação é bloqueada. Para um
+          afastamento temporário, usa antes o toggle «Membro ativo» na edição do perfil.
         </p>
       </Modal>
     </div>

@@ -93,7 +93,7 @@
       "alts": {
         "philosophy": "Espaço Chi Sublime",
         "hero": "Interior do salão",
-        "hair": "Cabelereiro",
+        "hair": "Cabeleireiro",
         "makeup": "Maquilhagem",
         "brows": "Sobrancelhas",
         "reception": "Receção do Chi Sublime",
@@ -129,7 +129,7 @@
   "services": {
     "title": "Serviços",
     "categories": {
-      "cabelereiro": "Cabelereiro",
+      "cabelereiro": "Cabeleireiro",
       "sobrancelhas": "Sobrancelhas",
       "maquilhagem": "Maquilhagem",
       "unhas": "Unhas",
@@ -269,7 +269,7 @@
     "navigation": "Navegação",
     "bookings": "Marcações",
     "legal": "Legal",
-    "bookOnline": "Marcar Online",
+    "bookOnline": "Marcações Online",
     "myAccount": "A minha conta",
     "cancellationPolicy": "Política de Cancelamento",
     "vouchers": "Vouchers",

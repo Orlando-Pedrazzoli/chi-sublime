@@ -42,10 +42,13 @@ export const metadata: Metadata = {
     template: '%s | Chi Sublime',
   },
   description:
-    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabelereiro, maquilhagem, sobrancelhas, unhas e depilação com a equipa de Jean Pierre, Matias e Ana Rita.',
+    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabeleireiro, maquilhagem, sobrancelhas, unhas e depilação. Marcações online com a equipa de Jean Pierre, Matias e Ana Rita.',
   keywords: [
     'salão de beleza Cascais',
-    'cabelereiro Cascais',
+    'cabeleireiro Cascais',
+    'marcações online Cascais',
+    'marcação cabeleireiro Cascais',
+    'marcação online salão de beleza',
     'Quinta da Bicuda',
     'hair salon Cascais',
     'beauty salon Cascais',

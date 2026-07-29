@@ -49,7 +49,7 @@ type Source = 'phone' | 'walk-in' | 'instagram';
 
 // Ordem e labels das categorias (alinhado com seed-database.ts)
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  cabelereiro: { label: 'Cabelereiro', color: '#1F3D2E' },
+  cabelereiro: { label: 'Cabeleireiro', color: '#1F3D2E' },
   sobrancelhas: { label: 'Sobrancelhas', color: '#D4AF6E' },
   maquilhagem: { label: 'Maquilhagem', color: '#97C459' },
   unhas: { label: 'Unhas', color: '#5DCAA5' },
