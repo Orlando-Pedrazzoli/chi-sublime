@@ -11,6 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Chi Sublime — Hair Style & Beauty',
     short_name: 'Chi Sublime',
     description: 'Salão de beleza premium em Quinta da Bicuda, Cascais. Reservas online.',
+    lang: 'pt',
     start_url: '/',
     display: 'standalone',
     background_color: '#faf7f2',
