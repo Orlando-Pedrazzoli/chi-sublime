@@ -55,7 +55,10 @@ export function getResetPasswordUrl(token: string): string {
 }
 
 export function getBookingDetailUrl(bookingNumber: string): string {
-  return `${APP_URL}/conta/reservas/${encodeURIComponent(bookingNumber)}`;
+  // NOTA: a rota dinâmica /conta/reservas/[bookingNumber] não existe —
+  // apontamos para a listagem "As minhas reservas". O ?ref= é ignorado
+  // pela página mas fica preparado para destacar a reserva no futuro.
+  return `${APP_URL}/conta/reservas?ref=${encodeURIComponent(bookingNumber)}`;
 }
 
 export function getLoginUrl(): string {

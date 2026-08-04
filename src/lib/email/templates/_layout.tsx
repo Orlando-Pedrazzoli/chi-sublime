@@ -101,8 +101,8 @@ export function EmailShell({ preview, children }: { preview: string; children: R
             }}
           >
             <Img
-              src={`${APP_URL}/images/logo.png`}
-              width="132"
+              src={`${APP_URL}/images/logo-email.png`}
+              width="160"
               height="auto"
               alt="Chi Sublime"
               style={{ margin: '0 auto', display: 'block' }}
