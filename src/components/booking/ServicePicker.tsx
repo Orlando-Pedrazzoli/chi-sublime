@@ -62,12 +62,12 @@ export function ServicePicker({ categories, initialOpenSlug }: Props) {
 
   const [openSlugs, setOpenSlugs] = useState<Set<string>>(() => {
     const initial = new Set<string>();
+    // UX: todas as categorias começam FECHADAS — com a primeira aberta,
+    // o cliente podia assumir que só existia essa categoria e não fazer
+    // scroll até às restantes. Exceção: deep-link com ?categoria= no URL
+    // (ex.: vindo da página de serviços) abre a categoria pedida.
     if (initialOpenSlug) {
       initial.add(initialOpenSlug);
-    } else if (categories.length > 0) {
-      // UX: sem categoria no URL, a primeira abre por defeito —
-      // o cliente nunca aterra numa lista de acordeões fechados.
-      initial.add(categories[0].slug);
     }
     return initial;
   });

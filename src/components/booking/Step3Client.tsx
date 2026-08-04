@@ -424,7 +424,11 @@ export function Step3Client() {
           type="button"
           onClick={() => router.push('/reservar/horario')}
           disabled={isSubmitting}
-          className="border-chi-border text-chi-charcoal-soft hover:bg-chi-sand/40 hover:text-chi-charcoal inline-flex items-center justify-center gap-2 rounded-md border px-6 py-3.5 text-xs font-medium tracking-[0.22em] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+          className="border-chi-border text-chi-charcoal-soft hover:bg-chi-sand/40 hover:text-chi-charcoal inline-flex items-center justify-center gap-2 border text-xs font-medium tracking-[0.22em] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+          style={{
+            padding: '14px 28px',
+            borderRadius: '6px',
+          }}
         >
           <span>←</span>
           Voltar
@@ -433,10 +437,12 @@ export function Step3Client() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-6 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
           style={{
             backgroundColor: '#1F3D2E',
             color: '#FAF7F2',
+            padding: '14px 28px',
+            borderRadius: '6px',
           }}
         >
           {isSubmitting ? (
