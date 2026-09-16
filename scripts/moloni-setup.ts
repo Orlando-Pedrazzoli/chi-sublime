@@ -277,7 +277,10 @@ async function main() {
           settings.invoiceProvider +
           '" (usa --activate quando for para produção).',
       );
-    console.log('\n➡️  Próximo passo: npx tsx scripts/sync-services-to-moloni.ts --apply\n');
+    const dbFlag = argFlag('db') ? ` --db=${argFlag('db')}` : '';
+    console.log(
+      `\n➡️  Próximo passo: npx tsx scripts/sync-services-to-moloni.ts --apply${dbFlag}\n`,
+    );
   }
 
   await mongoose.disconnect();
