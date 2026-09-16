@@ -1,6 +1,13 @@
 // 📄 src/lib/email/templates/booking-cancellation.tsx
 /**
  * Chi Sublime — Template: Cancelamento de marcação
+ * ============================================================
+ *
+ * variant:
+ *  - 'cancelled' (padrão): marcação confirmada que foi cancelada.
+ *  - 'declined': pedido pendente que o salão não pôde confirmar
+ *    (modo manual) — tom diferente, convida a escolher outro horário.
+ *
  * Componente puro. `reason` e `rebookUrl` são opcionais.
  */
 
@@ -15,6 +22,7 @@ export interface BookingCancellationEmailProps {
   time: string;
   reason?: string;
   rebookUrl?: string;
+  variant?: 'cancelled' | 'declined';
 }
 
 export function BookingCancellationEmail({
@@ -24,7 +32,9 @@ export function BookingCancellationEmail({
   time,
   reason,
   rebookUrl,
+  variant = 'cancelled',
 }: BookingCancellationEmailProps) {
+  const declined = variant === 'declined';
   const rows = [
     { label: 'Número', value: bookingNumber },
     { label: 'Data', value: date },
@@ -33,15 +43,31 @@ export function BookingCancellationEmail({
   if (reason) rows.push({ label: 'Motivo', value: reason });
 
   return (
-    <EmailShell preview={`Marcação cancelada · ${bookingNumber}`}>
+    <EmailShell
+      preview={
+        declined
+          ? `Não foi possível confirmar · ${bookingNumber}`
+          : `Marcação cancelada · ${bookingNumber}`
+      }
+    >
       <Greeting name={name} />
-      <Paragraph>A marcação abaixo foi cancelada.</Paragraph>
+      <Paragraph>
+        {declined
+          ? 'Lamentamos, mas não conseguimos confirmar o teu pedido para este horário.'
+          : 'A marcação abaixo foi cancelada.'}
+      </Paragraph>
       <InfoTable rows={rows} />
       {rebookUrl ? (
         <>
-          <Paragraph>Queres remarcar? Estamos cá para ti.</Paragraph>
+          <Paragraph>
+            {declined
+              ? 'Escolhe outro horário — mostramos só as disponibilidades reais.'
+              : 'Queres remarcar? Estamos cá para ti.'}
+          </Paragraph>
           <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
-            <ActionButton href={rebookUrl}>Fazer nova marcação</ActionButton>
+            <ActionButton href={rebookUrl}>
+              {declined ? 'Escolher outro horário' : 'Fazer nova marcação'}
+            </ActionButton>
           </Section>
         </>
       ) : (

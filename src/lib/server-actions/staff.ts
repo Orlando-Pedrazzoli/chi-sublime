@@ -1,8 +1,6 @@
 // 📄 src/lib/server-actions/staff.ts
 'use server';
 
-// 📄 src/lib/server-actions/staff.ts
-
 /**
  * Chi Sublime — Server Actions: Equipa
  * ============================================================
@@ -68,6 +66,7 @@ export type StaffListItem = {
   specialties: string[];
   order: number;
   active: boolean;
+  showOnWebsite: boolean;
 };
 
 export type StaffDetail = StaffListItem & {
@@ -144,6 +143,8 @@ function toListItem(doc: any): StaffListItem {
     specialties: doc.specialties ?? [],
     order: doc.order ?? 0,
     active: doc.active !== false,
+    // Documentos antigos não têm o campo → visíveis por defeito
+    showOnWebsite: doc.showOnWebsite !== false,
   };
 }
 
@@ -166,6 +167,22 @@ function toDetail(doc: any): StaffDetail {
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ============================================================
+// REVALIDAÇÃO DO SITE PÚBLICO
+// ============================================================
+
+/**
+ * Nome, foto, função, ordem e visibilidade aparecem na homepage
+ * (TeamPreview), no perfil /equipa/[slug] e no fluxo de reserva.
+ * Se o slug mudou, o perfil antigo também é invalidado.
+ */
+function revalidatePublicTeam(slug: string, previousSlug?: string) {
+  revalidatePath('/');
+  revalidatePath('/reservar');
+  revalidatePath(`/equipa/${slug}`);
+  if (previousSlug && previousSlug !== slug) revalidatePath(`/equipa/${previousSlug}`);
+}
 
 // ============================================================
 // CREATE
@@ -201,6 +218,7 @@ export async function createStaffAction(input: unknown): Promise<ActionResult<{ 
       commissionRate: data.commissionRate,
       order: data.order,
       active: data.active,
+      showOnWebsite: data.showOnWebsite,
     });
 
     await logAudit({
@@ -217,6 +235,7 @@ export async function createStaffAction(input: unknown): Promise<ActionResult<{ 
     });
 
     revalidatePath('/admin/equipa');
+    revalidatePublicTeam(staff.slug);
     return ok({ id: String(staff._id) });
   } catch (err) {
     if (isDuplicateKey(err)) return fail('duplicate', 'Já existe um membro com esse slug');
@@ -244,6 +263,8 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
   const staff = await Staff.findById(id);
   if (!staff) return fail('not_found', 'Membro não encontrado');
 
+  const previousSlug = staff.slug;
+
   if (data.name !== undefined) staff.name = data.name;
   if (data.slug !== undefined) staff.slug = data.slug || slugify(data.name ?? staff.name);
   if (data.role !== undefined) staff.set('role', data.role);
@@ -258,6 +279,7 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
   if (data.commissionRate !== undefined) staff.commissionRate = data.commissionRate;
   if (data.order !== undefined) staff.order = data.order;
   if (data.active !== undefined) staff.active = data.active;
+  if (data.showOnWebsite !== undefined) staff.showOnWebsite = data.showOnWebsite;
 
   try {
     await staff.save();
@@ -285,6 +307,7 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
 
   revalidatePath('/admin/equipa');
   revalidatePath(`/admin/equipa/${String(staff._id)}`);
+  revalidatePublicTeam(staff.slug, previousSlug);
   return ok({ id: String(staff._id) });
 }
 

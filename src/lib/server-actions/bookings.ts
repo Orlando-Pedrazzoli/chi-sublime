@@ -1,13 +1,58 @@
+// 📄 src/lib/server-actions/bookings.ts
 'use server';
 
-import { randomBytes } from 'node:crypto';
+/**
+ * Chi Sublime — Server Actions: marcação online (cliente)
+ * ============================================================
+ *
+ * CHANGELOG (revisão do sistema de marcação):
+ *  - SEGURANÇA: createBookingAction exige sessão de cliente. O fluxo
+ *    /reservar/confirmar só funciona com login, mas a action podia ser
+ *    chamada diretamente com qualquer nome/email/telefone.
+ *  - DADOS: a reserva liga-se ao Client da SESSÃO. Antes procurava
+ *    por email OU telefone e renomeava o registo encontrado — uma mãe
+ *    a marcar para a filha com o mesmo telefone ficava com a reserva
+ *    (e o nome) trocados.
+ *  - AGENDA: a verificação final de conflito considera o buffer das
+ *    reservas existentes e qualquer sobreposição, igual ao motor de
+ *    disponibilidade (antes ignorava o buffer).
+ *  - `source` forçado a 'website' (vinha do browser).
+ *  - Cancelamento por token: o email ao cliente usava guestInfo, que
+ *    nunca existe em reservas online → nenhum email era enviado.
+ *  - Janela de cancelamento lida de BOOKING_RULES.
+ *  - getAvailableSlotsAction valida o input (IDs inválidos rebentavam).
+ *  - POLÍTICA: confirmação instantânea (lib/booking/policy.ts). A
+ *    reserva nasce 'confirmed' e o email de confirmação leva o convite
+ *    .ics. Com approvalMode='manual' nasce 'pending' e o cliente recebe
+ *    "pedido recebido".
+ *  - Cancelamentos pela cliente alertam o salão (horário ficou livre).
+ */
+
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db/connect';
 import { notifyBookingCreated, notifyBookingCancelled } from '@/lib/email/booking-notifications';
-import { Booking, Client, generateBookingNumber, logAudit, type IBooking } from '@/lib/models';
+import {
+  Booking,
+  Client,
+  Service,
+  SLOT_BLOCKING_STATUSES,
+  Staff,
+  generateBookingNumber,
+  logAudit,
+  type IBooking,
+} from '@/lib/models';
 import { auth } from '@/lib/auth';
-import { getAvailableSlots, validateDate } from '@/lib/booking/availability';
+import {
+  getAvailableSlots,
+  validateDate,
+  type AvailabilityResult,
+} from '@/lib/booking/availability';
+import { slotConflictsWithBookings } from '@/lib/booking/conflicts';
+import { BOOKING_RULES } from '@/lib/constants/business';
+import { getOnlineBookingInitialStatus } from '@/lib/booking/policy';
 import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
+import { z } from 'zod';
 import {
   createBookingSchema,
   cancelBookingSchema,
@@ -55,12 +100,20 @@ export type CreateBookingResult =
         totalPrice: number;
         staffName: string;
         cancellationToken: string;
+        status: 'pending' | 'confirmed';
       };
     }
   | {
       success: false;
       error: {
-        code: 'validation' | 'slot-taken' | 'rate-limit' | 'no-services' | 'no-staff' | 'internal';
+        code:
+          | 'unauthorized'
+          | 'validation'
+          | 'slot-taken'
+          | 'rate-limit'
+          | 'no-services'
+          | 'no-staff'
+          | 'internal';
         message: string;
         fieldErrors?: Record<string, string[]>;
       };
@@ -103,6 +156,16 @@ export type CancelMyBookingResult =
 // ============================================================
 
 export async function createBookingAction(input: unknown): Promise<CreateBookingResult> {
+  // A marcação online exige conta de cliente (o Step3 só submete com sessão).
+  const session = await auth();
+  const sessionClientId = session?.user?.role === 'client' ? session.user.clientId : undefined;
+  if (!session?.user || !sessionClientId) {
+    return {
+      success: false,
+      error: { code: 'unauthorized', message: 'Inicia sessão para concluir a marcação.' },
+    };
+  }
+
   const parsed = createBookingSchema.safeParse(input);
   if (!parsed.success) {
     const fieldErrors: Record<string, string[]> = {};
@@ -119,7 +182,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const data: CreateBookingInput = parsed.data;
 
-  const rateLimit = checkRateLimit(data.guestInfo.email);
+  const rateLimit = checkRateLimit(`client:${sessionClientId}`);
   if (!rateLimit.allowed) {
     return {
       success: false,
@@ -177,7 +240,6 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
     };
   }
 
-  const { Service } = await import('@/lib/models');
   const services = await Service.find({ _id: { $in: data.serviceIds }, active: true }).lean();
 
   if (services.length === 0) {
@@ -204,53 +266,71 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const totalPrice = serviceItems.reduce((sum, item) => sum + item.price, 0);
 
-  let clientDoc = await Client.findOne({
-    $or: [{ email: data.guestInfo.email }, { phone: data.guestInfo.phone }],
-    active: true,
-  });
-
+  // Cliente = o da sessão. Nunca procurar por email/telefone vindos do
+  // formulário: não se sobrescrevem dados de outra pessoa.
+  const clientDoc = await Client.findOne({ _id: sessionClientId, active: true });
   if (!clientDoc) {
-    clientDoc = await Client.create({
-      name: data.guestInfo.name,
-      email: data.guestInfo.email,
-      phone: data.guestInfo.phone,
-      source: 'online',
-      marketingConsent: data.marketingConsent ?? false,
-      ...(data.requestInvoice && data.fiscalData ? { fiscalData: data.fiscalData } : {}),
-    });
-  } else {
-    let needsSave = false;
-    if (data.guestInfo.name !== clientDoc.name) {
-      clientDoc.name = data.guestInfo.name;
-      needsSave = true;
-    }
-    if (data.requestInvoice && data.fiscalData) {
-      clientDoc.fiscalData = {
-        ...(clientDoc.fiscalData ?? { country: 'PT' }),
-        ...data.fiscalData,
-      };
-      needsSave = true;
-    }
-    if (data.marketingConsent && !clientDoc.marketingConsent) {
-      clientDoc.marketingConsent = true;
-      needsSave = true;
-    }
-    if (needsSave) await clientDoc.save();
+    return {
+      success: false,
+      error: {
+        code: 'unauthorized',
+        message: 'Conta de cliente não encontrada. Contacta o salão.',
+      },
+    };
   }
 
+  let needsSave = false;
+  if (data.guestInfo.phone && phoneDigits(data.guestInfo.phone) !== phoneDigits(clientDoc.phone)) {
+    // O Step3 pede ao cliente para confirmar o telefone — é o dado mais atual
+    clientDoc.phone = data.guestInfo.phone;
+    needsSave = true;
+  }
+  if (data.requestInvoice && data.fiscalData) {
+    clientDoc.fiscalData = {
+      ...(clientDoc.fiscalData ?? { country: 'PT' }),
+      ...data.fiscalData,
+    };
+    needsSave = true;
+  }
+  if (data.marketingConsent && !clientDoc.marketingConsent) {
+    clientDoc.marketingConsent = true;
+    needsSave = true;
+  }
+  if (needsSave) await clientDoc.save();
+
+  const clientName = clientDoc.name;
+  const clientEmail = clientDoc.email ?? session.user.email;
+  const clientPhone = clientDoc.phone;
+
+  const initialStatus = getOnlineBookingInitialStatus();
   const cancellationToken = randomBytes(24).toString('base64url');
   const bookingNumber = await generateBookingNumber();
 
   try {
-    const conflictCheck = await Booking.findOne({
+    // Verificação final contra reservas criadas entre o cálculo dos slots e
+    // agora. Mesma regra do motor de disponibilidade: sobreposição real,
+    // contando o buffer após cada reserva existente. (O índice único só
+    // apanha o MESMO startTime; sobreposições parciais passavam.)
+    const MAX_BUFFER_MS = 120 * 60_000;
+    const nearby = await Booking.find({
       staffId: requestedSlot.staffId,
-      status: { $in: ['pending', 'confirmed', 'in-progress'] },
-      $or: [
-        { startTime: { $gte: startTime, $lt: endTime } },
-        { endTime: { $gt: startTime, $lte: endTime } },
-        { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
-      ],
-    }).lean();
+      status: { $in: SLOT_BLOCKING_STATUSES },
+      startTime: { $lt: endTime },
+      endTime: { $gt: new Date(startTime.getTime() - MAX_BUFFER_MS) },
+    })
+      .select('_id startTime endTime bufferAfter')
+      .lean();
+
+    const conflictCheck = slotConflictsWithBookings(
+      startTime,
+      endTime,
+      nearby.map((b) => ({
+        id: String(b._id),
+        startTime: new Date(b.startTime),
+        endTime: new Date(b.endTime),
+        bufferAfter: b.bufferAfter ?? BOOKING_RULES.defaultBufferMinutes,
+      })),
+    ).hasConflict;
 
     if (conflictCheck) {
       return {
@@ -271,8 +351,8 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       totalPrice,
       startTime,
       endTime,
-      status: 'pending',
-      source: data.source,
+      status: initialStatus,
+      source: 'website',
       notes: data.notes,
       remindersSent: { confirmation: false, dayBefore: false, hourBefore: false },
       internalNotes: `cancellationToken=${cancellationToken}`,
@@ -283,12 +363,13 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       resource: 'booking',
       resourceId: String(booking._id),
       resourceLabel: bookingNumber,
-      userName: data.guestInfo.name,
-      userEmail: data.guestInfo.email,
-      userRole: 'guest',
+      userId: new mongoose.Types.ObjectId(session.user.id),
+      userName: clientName,
+      userEmail: clientEmail,
+      userRole: 'client',
       message: `Booking criado: ${serviceItems.map((s) => s.name).join(', ')} com ${requestedSlot.staffName}`,
       severity: 'info',
-      metadata: { bookingNumber, totalPrice, totalDuration, source: data.source },
+      metadata: { bookingNumber, totalPrice, totalDuration, source: 'website' },
     });
 
     // Emails reais (cliente + alerta ao salão). AWAIT obrigatório:
@@ -297,14 +378,16 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
     await notifyBookingCreated({
       bookingNumber,
       startTime,
+      endTime: booking.endTime,
+      status: initialStatus,
       services: serviceItems.map((s) => s.name),
       staffName: requestedSlot.staffName,
       totalPrice,
-      source: data.source,
+      source: 'website',
       client: {
-        name: data.guestInfo.name,
-        email: data.guestInfo.email,
-        phone: data.guestInfo.phone,
+        name: clientName,
+        email: clientEmail,
+        phone: clientPhone,
       },
     });
 
@@ -318,6 +401,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
         totalPrice,
         staffName: requestedSlot.staffName,
         cancellationToken,
+        status: initialStatus,
       },
     };
   } catch (err) {
@@ -370,7 +454,7 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
   }
 
   const tokenMatch = booking.internalNotes?.match(/cancellationToken=(\S+)/);
-  if (!tokenMatch || tokenMatch[1] !== cancellationToken) {
+  if (!tokenMatch || !safeEqual(tokenMatch[1], cancellationToken)) {
     return { success: false, error: { code: 'invalid-token', message: 'Token invalido' } };
   }
 
@@ -389,13 +473,12 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
   }
 
   const hoursUntil = (booking.startTime.getTime() - Date.now()) / (1000 * 60 * 60);
-  if (hoursUntil < 24) {
+  if (hoursUntil < BOOKING_RULES.cancellationWindowHours) {
     return {
       success: false,
       error: {
         code: 'too-late',
-        message:
-          'Cancelamentos so podem ser feitos com pelo menos 24h de antecedencia. Por favor contacte o salao.',
+        message: `Cancelamentos so podem ser feitos com pelo menos ${BOOKING_RULES.cancellationWindowHours}h de antecedencia. Por favor contacte o salao.`,
       },
     };
   }
@@ -417,13 +500,24 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
     metadata: { reason: booking.cancellationReason },
   });
 
+  // Reservas online têm clientId (não guestInfo) — resolver o contacto no Client
+  const [bookingClient, bookingStaff] = await Promise.all([
+    booking.clientId ? Client.findById(booking.clientId).select('name email phone').lean() : null,
+    Staff.findById(booking.staffId).select('name').lean(),
+  ]);
+
   await notifyBookingCancelled({
     bookingNumber,
     startTime: booking.startTime,
     reason: booking.cancellationReason,
     client: {
-      name: booking.guestInfo?.name ?? 'Cliente',
-      email: booking.guestInfo?.email,
+      name: bookingClient?.name ?? booking.guestInfo?.name ?? 'Cliente',
+      email: bookingClient?.email ?? booking.guestInfo?.email,
+      phone: bookingClient?.phone ?? booking.guestInfo?.phone,
+    },
+    salonAlert: {
+      services: booking.services.map((s) => s.name),
+      staffName: bookingStaff?.name,
     },
   });
 
@@ -434,13 +528,39 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
 // GET AVAILABLE SLOTS (wrapper)
 // ============================================================
 
+const availabilityInputSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  serviceIds: z
+    .array(z.string().regex(/^[0-9a-fA-F]{24}$/))
+    .min(1)
+    .max(5),
+  staffId: z.union([z.string().regex(/^[0-9a-fA-F]{24}$/), z.literal('any')]),
+});
+
 export async function getAvailableSlotsAction(input: {
   date: string;
   serviceIds: string[];
   staffId: string;
-}) {
-  const dateObj = parseDateString(input.date);
-  return getAvailableSlots({ date: dateObj, serviceIds: input.serviceIds, staffId: input.staffId });
+}): Promise<AvailabilityResult> {
+  const parsed = availabilityInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      date: typeof input?.date === 'string' ? input.date : '',
+      slots: [],
+      metadata: {
+        salonOpen: false,
+        totalDurationMinutes: 0,
+        candidateStaffIds: [],
+        serviceNames: [],
+      },
+      error: { code: 'invalid-services', message: 'Pedido de disponibilidade inválido' },
+    };
+  }
+  return getAvailableSlots({
+    date: parseDateString(parsed.data.date),
+    serviceIds: parsed.data.serviceIds,
+    staffId: parsed.data.staffId,
+  });
 }
 
 // ============================================================
@@ -482,7 +602,8 @@ export async function getMyBookingsAction(): Promise<GetMyBookingsResult> {
       isFuture: b.startTime > now,
       isCancellable:
         b.status === 'pending' || b.status === 'confirmed'
-          ? (b.startTime.getTime() - now.getTime()) / (1000 * 60 * 60) >= 24
+          ? (b.startTime.getTime() - now.getTime()) / (1000 * 60 * 60) >=
+            BOOKING_RULES.cancellationWindowHours
           : false,
       hoursUntil:
         b.startTime > now
@@ -524,21 +645,20 @@ export async function cancelMyBookingAction(input: {
     };
   }
 
-  if (booking.status === 'completed') {
+  if (!['pending', 'confirmed'].includes(booking.status)) {
     return {
       success: false,
-      error: { code: 'already-completed', message: 'Reserva já concluída' },
+      error: { code: 'already-completed', message: 'Esta reserva já não pode ser cancelada' },
     };
   }
 
   const hoursUntil = (booking.startTime.getTime() - Date.now()) / (1000 * 60 * 60);
-  if (hoursUntil < 24) {
+  if (hoursUntil < BOOKING_RULES.cancellationWindowHours) {
     return {
       success: false,
       error: {
         code: 'too-late',
-        message:
-          'Cancelamentos só podem ser feitos com pelo menos 24h de antecedência. Por favor contacta o salão pelo telefone +351 932 932 691.',
+        message: `Cancelamentos só podem ser feitos com pelo menos ${BOOKING_RULES.cancellationWindowHours}h de antecedência. Por favor contacta o salão pelo telefone +351 932 932 691.`,
       },
     };
   }
@@ -563,11 +683,24 @@ export async function cancelMyBookingAction(input: {
     metadata: { reason: booking.cancellationReason },
   });
 
+  const [bookingClient, bookingStaff] = await Promise.all([
+    Client.findById(session.user.clientId).select('name email phone').lean(),
+    Staff.findById(booking.staffId).select('name').lean(),
+  ]);
+
   await notifyBookingCancelled({
     bookingNumber: input.bookingNumber,
     startTime: booking.startTime,
     reason: booking.cancellationReason,
-    client: { name: session.user.name, email: session.user.email },
+    client: {
+      name: bookingClient?.name ?? session.user.name,
+      email: bookingClient?.email ?? session.user.email,
+      phone: bookingClient?.phone,
+    },
+    salonAlert: {
+      services: booking.services.map((s) => s.name),
+      staffName: bookingStaff?.name,
+    },
   });
 
   return { success: true, bookingNumber: input.bookingNumber };
@@ -583,6 +716,18 @@ export async function cancelMyBookingAction(input: {
 // ============================================================
 // HELPERS
 // ============================================================
+
+/** Compara telefones PT ignorando espaços e o prefixo +351/00351. */
+function phoneDigits(phone?: string): string {
+  return (phone ?? '').replace(/\D/g, '').replace(/^(00)?351(?=\d{9}$)/, '');
+}
+
+/** Comparação em tempo constante (evita timing attacks no token). */
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
 
 function parseDateString(isoDate: string): Date {
   return new Date(`${isoDate}T12:00:00`);

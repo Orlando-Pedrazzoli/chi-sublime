@@ -11,6 +11,7 @@ import {
   TrendingDown,
   Scissors,
   UserCog,
+  Images,
   BarChart3,
   Settings,
   X,
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/despesas', label: 'Despesas', icon: TrendingDown },
   { href: '/admin/servicos', label: 'Serviços', icon: Scissors },
   { href: '/admin/equipa', label: 'Equipa', icon: UserCog },
+  { href: '/admin/galeria', label: 'Galeria', icon: Images },
   { href: '/admin/relatorios/financeiro', label: 'Relatórios', icon: BarChart3 },
   { href: '/admin/definicoes', label: 'Definições', icon: Settings },
 ];

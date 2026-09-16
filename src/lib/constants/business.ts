@@ -213,6 +213,10 @@ export const BOOKING_RULES = {
 export const BOOKING_POLICY = {
   allowClientReschedule: true,
   allowWaitlist: true,
+  /**
+   * 'auto' (recomendado): reserva online nasce confirmada — padrão Fresha/Booksy/Treatwell.
+   * 'manual': nasce pendente e o salão confirma na agenda. Ver src/lib/booking/policy.ts.
+   */
   approvalMode: 'auto' as 'auto' | 'manual',
   maxOnlineBookingsPerHour: 3,
 } as const;

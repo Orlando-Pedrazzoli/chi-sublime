@@ -37,6 +37,8 @@ export interface SendEmailInput {
   html: string;
   text?: string;
   replyTo?: string;
+  /** Anexos (ex.: convite .ics). `content` em texto ou Buffer. */
+  attachments?: Array<{ filename: string; content: string | Buffer; contentType?: string }>;
 }
 
 export interface SendEmailResult {
@@ -78,7 +80,7 @@ export function getVerifyEmailUrl(token: string): string {
 // ============================================================
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
-  const { to, subject, html, text, replyTo } = input;
+  const { to, subject, html, text, replyTo, attachments } = input;
 
   if (isMockMode) {
     logMockEmail({ to, subject, html });
@@ -93,6 +95,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       html,
       text: text ?? stripHtml(html),
       replyTo,
+      ...(attachments?.length
+        ? {
+            attachments: attachments.map((a) => ({
+              filename: a.filename,
+              content: typeof a.content === 'string' ? Buffer.from(a.content, 'utf8') : a.content,
+              contentType: a.contentType,
+            })),
+          }
+        : {}),
     });
 
     if (result.error) {

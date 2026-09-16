@@ -29,6 +29,7 @@ type FormValues = {
   commissionRate: string;
   order: string;
   active: boolean;
+  showOnWebsite: boolean;
   slug: string;
 };
 
@@ -48,6 +49,7 @@ function toDefaults(s?: StaffDetail | null): FormValues {
     commissionRate: s?.commissionRate != null ? String(s.commissionRate) : '',
     order: String(s?.order ?? 0),
     active: s?.active ?? true,
+    showOnWebsite: s?.showOnWebsite ?? true,
     slug: s?.slug ?? '',
   };
 }
@@ -112,6 +114,7 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
       commissionRate: v.commissionRate.trim() ? Number(v.commissionRate) : undefined,
       order: Number(v.order) || 0,
       active: v.active,
+      showOnWebsite: v.showOnWebsite,
       slug: v.slug.trim() || undefined,
     };
 
@@ -214,7 +217,7 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
             value={watch('photo')}
             onChange={(url) => setValue('photo', url, { shouldDirty: true })}
             folder="team"
-            hint="Foto do profissional — aparece no site e na agenda. Até 8 MB."
+            hint="Foto do profissional — aparece na homepage, no perfil público e na agenda. Formato vertical (3:4) fica melhor. Até 8 MB."
           />
         </div>
 
@@ -245,6 +248,9 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
           <div>
             <Label>Ordem</Label>
             <Input type="number" min={0} {...register('order')} error={!!errors.order} />
+            <p className="text-chi-charcoal-light mt-1 text-xs">
+              Posição na secção &quot;A nossa equipa&quot; (menor aparece primeiro).
+            </p>
           </div>
           <div>
             <Label>Slug (opcional)</Label>
@@ -253,7 +259,16 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
           </div>
         </div>
 
-        <Checkbox {...register('active')} label="Membro ativo" />
+        <div className="space-y-3">
+          <Checkbox {...register('active')} label="Membro ativo" />
+          <Checkbox
+            {...register('showOnWebsite')}
+            label="Mostrar no site (homepage e perfil público)"
+          />
+          <p className="text-chi-charcoal-light text-xs">
+            Desmarcar esconde o profissional do site sem afetar a agenda nem as reservas.
+          </p>
+        </div>
       </form>
     </Drawer>
   );

@@ -1,3 +1,4 @@
+// 📄 src/components/client-area/MyBookings.tsx
 'use client';
 
 import { useState, useTransition, type ReactNode } from 'react';
@@ -177,13 +178,17 @@ function BookingCard({
   onConfirmCancel,
   onAbortCancel,
 }: BookingCardProps) {
+  // Sempre no fuso do salão: no SSR (Vercel = UTC) e para clientes
+  // noutro fuso, a hora mostrada tem de ser a hora da marcação em Cascais.
   const dateFormat = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: 'Europe/Lisbon',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
   const timeFormat = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: 'Europe/Lisbon',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -345,7 +350,7 @@ type BadgeConfig = {
 
 const STATUS_CONFIG: Record<BookingForClient['status'], BadgeConfig> = {
   pending: {
-    label: 'Pendente',
+    label: 'Por confirmar',
     bg: 'rgba(212,175,110,0.15)',
     color: '#B8924A',
     icon: <Clock size={12} strokeWidth={2} />,

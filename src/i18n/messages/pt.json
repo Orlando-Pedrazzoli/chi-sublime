@@ -77,29 +77,14 @@
     },
     "team": {
       "eyebrow": "A nossa equipa",
-      "title": "Três profissionais, uma só atenção",
+      "title": "Profissionais diferentes, uma só atenção",
       "intro": "Conheça quem está por trás de cada experiência Chi Sublime — e escolha com quem quer estar.",
-      "viewProfile": "Ver perfil",
-      "specialties": {
-        "jean-pierre": "Coloração e transformações capilares",
-        "matias": "Cortes de precisão e styling",
-        "ana-rita": "Maquilhagem, sobrancelhas e unhas"
-      }
+      "viewProfile": "Ver perfil"
     },
     "gallery": {
       "eyebrow": "O nosso espaço",
       "title": "Um refúgio em Cascais",
-      "instagram": "Seguir no Instagram",
-      "alts": {
-        "philosophy": "Espaço Chi Sublime",
-        "hero": "Interior do salão",
-        "hair": "Cabeleireiro",
-        "makeup": "Maquilhagem",
-        "brows": "Sobrancelhas",
-        "reception": "Receção do Chi Sublime",
-        "waxing": "Depilação",
-        "nails": "Unhas"
-      }
+      "instagram": "Seguir no Instagram"
     },
     "contact": {
       "eyebrow": "Visite-nos",

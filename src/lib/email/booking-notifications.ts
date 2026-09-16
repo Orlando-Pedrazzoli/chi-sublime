@@ -3,22 +3,28 @@
  * Chi Sublime — Notificações de reserva (orquestração)
  * ============================================================
  *
- * Ponto único chamado pelas server actions quando uma reserva é
- * criada/cancelada. Formata datas (Europe/Lisbon) e dispara os
- * emails em paralelo:
+ * Ponto único chamado pelas server actions. Formata datas
+ * (Europe/Lisbon) e dispara os emails em paralelo.
  *
- *  criada    → confirmação ao CLIENTE + alerta ao SALÃO
- *              (o alerta substitui o push do Noona HQ)
- *  cancelada → aviso ao CLIENTE
+ *  criada   confirmed → CLIENTE: confirmação + .ics   | SALÃO: nova marcação
+ *           pending   → CLIENTE: pedido recebido      | SALÃO: por confirmar
+ *  confirmada (pending → confirmed pelo admin)
+ *                     → CLIENTE: confirmação + .ics
+ *  cancelada          → CLIENTE: cancelada | pedido não confirmado
+ *                       SALÃO: alerta, quando foi a cliente a cancelar
  *
- * Fire-and-forget seguro: nunca lança — uma falha de email não
- * pode falhar a reserva. Usar sempre com `void notifyX(...)`.
+ * Nunca lança — uma falha de email não pode falhar a reserva. Chamar
+ * com `await` (em serverless um fire-and-forget pode morrer com a
+ * lambda antes de o Resend responder).
  */
 
 import {
   sendBookingCancellationEmail,
+  sendBookingCancelledAdminEmail,
   sendBookingConfirmationEmail,
+  sendBookingRequestReceivedEmail,
   sendNewBookingAdminEmail,
+  type SendEmailResult,
 } from './send';
 
 // ------------------------------------------------------------
@@ -43,6 +49,19 @@ function euros(cents: number): string {
   return `${(cents / 100).toFixed(2).replace('.', ',')} €`;
 }
 
+/** Regista falhas — sendEmail resolve com { ok:false } em vez de lançar. */
+async function settle(jobs: Array<{ label: string; job: Promise<SendEmailResult> }>) {
+  const results = await Promise.allSettled(jobs.map((j) => j.job));
+  results.forEach((r, i) => {
+    const label = jobs[i].label;
+    if (r.status === 'rejected') {
+      console.error(`[booking-notifications] ${label} falhou:`, r.reason);
+    } else if (!r.value.ok) {
+      console.error(`[booking-notifications] ${label} não enviado:`, r.value);
+    }
+  });
+}
+
 // ------------------------------------------------------------
 // Reserva criada
 // ------------------------------------------------------------
@@ -50,10 +69,14 @@ function euros(cents: number): string {
 export type BookingCreatedNotification = {
   bookingNumber: string;
   startTime: Date;
+  /** Necessário para o convite de calendário */
+  endTime?: Date;
   services: string[];
   staffName: string;
   totalPrice: number; // cêntimos
   source: string;
+  /** Estado com que a reserva nasceu. Default: 'confirmed' */
+  status?: 'pending' | 'confirmed';
   client: {
     name: string;
     email?: string;
@@ -68,30 +91,41 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
   const time = timeFmt.format(params.startTime);
   const services = params.services.join(', ');
   const total = euros(params.totalPrice);
+  const pending = params.status === 'pending';
 
-  const jobs: Promise<unknown>[] = [];
+  const jobs: Array<{ label: string; job: Promise<SendEmailResult> }> = [];
 
-  // 1) Confirmação ao cliente (só se tiver email — reservas por
-  //    telefone podem não ter)
+  // Cliente (reservas por telefone podem não ter email)
   if (params.client.email) {
+    const base = {
+      to: params.client.email,
+      name: params.client.name,
+      bookingNumber: params.bookingNumber,
+      date,
+      time,
+      services,
+      staffName: params.staffName,
+      total,
+    };
     jobs.push(
-      sendBookingConfirmationEmail({
-        to: params.client.email,
-        name: params.client.name,
-        bookingNumber: params.bookingNumber,
-        date,
-        time,
-        services,
-        staffName: params.staffName,
-        total,
-      }),
+      pending
+        ? { label: 'pedido recebido (cliente)', job: sendBookingRequestReceivedEmail(base) }
+        : {
+            label: 'confirmação (cliente)',
+            job: sendBookingConfirmationEmail({
+              ...base,
+              startTime: params.startTime,
+              endTime: params.endTime,
+            }),
+          },
     );
   }
 
-  // 2) Alerta ao salão — o "toque no bolso" a cada reserva nova
-  if (params.notifySalon !== false)
-    jobs.push(
-      sendNewBookingAdminEmail({
+  // Salão — o "toque no bolso" a cada reserva nova
+  if (params.notifySalon !== false) {
+    jobs.push({
+      label: 'alerta nova marcação (salão)',
+      job: sendNewBookingAdminEmail({
         bookingNumber: params.bookingNumber,
         clientName: params.client.name,
         clientPhone: params.client.phone,
@@ -101,26 +135,48 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
         staffName: params.staffName,
         total,
         source: params.source,
+        pendingApproval: pending,
       }),
-    );
+    });
+  }
 
-  const results = await Promise.allSettled(jobs);
-  results.forEach((r, i) => {
-    const label = i === 0 && params.client.email ? 'confirmação cliente' : 'alerta salão';
-    if (r.status === 'rejected') {
-      console.error(`[booking-notifications] ${label} falhou:`, r.reason);
-    } else if (
-      r.status === 'fulfilled' &&
-      r.value &&
-      typeof r.value === 'object' &&
-      'ok' in r.value &&
-      !(r.value as { ok: boolean }).ok
-    ) {
-      // sendEmail resolve com { ok:false, error } — sem isto a falha
-      // ficava invisível nos logs (Promise cumprida ≠ email enviado)
-      console.error(`[booking-notifications] ${label} não enviado:`, r.value);
-    }
-  });
+  await settle(jobs);
+}
+
+// ------------------------------------------------------------
+// Pedido confirmado pelo salão (pending → confirmed)
+// ------------------------------------------------------------
+
+export type BookingConfirmedNotification = {
+  bookingNumber: string;
+  startTime: Date;
+  endTime: Date;
+  services: string[];
+  staffName: string;
+  totalPrice: number;
+  client: { name: string; email?: string };
+};
+
+export async function notifyBookingConfirmed(params: BookingConfirmedNotification): Promise<void> {
+  if (!params.client.email) return;
+  await settle([
+    {
+      label: 'confirmação após aprovação (cliente)',
+      job: sendBookingConfirmationEmail({
+        to: params.client.email,
+        name: params.client.name,
+        bookingNumber: params.bookingNumber,
+        date: dateFmt.format(params.startTime),
+        time: timeFmt.format(params.startTime),
+        services: params.services.join(', '),
+        staffName: params.staffName,
+        total: euros(params.totalPrice),
+        startTime: params.startTime,
+        endTime: params.endTime,
+        approvedBySalon: true,
+      }),
+    },
+  ]);
 }
 
 // ------------------------------------------------------------
@@ -131,25 +187,58 @@ export type BookingCancelledNotification = {
   bookingNumber: string;
   startTime: Date;
   reason?: string;
+  /** 'declined' = pedido pendente que o salão não confirmou */
+  variant?: 'cancelled' | 'declined';
   client: {
     name: string;
     email?: string;
+    phone?: string;
+  };
+  /**
+   * Preencher quando foi a CLIENTE a cancelar: o salão recebe um alerta
+   * de que o horário ficou livre. Omitir quando foi o próprio salão.
+   */
+  salonAlert?: {
+    services?: string[];
+    staffName?: string;
   };
 };
 
 export async function notifyBookingCancelled(params: BookingCancelledNotification): Promise<void> {
-  if (!params.client.email) return;
+  const date = dateFmt.format(params.startTime);
+  const time = timeFmt.format(params.startTime);
+  const jobs: Array<{ label: string; job: Promise<SendEmailResult> }> = [];
 
-  try {
-    await sendBookingCancellationEmail({
-      to: params.client.email,
-      name: params.client.name,
-      bookingNumber: params.bookingNumber,
-      date: dateFmt.format(params.startTime),
-      time: timeFmt.format(params.startTime),
-      reason: params.reason,
+  if (params.client.email) {
+    jobs.push({
+      label: 'cancelamento (cliente)',
+      job: sendBookingCancellationEmail({
+        to: params.client.email,
+        name: params.client.name,
+        bookingNumber: params.bookingNumber,
+        date,
+        time,
+        reason: params.reason,
+        variant: params.variant,
+      }),
     });
-  } catch (err) {
-    console.error('[booking-notifications] cancelamento: envio falhou:', err);
   }
+
+  if (params.salonAlert) {
+    jobs.push({
+      label: 'alerta cancelamento (salão)',
+      job: sendBookingCancelledAdminEmail({
+        bookingNumber: params.bookingNumber,
+        clientName: params.client.name,
+        clientPhone: params.client.phone,
+        date,
+        time,
+        services: params.salonAlert.services?.join(', '),
+        staffName: params.salonAlert.staffName,
+        reason: params.reason,
+      }),
+    });
+  }
+
+  await settle(jobs);
 }

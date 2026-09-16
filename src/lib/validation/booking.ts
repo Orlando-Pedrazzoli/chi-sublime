@@ -1,3 +1,4 @@
+// 📄 src/lib/validation/booking.ts
 /**
  * Chi Sublime — Booking Validation Schemas (Zod)
  * ============================================================
@@ -213,7 +214,7 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
  * Input para cancelar booking.
  */
 export const cancelBookingSchema = z.object({
-  bookingNumber: z.string().regex(/^CHI-\d{4}-\d{4}$/, 'Número de reserva inválido'),
+  bookingNumber: z.string().regex(/^CHI-\d{4}-\d{4,}$/, 'Número de reserva inválido'),
   cancellationToken: z.string().min(20, 'Token inválido'),
   reason: z.string().trim().max(500).optional(),
 });

@@ -61,6 +61,8 @@ export interface IStaff {
   commissionRate?: number;
   order: number;
   active: boolean;
+  /** Aparece na homepage e tem página pública /equipa/[slug]. Não afeta reservas. */
+  showOnWebsite: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -170,6 +172,7 @@ const staffSchema = new Schema<IStaff>(
     commissionRate: { type: Number, min: 0, max: 100 },
     order: { type: Number, default: 0, min: 0 },
     active: { type: Boolean, default: true },
+    showOnWebsite: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false, minimize: false },
 );

@@ -5,13 +5,13 @@
  *
  * POST multipart/form-data:
  *   - file:   a imagem (máx. 8 MB, apenas image/*)
- *   - folder: 'team' | 'services' | 'general'
+ *   - folder: 'team' | 'services' | 'gallery' | 'general'
  *
  * Segurança: apenas administradores autenticados. As credenciais
  * Cloudinary vivem no servidor — o browser nunca as vê.
  *
  * Resposta: { url, publicId } — o url (secure_url, CDN) é o que
- * se grava no MongoDB (Staff.photo / Service.image).
+ * se grava no MongoDB (Staff.photo / Service.image / SiteContent).
  */
 
 import { NextResponse } from 'next/server';
@@ -21,7 +21,7 @@ import { auth } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
-const ALLOWED_FOLDERS = new Set(['team', 'services', 'general']);
+const ALLOWED_FOLDERS = new Set(['team', 'services', 'gallery', 'general']);
 
 export async function POST(request: Request) {
   // 1) Só admins

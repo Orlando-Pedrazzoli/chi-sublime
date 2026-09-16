@@ -3,41 +3,38 @@
  * Chi Sublime — GalleryPreview
  * ============================================================
  *
- * Masonry mantido, decoração removida: sem overlays verdes de
- * hover, sem gradientes. As fotos falam por si — apenas um
- * scale subtil. Link para o Instagram no header (prova social).
+ * Secção "O nosso espaço". As imagens vêm do admin (/admin/galeria,
+ * SiteContent 'home.gallery'), com fallback para as fotos originais
+ * enquanto nada for gravado. Zero imagens gravadas → secção oculta.
  *
- * i18n: getTranslations('home.gallery'). Os alts das imagens
- * são traduzidos (a11y + Google Imagens em ambos os idiomas)
- * via altKey → home.gallery.alts.*
+ * Layout: spans calculados por getGalleryLayout() a partir da
+ * posição e do total — 2 colunas sem buracos no telemóvel e mosaico
+ * de 4 colunas em desktop, qualquer que seja o número de imagens.
+ *
+ * A altura das linhas é inline (clamp) para acompanhar a largura do
+ * ecrã no telemóvel e estabilizar a 240px em desktop, sem depender
+ * de classes arbitrárias que o build de produção possa descartar.
+ *
+ * i18n: textos em home.gallery; alt bilingue com fallback PT.
  */
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@/i18n/config';
+import { getHomeGallery } from '@/lib/content/gallery';
+import { getGalleryLayout, gallerySpanClasses } from '@/lib/utils/gallery-layout';
+import { isOptimizableImage } from '@/lib/utils/image';
+import { localizedField } from '@/lib/utils/localized';
 import { Reveal } from '@/components/shared/Reveal';
 
-const GALLERY_ITEMS = [
-  { src: '/images/philosophy.jpg', altKey: 'philosophy', span: 'tall' },
-  { src: '/images/hero.jpg', altKey: 'hero', span: 'wide' },
-  { src: '/images/services/detalhe4.jpg', altKey: 'hair', span: 'default' },
-  { src: '/images/services/detalhe5.jpg', altKey: 'makeup', span: 'default' },
-  { src: '/images/services/detalhe8.jpg', altKey: 'brows', span: 'default' },
-  // Posição deliberada: como 6º item 'tall', o auto-placement do
-  // grid coloca-a na coluna 4, linhas 2-3 — o vazio que existia
-  { src: '/images/salao_novo.jpg', altKey: 'reception', span: 'tall' },
-  { src: '/images/services/detalhe3.jpg', altKey: 'waxing', span: 'wide' },
-  { src: '/images/services/detalhe7.jpg', altKey: 'nails', span: 'default' },
-] as const;
-
-const SPAN_CLASSES: Record<string, string> = {
-  tall: 'row-span-2',
-  wide: 'col-span-2',
-  default: '',
-};
-
 export async function GalleryPreview() {
-  const t = await getTranslations('home.gallery');
+  const locale = (await getLocale()) as Locale;
+  const [t, { images }] = await Promise.all([getTranslations('home.gallery'), getHomeGallery()]);
+
+  if (images.length === 0) return null;
+
+  const layout = getGalleryLayout(images.length);
 
   return (
     <section id="gallery" className="bg-chi-sand py-28 md:py-40">
@@ -67,22 +64,43 @@ export async function GalleryPreview() {
           </Reveal>
         </div>
 
-        {/* Grid masonry */}
-        <div className="grid auto-rows-[200px] grid-cols-2 gap-3 md:auto-rows-[220px] md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-          {GALLERY_ITEMS.map((item, i) => (
-            <Reveal key={item.src} delay={(i % 4) * 0.06} className={SPAN_CLASSES[item.span]}>
-              <div className="group relative h-full w-full overflow-hidden">
-                <Image
-                  src={item.src}
-                  alt={t(`alts.${item.altKey}`)}
-                  fill
-                  quality={80}
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                />
-              </div>
-            </Reveal>
-          ))}
+        {/* Mosaico — 2 colunas até lg, 4 colunas em desktop */}
+        <div
+          className="grid grid-flow-row grid-cols-2 lg:grid-cols-4"
+          style={{ gridAutoRows: 'clamp(150px, 42vw, 240px)', gap: '0.75rem' }}
+        >
+          {images.map((image, i) => {
+            const mobile = layout.mobile[i];
+            const desktop = layout.desktop[i];
+            const alt = localizedField(image.alt, locale) || 'Chi Sublime';
+            // Imagens largas/grandes pedem mais resolução
+            const sizes =
+              desktop.col >= 2
+                ? '(max-width: 1024px) 100vw, 50vw'
+                : mobile.col === 2
+                  ? '(max-width: 1024px) 100vw, 25vw'
+                  : '(max-width: 1024px) 50vw, 25vw';
+
+            return (
+              <Reveal
+                key={`${image.url}-${i}`}
+                delay={(i % 4) * 0.06}
+                className={gallerySpanClasses(mobile, desktop)}
+              >
+                <div className="group relative h-full w-full overflow-hidden">
+                  <Image
+                    src={image.url}
+                    alt={alt}
+                    fill
+                    quality={80}
+                    sizes={sizes}
+                    unoptimized={!isOptimizableImage(image.url)}
+                    className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  />
+                </div>
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </section>

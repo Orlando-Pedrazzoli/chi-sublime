@@ -118,6 +118,7 @@ const staffObject = z.object({
   commissionRate: z.number().min(0).max(100).optional(),
   order: z.number().int().min(0).default(0),
   active: z.boolean().default(true),
+  showOnWebsite: z.boolean().default(true),
 });
 
 export const createStaffSchema = staffObject;

@@ -10,7 +10,8 @@
  * profissional presta (staffIds vazio num serviço = qualquer
  * profissional o presta). CTA → /reservar.
  *
- * ISR de 10 min. JSON-LD Person para SEO.
+ * ISR de 10 min (as actions da equipa revalidam o path ao gravar).
+ * Profissionais com showOnWebsite=false dão 404. JSON-LD Person para SEO.
  */
 
 import type { Metadata } from 'next';
@@ -22,6 +23,7 @@ import { Service, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { Reveal } from '@/components/shared/Reveal';
+import { isOptimizableImage } from '@/lib/utils/image';
 
 export const revalidate = 600;
 
@@ -32,7 +34,7 @@ export const revalidate = 600;
 async function getStaffData(slug: string) {
   await connectDB();
 
-  const staff = await Staff.findOne({ slug, active: true }).lean();
+  const staff = await Staff.findOne({ slug, active: true, showOnWebsite: { $ne: false } }).lean();
   if (!staff) return null;
 
   // Serviços que este profissional presta:
@@ -161,6 +163,7 @@ export default async function EquipaPerfilPage({ params }: { params: Params }) {
                   priority
                   quality={85}
                   sizes="(max-width: 768px) 100vw, 380px"
+                  unoptimized={!isOptimizableImage(staff.photo)}
                   className="object-cover"
                 />
               ) : (

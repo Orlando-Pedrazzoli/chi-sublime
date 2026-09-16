@@ -1,3 +1,4 @@
+// 📄 src/app/reservar/[bookingNumber]/page.tsx
 /**
  * Chi Sublime — Reservar [bookingNumber] (Pagina de sucesso)
  * ============================================================
@@ -7,14 +8,21 @@
  *
  * Identificada pelo bookingNumber na URL (ex: /reservar/CHI-2026-0042).
  *
- * Seguranca:
- *  - URL e publica mas booking number e dificil de adivinhar
- *  - Mostra apenas dados nao-sensiveis
- *  - Nao expoe NIF, telefone, etc — apenas nome + email parcial
+ * Seguranca (RGPD):
+ *  - O bookingNumber é SEQUENCIAL (CHI-2026-0001, 0002…) e portanto
+ *    adivinhável. Antes a página era pública e mostrava nome, email
+ *    completo, serviços e data de qualquer reserva.
+ *  - Agora só o cliente dono da reserva (sessão) ou um admin a veem.
+ *    Sem sessão → login com regresso a esta página. Sessão de outra
+ *    pessoa → 404 (não revela que a reserva existe).
+ *  - noindex: nunca deve aparecer em motores de busca.
  */
 
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import { BOOKING_RULES } from '@/lib/constants/business';
 import { connectDB } from '@/lib/db/connect';
 import { Booking, Client, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
@@ -22,9 +30,12 @@ import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 
 export const metadata: Metadata = {
-  title: 'Marcação confirmada | Chi Sublime',
+  title: 'A sua marcação | Chi Sublime',
   description: 'Detalhes da sua reserva no Chi Sublime.',
+  robots: { index: false, follow: false },
 };
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ bookingNumber: string }>;
@@ -56,11 +67,13 @@ async function getBookingByNumber(bookingNumber: string) {
   const staffName = staff?.name ?? 'Profissional';
 
   return {
+    ownerClientId: booking.clientId ? String(booking.clientId) : null,
     bookingNumber: booking.bookingNumber,
     clientName,
     clientEmail,
     staffName,
     startTime: booking.startTime.toISOString(),
+    endTime: booking.endTime.toISOString(),
     totalPrice: booking.totalPrice,
     totalDuration: booking.totalDuration,
     services: booking.services.map((s) => ({
@@ -76,13 +89,24 @@ export default async function BookingSuccessPage({ params }: Props) {
   const { bookingNumber } = await params;
 
   // Validar formato
-  if (!/^CHI-\d{4}-\d{4}$/.test(bookingNumber)) {
+  if (!/^CHI-\d{4}-\d{4,}$/.test(bookingNumber)) {
     notFound();
+  }
+
+  const session = await auth();
+  if (!session?.user) {
+    redirect(`/entrar?redirect=${encodeURIComponent(`/reservar/${bookingNumber}`)}`);
   }
 
   const booking = await getBookingByNumber(bookingNumber);
 
-  if (!booking) {
+  const isAdmin = session.user.role === 'admin';
+  const isOwner =
+    !!booking?.ownerClientId &&
+    session.user.role === 'client' &&
+    session.user.clientId === booking.ownerClientId;
+
+  if (!booking || (!isAdmin && !isOwner)) {
     notFound();
   }
 
@@ -99,13 +123,13 @@ export default async function BookingSuccessPage({ params }: Props) {
             <p className="text-chi-charcoal-soft mb-8">
               A reserva <span className="font-mono">{bookingNumber}</span> foi cancelada.
             </p>
-            <a
+            <Link
               href="/reservar"
               className="bg-chi-green-deep inline-block px-8 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase"
               style={{ color: '#FAF7F2' }}
             >
               Fazer nova reserva
-            </a>
+            </Link>
           </div>
         </main>
         <PublicFooter />
@@ -123,6 +147,9 @@ export default async function BookingSuccessPage({ params }: Props) {
           clientEmail={booking.clientEmail}
           staffName={booking.staffName}
           startTime={booking.startTime}
+          endTime={booking.endTime}
+          status={booking.status === 'pending' ? 'pending' : 'confirmed'}
+          cancellationWindowHours={BOOKING_RULES.cancellationWindowHours}
           totalPrice={booking.totalPrice}
           totalDuration={booking.totalDuration}
           services={booking.services}

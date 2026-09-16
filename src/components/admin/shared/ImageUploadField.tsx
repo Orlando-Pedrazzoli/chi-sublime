@@ -25,7 +25,7 @@ type ImageUploadFieldProps = {
   value: string;
   onChange: (url: string) => void;
   /** Subpasta no Cloudinary */
-  folder: 'team' | 'services' | 'general';
+  folder: 'team' | 'services' | 'gallery' | 'general';
   /** Texto de ajuda por baixo do controlo */
   hint?: string;
 };

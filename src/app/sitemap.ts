@@ -1,3 +1,4 @@
+// 📄 src/app/sitemap.ts
 /**
  * Chi Sublime — sitemap.xml dinâmico (Next.js Metadata Route)
  * ============================================================
@@ -92,7 +93,9 @@ async function getServiceEntries(): Promise<MetadataRoute.Sitemap> {
 }
 
 async function getStaffEntries(): Promise<MetadataRoute.Sitemap> {
-  const staff = await Staff.find({ active: true }).select('slug updatedAt').lean<SlugDoc[]>();
+  const staff = await Staff.find({ active: true, showOnWebsite: { $ne: false } })
+    .select('slug updatedAt')
+    .lean<SlugDoc[]>();
 
   return staff
     .filter((s) => Boolean(s.slug))

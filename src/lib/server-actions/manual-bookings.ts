@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { notifyBookingCreated } from '@/lib/email/booking-notifications';
+import { notifyAdminStatusChange } from '@/lib/booking/status-notifications';
 import { auth } from '@/lib/auth';
 import {
   Booking,
@@ -293,6 +294,8 @@ export async function createManualBookingAction(
       await notifyBookingCreated({
         bookingNumber,
         startTime,
+        endTime: booking.endTime,
+        status: data.status === 'pending' ? 'pending' : 'confirmed',
         services: serviceItems.map((s) => s.name),
         staffName: staff.name,
         totalPrice: booking.totalPrice,
@@ -354,6 +357,7 @@ export async function adminCancelBookingAction(
     return fail('validation', 'Não é possível cancelar uma reserva concluída');
   }
 
+  const previousStatus = booking.status;
   booking.status = 'cancelled';
   booking.cancellationReason = parsed.data.reason;
   booking.cancelledBy = 'staff';
@@ -373,6 +377,8 @@ export async function adminCancelBookingAction(
     severity: 'warning',
     metadata: { reason: parsed.data.reason },
   });
+
+  await notifyAdminStatusChange(booking, previousStatus);
 
   revalidateBookingViews();
   return ok({ bookingNumber: booking.bookingNumber });
@@ -431,6 +437,8 @@ export async function updateBookingStatusAction(
     message: `Reserva ${booking.bookingNumber}: ${previous} → ${parsed.data.status}`,
     severity: parsed.data.status === 'no-show' ? 'warning' : 'info',
   });
+
+  await notifyAdminStatusChange(booking, previous);
 
   revalidateBookingViews();
   return ok({ bookingNumber: booking.bookingNumber, status: booking.status });

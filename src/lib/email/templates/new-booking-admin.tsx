@@ -23,6 +23,8 @@ export interface NewBookingAdminEmailProps {
   total: string;
   source: string;
   agendaUrl: string;
+  /** Modo manual: a reserva está 'pending' e precisa de ser confirmada */
+  pendingApproval?: boolean;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -44,12 +46,24 @@ export function NewBookingAdminEmail({
   total,
   source,
   agendaUrl,
+  pendingApproval,
 }: NewBookingAdminEmailProps) {
   return (
-    <EmailShell preview={`Nova marcação · ${time} ${date} · ${clientName}`}>
+    <EmailShell
+      preview={`${pendingApproval ? 'Por confirmar' : 'Nova marcação'} · ${time} ${date} · ${clientName}`}
+    >
       <Paragraph>
-        <strong>Nova marcação no Chi Sublime</strong> — {SOURCE_LABELS[source] ?? source}.
+        <strong>
+          {pendingApproval ? 'Novo pedido por confirmar' : 'Nova marcação no Chi Sublime'}
+        </strong>{' '}
+        — {SOURCE_LABELS[source] ?? source}.
       </Paragraph>
+      {pendingApproval && (
+        <Paragraph>
+          O horário está guardado. A cliente só recebe a confirmação depois de confirmares na
+          agenda.
+        </Paragraph>
+      )}
       <InfoTable
         rows={[
           { label: 'Cliente', value: clientName },
@@ -63,7 +77,9 @@ export function NewBookingAdminEmail({
         ]}
       />
       <Section style={{ textAlign: 'center' as const, margin: '24px 0 4px' }}>
-        <ActionButton href={agendaUrl}>Abrir agenda</ActionButton>
+        <ActionButton href={agendaUrl}>
+          {pendingApproval ? 'Confirmar na agenda' : 'Abrir agenda'}
+        </ActionButton>
       </Section>
       <Muted>Email automático do sistema de marcações — não responder.</Muted>
     </EmailShell>
