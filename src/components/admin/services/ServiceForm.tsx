@@ -19,6 +19,7 @@ import {
   listCategoriesAction,
 } from '@/lib/server-actions/services';
 import { listStaffAction } from '@/lib/server-actions/staff';
+import { getVatPolicyAction } from '@/lib/server-actions/settings';
 import type { ServiceDetail, CategoryListItem } from '@/types/service';
 import type { StaffListItem } from '@/types/staff';
 
@@ -96,6 +97,8 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
 
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [staff, setStaff] = useState<StaffListItem[]>([]);
+  // Regime de isenção de IVA: o servidor grava sempre 0 — o campo fica fixo
+  const [vatExempt, setVatExempt] = useState(false);
 
   const {
     register,
@@ -111,12 +114,14 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
     if (!open) return;
     reset(toDefaults(service));
     (async () => {
-      const [cats, team] = await Promise.all([
+      const [cats, team, vat] = await Promise.all([
         listCategoriesAction(),
         listStaffAction({ pageSize: 100 }),
+        getVatPolicyAction(),
       ]);
       if (cats.success) setCategories(cats.data);
       if (team.success) setStaff(team.data.items);
+      if (vat.success) setVatExempt(vat.data.exempt);
     })();
   }, [open, service, reset]);
 
@@ -130,7 +135,7 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
         : undefined,
       duration: Number(v.duration) || 0,
       price: eurosToCents(parseEuros(v.priceEuros)),
-      vatRate: Number(v.vatRate),
+      vatRate: vatExempt ? 0 : Number(v.vatRate),
       bufferAfter: Number(v.bufferAfter) || 0,
       staffIds: v.staffIds ?? [],
       image: v.image.trim() || undefined,
@@ -227,12 +232,26 @@ export function ServiceForm({ open, onClose, service, onSaved }: ServiceFormProp
           </div>
           <div>
             <Label>IVA</Label>
-            <Select {...register('vatRate')}>
-              <option value="23">23%</option>
-              <option value="13">13%</option>
-              <option value="6">6%</option>
-              <option value="0">Isento</option>
-            </Select>
+            {vatExempt ? (
+              <>
+                <div
+                  className="border-chi-border text-chi-charcoal-soft flex items-center rounded-md border text-sm"
+                  style={{ height: '40px', padding: '0 12px', backgroundColor: '#f7f5f0' }}
+                >
+                  Isento
+                </div>
+                <p className="text-chi-charcoal-light text-xs" style={{ marginTop: '4px' }}>
+                  Regime de isenção (art. 53.º CIVA).
+                </p>
+              </>
+            ) : (
+              <Select {...register('vatRate')}>
+                <option value="23">23%</option>
+                <option value="13">13%</option>
+                <option value="6">6%</option>
+                <option value="0">Isento</option>
+              </Select>
+            )}
           </div>
           <div>
             <Label required>Duração (min)</Label>

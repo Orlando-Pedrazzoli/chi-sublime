@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
-import { FiscalSettings } from '@/lib/models';
+import { FiscalSettings, getFiscalSettings, isVatExemptRegime } from '@/lib/models';
 import { ok, fail, type ActionResult } from '@/types/common';
 
 async function requireAdminSession() {
@@ -41,6 +41,22 @@ const updateFiscalSchema = z.object({
     })
     .optional(),
 });
+
+/** Política de IVA para formulários (ex.: serviço isento no regime do art. 53.º). */
+export async function getVatPolicyAction(): Promise<
+  ActionResult<{ exempt: boolean; defaultVatRate: number; exemptionReason?: string }>
+> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== 'admin')
+    return fail('unauthorized', 'Não autorizado');
+  await connectDB();
+  const s = await getFiscalSettings();
+  return ok({
+    exempt: isVatExemptRegime(s),
+    defaultVatRate: s.defaultVatRate,
+    exemptionReason: s.vatExemptionReason,
+  });
+}
 
 export async function updateFiscalSettingsAction(
   input: unknown,

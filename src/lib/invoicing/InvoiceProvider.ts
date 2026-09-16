@@ -11,7 +11,7 @@
  * nem no fluxo. Todos os valores monetários em CÊNTIMOS.
  */
 
-import type { InvoiceProviderId } from '@/lib/models';
+import type { InvoiceProviderId, PaymentMethod } from '@/lib/models';
 
 export type InvoiceDocumentType = 'FT' | 'FR' | 'FS' | 'NC' | 'ND';
 
@@ -28,6 +28,8 @@ export interface InvoiceCustomer {
 
 /** Linha do documento. `unitPriceNet` é líquido, em cêntimos. */
 export interface InvoiceLineInput {
+  /** Serviço de origem — o provider usa-o para associar o artigo certificado. */
+  serviceId?: string;
   name: string;
   quantity: number;
   unitPriceNet: number;
@@ -48,6 +50,13 @@ export interface IssueInvoiceParams {
   /** Referência interna (transactionNumber) para rastreio. */
   internalReference: string;
   notes?: string;
+  /** Meio de pagamento (fatura-recibo = paga no ato). */
+  paymentMethod: PaymentMethod;
+  /**
+   * Só para testes: cria o documento em RASCUNHO (não fechado, não
+   * comunicado à AT, sem ATCUD). Nunca usado no fluxo normal.
+   */
+  forceDraft?: boolean;
 }
 
 /** Resultado normalizado de uma emissão bem-sucedida. */
@@ -62,6 +71,8 @@ export interface IssuedInvoiceResult {
   pdfUrl: string;
   qrCodeUrl?: string;
   issuedAt: Date;
+  /** true quando o documento ficou em rascunho (forceDraft) */
+  draft?: boolean;
   /** Resposta bruta do provider, para o campo apiResponseLog. */
   raw?: unknown;
 }

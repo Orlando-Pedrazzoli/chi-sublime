@@ -74,7 +74,8 @@ export function FiscalSettingsForm({ initial }: { initial: FiscalSettingsInitial
   const onSubmit = handleSubmit(async (v) => {
     const res = await updateFiscalSettingsAction({
       invoiceProvider: v.invoiceProvider,
-      defaultVatRate: Number(v.defaultVatRate) || 23,
+      // 0 é válido (regime de isenção) — não usar `|| 23`
+      defaultVatRate: Number.isFinite(Number(v.defaultVatRate)) ? Number(v.defaultVatRate) : 23,
       vatExemptionReason: v.vatExemptionReason.trim() || undefined,
       incomePrefix: v.incomePrefix.trim() || undefined,
       expensePrefix: v.expensePrefix.trim() || undefined,
@@ -121,7 +122,7 @@ export function FiscalSettingsForm({ initial }: { initial: FiscalSettingsInitial
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label>Motivo de isenção</Label>
-            <Input {...register('vatExemptionReason')} placeholder="Ex: M99" />
+            <Input {...register('vatExemptionReason')} placeholder="Ex: M10-1 (art. 53.º)" />
           </div>
           <div>
             <Label>Prefixo receitas</Label>

@@ -112,6 +112,7 @@ export {
   FiscalSettings,
   getFiscalSettings,
   getFiscalSettingsWithTokens,
+  isVatExemptRegime,
   type IFiscalSettings,
   type MoloniConfig,
 } from './FiscalSettings';

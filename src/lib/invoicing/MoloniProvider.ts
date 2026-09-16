@@ -3,29 +3,27 @@
  * Chi Sublime — Provider de faturação: Moloni (API v1)
  * ============================================================
  *
- * Implementa InvoiceProvider contra a API clássica do Moloni.
- * Emite FATURA-RECIBO (FR) — o documento típico de um salão: venda
- * paga no momento. Fluxo:
- *   1. Autentica (MoloniAuth) → access_token + companyId.
- *   2. Resolve o cliente: por NIF (getByVat) ou cria (insert); sem
- *      NIF usa o consumidorFinalCustomerId configurado.
- *   3. Mapeia as linhas → products[] com o IVA (tax_id).
- *   4. invoiceReceipts/insert com status=1 (fecha/certifica). O
- *      pagamento é adicionado automaticamente pelo Moloni.
- *   5. Lê número/série (getOne) e o link do PDF (getPDFLink).
+ * Emite FATURA-RECIBO (FR) — venda paga no ato, o documento típico de
+ * um salão. Segue a especificação de invoiceReceipts/insert
+ * (https://www.moloni.pt/dev/documents/invoice-receipts/insert/):
  *
- * CONFIGURAÇÃO NECESSÁRIA no FiscalSettings.moloni (IDs da conta):
- *   companyId, defaultDocumentSetId (série), vatTaxId (imposto 23%),
- *   consumidorFinalCustomerId (cliente genérico para vendas sem NIF).
+ *   obrigatórios: company_id, date, expiration_date, document_set_id,
+ *                 customer_id, products[{ product_id, name, qty, price }],
+ *                 payments[{ payment_method_id, date, value }]
+ *   isenção:      products[].exemption_reason obrigatório quando taxes
+ *                 está vazio (regime do art. 53.º → "M10-1")
+ *   status:       1 = fechado (certificado e comunicado à AT); 0 = rascunho
  *
- * Notas honestas:
- *   - Só o tipo FR está implementado; FT/FS/NC lançam erro claro
- *     (entram depois se precisares).
- *   - Uma taxa de IVA por conta (vatTaxId). Salão = 23% regime geral.
- *   - Precisa de teste real contra o sandbox do Moloni antes de prod.
+ * Fluxo:
+ *   1. Token + companyId (MoloniAuth, cache no FiscalSettings)
+ *   2. Cliente: NIF → getByVat ou insert; sem NIF → Consumidor Final
+ *   3. Artigos: product_id de cada serviço (cria/sincroniza se faltar)
+ *   4. insert (status 1) → getOne (número/série/total) → getPDFLink
+ *
+ * Configuração: scripts/moloni-setup.ts preenche FiscalSettings.moloni.
  */
 
-import { getFiscalSettings } from '@/lib/models';
+import { getFiscalSettings, type IFiscalSettings, type PaymentMethod } from '@/lib/models';
 import {
   InvoiceProviderError,
   type InvoiceCustomer,
@@ -33,104 +31,110 @@ import {
   type IssueInvoiceParams,
   type IssuedInvoiceResult,
 } from './InvoiceProvider';
-import { getMoloniAccessToken, MOLONI_BASE_URL } from './MoloniAuth';
+import { getMoloniAccessToken } from './MoloniAuth';
+import {
+  centsToMoloni,
+  moloniCall,
+  moloniDate,
+  moloniDateTime,
+  MoloniApiError,
+  type MoloniObj,
+} from './moloni-client';
+import {
+  ensureGenericProduct,
+  ensureServiceProduct,
+  moloniTaxFields,
+  type MoloniContext,
+} from './moloni-catalog';
 
 const CONSUMIDOR_FINAL_VAT = '999999990';
+const PT_COUNTRY_ID = 1;
+const PT_LANGUAGE_ID = 1;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/** Certificado AT do software Moloni (≤ 30 caracteres — limite do schema). */
+const MOLONI_CERTIFICATION = 'Moloni — Certificado AT 2860';
 
-/** Chamada genérica à API Moloni (POST JSON). */
-async function callMoloni(
-  endpoint: string,
-  accessToken: string,
-  body: Record<string, any>,
-): Promise<any> {
-  const url = `${MOLONI_BASE_URL}${endpoint}/?access_token=${encodeURIComponent(
-    accessToken,
-  )}&json=true&human_errors=1`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return res.json();
+function wrap(err: unknown, code: string, retryable: boolean): InvoiceProviderError {
+  if (err instanceof InvoiceProviderError) return err;
+  const message = err instanceof Error ? err.message : String(err);
+  return new InvoiceProviderError(code, `Moloni: ${message}`, retryable);
 }
 
-/** Deteta a forma de erro do Moloni e devolve uma mensagem legível (ou null). */
-function moloniErrorMessage(data: any): string | null {
-  if (!data) return 'Resposta vazia do Moloni';
-  if (Array.isArray(data)) {
-    // getByVat devolve array de clientes — não é erro.
-    return null;
+function paymentMethodId(settings: IFiscalSettings, method: PaymentMethod): number {
+  const m = settings.moloni ?? ({} as IFiscalSettings['moloni']);
+  const id = m.paymentMethods?.[method] ?? m.defaultPaymentMethodId ?? m.paymentMethods?.cash;
+  if (!id) {
+    throw new InvoiceProviderError(
+      'moloni_no_payment_method',
+      `Meio de pagamento "${method}" sem correspondência na Moloni (moloni.paymentMethods). Corre scripts/moloni-setup.ts.`,
+      false,
+    );
   }
-  if (data.error || data.errors) {
-    try {
-      return JSON.stringify(data.error ?? data.errors);
-    } catch {
-      return 'Erro do Moloni';
-    }
-  }
-  return null;
+  return id;
 }
 
-function toEuros(cents: number): number {
-  return Number((cents / 100).toFixed(4));
-}
-
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-/** Resolve (ou cria) o customer_id no Moloni. */
 async function resolveCustomerId(
-  accessToken: string,
-  companyId: number,
+  ctx: MoloniContext,
   customer: InvoiceCustomer,
-  cfg: any,
+  fallbackPaymentMethodId: number,
 ): Promise<number> {
-  const vat = customer.vatNumber?.trim();
+  const cfg = ctx.settings.moloni;
+  const vat = customer.vatNumber?.replace(/\D/g, '');
 
-  if (vat && vat !== CONSUMIDOR_FINAL_VAT) {
-    const found = await callMoloni('customers/getByVat', accessToken, {
-      company_id: companyId,
-      vat,
-    });
-    if (Array.isArray(found) && found.length > 0 && found[0]?.customer_id) {
-      return Number(found[0].customer_id);
-    }
-
-    const inserted = await callMoloni('customers/insert', accessToken, {
-      company_id: companyId,
-      vat,
-      number: `C${Date.now()}`,
-      name: customer.name,
-      email: customer.email || '',
-      address: customer.address || 'Desconhecido',
-      city: customer.city || customer.country || 'Desconhecido',
-      zip_code: customer.postalCode || '0000-000',
-      country_id: 1, // Portugal
-      language_id: 1, // Português
-    });
-    const err = moloniErrorMessage(inserted);
-    if (err || !inserted?.customer_id) {
+  if (!vat || vat === CONSUMIDOR_FINAL_VAT) {
+    if (!cfg?.consumidorFinalCustomerId) {
       throw new InvoiceProviderError(
-        'moloni_customer',
-        `Não foi possível criar o cliente no Moloni: ${err ?? 'sem customer_id na resposta'}`,
+        'moloni_no_customer',
+        'Venda sem NIF mas sem consumidorFinalCustomerId configurado. Corre scripts/moloni-setup.ts.',
         false,
       );
     }
-    return Number(inserted.customer_id);
+    return cfg.consumidorFinalCustomerId;
   }
 
-  // Sem NIF → consumidor final
-  if (cfg?.consumidorFinalCustomerId) {
-    return Number(cfg.consumidorFinalCustomerId);
+  const found = await moloniCall<MoloniObj[]>('customers/getByVat', ctx.accessToken, {
+    company_id: ctx.companyId,
+    vat,
+  });
+  if (Array.isArray(found) && found[0]?.customer_id) return Number(found[0].customer_id);
+
+  if (!cfg?.defaultMaturityDateId) {
+    throw new InvoiceProviderError(
+      'moloni_no_maturity',
+      'Prazo de vencimento por defeito em falta (moloni.defaultMaturityDateId). Corre scripts/moloni-setup.ts.',
+      false,
+    );
   }
-  throw new InvoiceProviderError(
-    'moloni_no_customer',
-    'Venda sem NIF mas sem consumidorFinalCustomerId configurado em FiscalSettings.moloni.',
-    false,
-  );
+
+  const zip = customer.postalCode?.trim();
+  const inserted = await moloniCall<MoloniObj>('customers/insert', ctx.accessToken, {
+    company_id: ctx.companyId,
+    vat,
+    // O NIF é único por cliente — serve de código (máx. 20)
+    number: vat,
+    name: customer.name.trim().slice(0, 200) || 'Cliente',
+    language_id: PT_LANGUAGE_ID,
+    address: customer.address?.trim() || 'Desconhecido',
+    zip_code: zip && /^\d{4}-\d{3}$/.test(zip) ? zip : '',
+    city: customer.city?.trim() || 'Desconhecido',
+    country_id: PT_COUNTRY_ID,
+    email: customer.email?.trim() || '',
+    maturity_date_id: cfg.defaultMaturityDateId,
+    payment_method_id: fallbackPaymentMethodId,
+    salesman_id: 0,
+    payment_day: 0,
+    discount: 0,
+    credit_limit: 0,
+    delivery_method_id: 0,
+  });
+  if (!inserted?.customer_id) {
+    throw new InvoiceProviderError(
+      'moloni_customer',
+      'Não foi possível criar o cliente na Moloni (sem customer_id).',
+      false,
+    );
+  }
+  return Number(inserted.customer_id);
 }
 
 export class MoloniProvider implements InvoiceProvider {
@@ -140,101 +144,145 @@ export class MoloniProvider implements InvoiceProvider {
     if (params.documentType !== 'FR') {
       throw new InvoiceProviderError(
         'moloni_doctype_unsupported',
-        `Tipo de documento "${params.documentType}" ainda não implementado no MoloniProvider (só FR por agora).`,
+        `Tipo de documento "${params.documentType}" ainda não implementado no MoloniProvider (só Fatura-Recibo).`,
         false,
       );
     }
+    if (params.lines.length === 0) {
+      throw new InvoiceProviderError('moloni_no_lines', 'Documento sem linhas.', false);
+    }
 
-    const { accessToken, companyId } = await getMoloniAccessToken();
-    const settings = await getFiscalSettings();
-    const cfg = (settings as any).moloni ?? {};
-
-    if (!cfg.defaultDocumentSetId) {
+    // ── Contexto ────────────────────────────────────────────
+    const [{ accessToken, companyId }, settings] = await Promise.all([
+      getMoloniAccessToken(),
+      getFiscalSettings(),
+    ]);
+    const cfg = settings.moloni;
+    if (!cfg?.defaultDocumentSetId) {
       throw new InvoiceProviderError(
         'moloni_no_document_set',
-        'defaultDocumentSetId (série) em falta em FiscalSettings.moloni.',
+        'Série (moloni.defaultDocumentSetId) em falta. Corre scripts/moloni-setup.ts.',
         false,
       );
     }
-    if (!cfg.vatTaxId) {
-      throw new InvoiceProviderError(
-        'moloni_no_tax',
-        'vatTaxId (imposto IVA) em falta em FiscalSettings.moloni.',
-        false,
+    const ctx: MoloniContext = { accessToken, companyId, settings };
+    const payMethodId = paymentMethodId(settings, params.paymentMethod);
+    const now = new Date();
+    const status = params.forceDraft ? 0 : 1;
+
+    // ── Cliente + artigos (erros aqui são seguros de re-tentar) ─
+    let customerId: number;
+    let products: MoloniObj[];
+    try {
+      customerId = await resolveCustomerId(ctx, params.customer, payMethodId);
+      products = [];
+      for (const [index, line] of params.lines.entries()) {
+        const productId = line.serviceId
+          ? await ensureServiceProduct(ctx, line.serviceId)
+          : await ensureGenericProduct(ctx, line.vatRate);
+        products.push({
+          product_id: productId,
+          name: line.name.slice(0, 200),
+          summary: '',
+          qty: line.quantity,
+          price: centsToMoloni(line.unitPriceNet),
+          discount: line.discountPercent ?? 0,
+          order: index,
+          ...moloniTaxFields(settings, line.vatRate),
+        });
+      }
+    } catch (err) {
+      throw wrap(err, 'moloni_prepare_failed', err instanceof MoloniApiError);
+    }
+
+    // ── Emissão ─────────────────────────────────────────────
+    let documentId: number;
+    let inserted: MoloniObj;
+    try {
+      inserted = await moloniCall<MoloniObj>('invoiceReceipts/insert', accessToken, {
+        company_id: companyId,
+        date: moloniDate(now),
+        expiration_date: moloniDate(now),
+        document_set_id: cfg.defaultDocumentSetId,
+        customer_id: customerId,
+        your_reference: params.internalReference.slice(0, 60),
+        products,
+        payments: [
+          {
+            payment_method_id: payMethodId,
+            date: moloniDateTime(now),
+            value: centsToMoloni(params.totalWithVat),
+            notes: '',
+          },
+        ],
+        notes: '',
+        status,
+      });
+      documentId = Number(inserted?.document_id);
+      if (!documentId) {
+        throw new MoloniApiError('invoiceReceipts/insert', 'resposta sem document_id', inserted);
+      }
+    } catch (err) {
+      // Erro de validação → nada foi criado, pode corrigir e re-tentar.
+      // Erro de rede → estado desconhecido: NÃO re-tentar sem confirmar na Moloni.
+      const validation = err instanceof MoloniApiError && err.details !== undefined;
+      throw wrap(err, validation ? 'moloni_insert_invalid' : 'moloni_insert_unknown', false);
+    }
+
+    // ── Pós-emissão (o documento JÁ existe — nunca lançar daqui) ─
+    let one: MoloniObj | null = null;
+    let pdfUrl = '';
+    try {
+      one = await moloniCall<MoloniObj>('invoiceReceipts/getOne', accessToken, {
+        company_id: companyId,
+        document_id: documentId,
+      });
+    } catch (err) {
+      console.error('[MoloniProvider] getOne falhou para', documentId, err);
+    }
+    if (status === 1) {
+      try {
+        const pdf = await moloniCall<MoloniObj>('documents/getPDFLink', accessToken, {
+          company_id: companyId,
+          document_id: documentId,
+        });
+        pdfUrl = typeof pdf?.url === 'string' ? pdf.url : '';
+      } catch (err) {
+        console.error('[MoloniProvider] getPDFLink falhou para', documentId, err);
+      }
+    }
+
+    // Conferência de totais (a Moloni calcula; avisamos se divergir)
+    const moloniTotal = Number(one?.net_value ?? one?.gross_value ?? NaN);
+    if (
+      Number.isFinite(moloniTotal) &&
+      Math.abs(moloniTotal - centsToMoloni(params.totalWithVat)) > 0.01
+    ) {
+      console.warn(
+        `[MoloniProvider] total divergente em ${documentId}: Moloni ${moloniTotal} vs Chi ${centsToMoloni(params.totalWithVat)}`,
       );
     }
 
-    const customerId = await resolveCustomerId(accessToken, companyId, params.customer, cfg);
-
-    const products = params.lines.map((line) => {
-      const exempt = line.vatRate <= 0;
-      return {
-        name: line.name,
-        qty: line.quantity,
-        price: toEuros(line.unitPriceNet),
-        discount: line.discountPercent ?? 0,
-        taxes: exempt ? [] : [{ tax_id: Number(cfg.vatTaxId), order: 1, cumulative: 0 }],
-        ...(exempt ? { exemption_reason: settings.vatExemptionReason || 'M99' } : {}),
-      };
-    });
-
-    const insertBody: Record<string, any> = {
-      company_id: companyId,
-      customer_id: customerId,
-      document_set_id: Number(cfg.defaultDocumentSetId),
-      date: isoDate(new Date()),
-      status: 1, // 1 = fechado/certificado
-      your_reference: params.internalReference,
-      notes: params.notes || '',
-      products,
-    };
-
-    const inserted = await callMoloni('invoiceReceipts/insert', accessToken, insertBody);
-    const insertErr = moloniErrorMessage(inserted);
-    const documentId = inserted?.document_id ?? inserted?.insertId ?? inserted?.id;
-    if (insertErr || !documentId) {
-      throw new InvoiceProviderError(
-        'moloni_insert_failed',
-        `Falha ao emitir fatura-recibo no Moloni: ${insertErr ?? 'sem document_id na resposta'}`,
-        true,
-      );
-    }
-
-    // Detalhes (número/série) e PDF
-    const one = await callMoloni('invoiceReceipts/getOne', accessToken, {
-      company_id: companyId,
-      document_id: documentId,
-    });
-    const pdf = await callMoloni('documents/getPDFLink', accessToken, {
-      company_id: companyId,
-      document_id: documentId,
-      signed: 1,
-    });
-
-    const setName: string = one?.document_set?.name ?? String(cfg.defaultDocumentSetId);
-    const number: string | number = one?.number ?? documentId;
-    const documentNumber = `${setName}/${number}`;
-    const atcud: string = one?.atcud || documentNumber;
-    const pdfUrl: string = pdf?.url || '';
-
-    if (!pdfUrl) {
-      // Não falha a emissão — o documento já existe; só regista.
-      console.warn('[MoloniProvider] getPDFLink sem url para document_id', documentId);
-    }
+    const series = String(
+      one?.document_set_name ?? one?.document_set?.name ?? cfg.documentSetName ?? 'M',
+    );
+    const number = one?.number ? String(one.number) : null;
+    const documentNumber =
+      status === 0 ? `RASCUNHO ${documentId}` : `FR ${series}/${number ?? documentId}`;
 
     return {
       provider: 'moloni',
-      certificationNumber: 'Processado por programa certificado (Moloni)',
+      certificationNumber: MOLONI_CERTIFICATION,
       externalDocumentId: String(documentId),
       documentNumber,
-      series: setName,
-      atcud,
+      series,
+      // O ATCUD vem impresso no PDF; se a API não o devolver guardamos o nº do documento
+      atcud: String(one?.atcud ?? one?.at_code ?? documentNumber),
       documentType: 'FR',
-      pdfUrl: pdfUrl || `${MOLONI_BASE_URL}documents/getPDFLink (document_id=${documentId})`,
-      issuedAt: new Date(),
-      raw: { insert: inserted, one, pdf },
+      pdfUrl: pdfUrl || `https://www.moloni.pt/${settings.vatNumber}/Documentos/`,
+      issuedAt: now,
+      draft: status === 0,
+      raw: { insert: inserted, one },
     };
   }
 }
-
-/* eslint-enable @typescript-eslint/no-explicit-any */

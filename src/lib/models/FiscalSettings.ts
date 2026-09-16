@@ -1,3 +1,4 @@
+// 📄 src/lib/models/FiscalSettings.ts
 import mongoose, { Schema, model, models, type Model } from 'mongoose';
 import type { InvoiceProviderId } from './Transaction';
 
@@ -12,6 +13,12 @@ export interface MoloniConfig {
   defaultMaturityDateId?: number;
   consumidorFinalCustomerId?: number;
   vatTaxId?: number;
+  /** Nome da série (ex.: "M") — para o documentNumber sem depender do getOne */
+  documentSetName?: string;
+  /** Categoria "Serviços" onde os artigos são criados */
+  productCategoryId?: number;
+  /** Unidade de medida (ex.: "Unidade") dos artigos */
+  unitId?: number;
   paymentMethods?: {
     cash?: number;
     card_terminal?: number;
@@ -70,6 +77,9 @@ const moloniConfigSchema = new Schema<MoloniConfig>(
     defaultMaturityDateId: { type: Number },
     consumidorFinalCustomerId: { type: Number },
     vatTaxId: { type: Number },
+    documentSetName: { type: String, trim: true, maxlength: 30 },
+    productCategoryId: { type: Number },
+    unitId: { type: Number },
     paymentMethods: {
       cash: { type: Number },
       card_terminal: { type: Number },
@@ -240,6 +250,17 @@ export async function getFiscalSettings(): Promise<IFiscalSettings> {
 /**
  * Obtém FiscalSettings COM tokens (uso interno em integrações).
  */
+/**
+ * Regime de isenção de IVA (art. 53.º CIVA): taxa por defeito 0 e um
+ * motivo de isenção configurado (ex.: "M10-1" no Moloni). Nesse regime
+ * nenhum serviço pode ter IVA.
+ */
+export function isVatExemptRegime(
+  settings: Pick<IFiscalSettings, 'defaultVatRate' | 'vatExemptionReason'>,
+): boolean {
+  return settings.defaultVatRate === 0 && Boolean(settings.vatExemptionReason?.trim());
+}
+
 export async function getFiscalSettingsWithTokens(): Promise<IFiscalSettings | null> {
   return FiscalSettings.findOne({ key: 'default' })
     .select('+moloni.accessToken +moloni.refreshToken')

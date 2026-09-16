@@ -23,7 +23,9 @@ import { connectDB } from '@/lib/db/connect';
 import { FiscalSettings, getFiscalSettingsWithTokens } from '@/lib/models';
 import { InvoiceProviderError } from './InvoiceProvider';
 
-export const MOLONI_BASE_URL = process.env.MOLONI_BASE_URL || 'https://api.moloni.pt/v1/';
+import { MOLONI_BASE_URL } from './moloni-client';
+
+export { MOLONI_BASE_URL };
 const GRANT_URL = `${MOLONI_BASE_URL}grant/`;
 
 /** Margem de segurança para renovar antes de expirar (60s). */

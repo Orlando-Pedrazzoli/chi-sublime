@@ -35,7 +35,8 @@ export class MockProvider implements InvoiceProvider {
 
     return {
       provider: 'mock',
-      certificationNumber: '0000/AT (MOCK — sem validade fiscal)',
+      // ≤ 30 caracteres (limite do schema invoiceData.certificationNumber)
+      certificationNumber: 'MOCK — sem validade fiscal',
       externalDocumentId,
       documentNumber: `${params.documentType} ${series}/${year}/${seq}`,
       series,

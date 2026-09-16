@@ -1,6 +1,6 @@
+// 📄 src/lib/invoicing/issueInvoiceAction.ts
 'use server';
 
-// 📄 src/lib/invoicing/issueInvoiceAction.ts
 /**
  * Chi Sublime — Server Action: Emitir / Re-tentar Fatura
  * ============================================================
@@ -11,8 +11,11 @@
  *   (getInvoiceProvider) → emite → persiste invoiceData (sucesso) ou
  *   invoiceError (falha, com flag retryable) → audita.
  *
- * O envio do PDF por email fica para a batch de Email; aqui apenas se
- * marca sentToCustomer=false e guarda-se o customerEmail.
+ * Proteção contra documentos fiscais duplicados:
+ *  - Se o provider não sabe se o documento foi criado (falha de rede
+ *    no insert) ou se foi emitido mas não se conseguiu gravar na BD,
+ *    a transação fica bloqueada para re-tentativa automática — é
+ *    preciso confirmar na Moloni primeiro (BLOCKING_ERROR_CODES).
  */
 
 import mongoose from 'mongoose';
@@ -33,6 +36,9 @@ import {
 } from './index';
 
 type IssueOk = { documentNumber: string; pdfUrl: string };
+
+/** Estados em que re-emitir pode criar um SEGUNDO documento fiscal. */
+const BLOCKING_ERROR_CODES = new Set(['moloni_insert_unknown', 'issued_not_saved']);
 
 async function requireAdminSession() {
   const session = await auth();
@@ -92,6 +98,7 @@ async function customerFromTransaction(tx: any): Promise<InvoiceCustomer> {
 function linesFromTransaction(tx: any): InvoiceLineInput[] {
   if (Array.isArray(tx.services) && tx.services.length > 0) {
     return tx.services.map((s: any) => ({
+      serviceId: s.serviceId ? String(s.serviceId) : undefined,
       name: s.name,
       quantity: s.quantity ?? 1,
       unitPriceNet: s.price,
@@ -133,6 +140,12 @@ async function performIssue(
   if (tx.invoiceData?.issued) {
     return fail('already_issued', 'Esta transação já tem documento emitido');
   }
+  if (tx.invoiceError && BLOCKING_ERROR_CODES.has(tx.invoiceError.code)) {
+    return fail(
+      'needs_manual_check',
+      'A emissão anterior pode ter criado o documento na Moloni. Confirma em Documentos → Faturas-Recibo antes de voltar a emitir.',
+    );
+  }
 
   const settings = await getFiscalSettings();
   const customer = customerOverride ?? (await customerFromTransaction(tx));
@@ -152,11 +165,20 @@ async function performIssue(
     currency: settings.defaultCurrency || 'EUR',
     internalReference: tx.transactionNumber,
     notes: tx.description,
+    paymentMethod: tx.paymentMethod,
   };
 
   try {
     const provider = getInvoiceProvider(settings.invoiceProvider);
     const issued = await provider.issueInvoice(params);
+
+    if (issued.draft) {
+      // O fluxo normal nunca pede rascunhos; se acontecer, não marcar como emitido.
+      return fail(
+        'draft_only',
+        `Documento criado em rascunho (${issued.documentNumber}) — não emitido.`,
+      );
+    }
 
     tx.set('invoiceData', {
       issued: true,
@@ -178,7 +200,49 @@ async function performIssue(
     tx.invoiceRequested = true;
     tx.set('invoiceError', undefined);
 
-    await tx.save();
+    try {
+      await tx.save();
+    } catch (saveErr) {
+      // O documento fiscal EXISTE no provider mas não ficou gravado na BD.
+      // Gravar o mínimo sem validação e bloquear re-emissões automáticas.
+      console.error(
+        '[performIssue] documento emitido mas não gravado',
+        issued.documentNumber,
+        saveErr,
+      );
+      await Transaction.updateOne(
+        { _id: tx._id },
+        {
+          $set: {
+            invoiceRequested: true,
+            invoiceError: {
+              code: 'issued_not_saved',
+              message: `Documento ${issued.documentNumber} (id ${issued.externalDocumentId}) emitido no ${issued.provider}, mas não gravado no sistema.`,
+              timestamp: new Date(),
+              retryable: false,
+            },
+          },
+        },
+        { runValidators: false },
+      ).catch((e) => console.error('[performIssue] falha a gravar issued_not_saved', e));
+      await logAudit({
+        action: 'issue',
+        resource: 'invoice',
+        resourceId: String(tx._id),
+        resourceLabel: issued.documentNumber,
+        userId: new mongoose.Types.ObjectId(admin.id),
+        userName: admin.name,
+        userEmail: admin.email,
+        userRole: 'admin',
+        message: `Documento ${issued.documentNumber} emitido mas NÃO gravado em ${tx.transactionNumber}`,
+        severity: 'critical',
+        metadata: { externalDocumentId: issued.externalDocumentId, provider: issued.provider },
+      });
+      return fail(
+        'issued_not_saved',
+        `Fatura ${issued.documentNumber} emitida, mas houve um erro a gravá-la. Não voltes a emitir — contacta o suporte.`,
+      );
+    }
 
     await logAudit({
       action: 'issue',

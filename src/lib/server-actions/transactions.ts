@@ -1,6 +1,5 @@
-'use server';
-
 // 📄 src/lib/server-actions/transactions.ts
+'use server';
 
 /**
  * Chi Sublime — Server Actions: Transações (núcleo financeiro)
@@ -38,6 +37,8 @@ import {
   generateTransactionNumber,
   slugify,
   logAudit,
+  getFiscalSettings,
+  isVatExemptRegime,
 } from '@/lib/models';
 import { calculateVAT, applyDiscount } from '@/lib/utils/cents';
 import { ok, fail, type ActionResult, type Paginated } from '@/types/common';
@@ -245,7 +246,11 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
 
   if (netAmount <= 0) return fail('validation', 'O valor da receita tem de ser positivo');
 
-  const { vatCents, totalCents } = calculateVAT(netAmount, data.vatRate);
+  // Regime de isenção (art. 53.º): as receitas nunca levam IVA, mesmo que o
+  // cliente envie outra taxa (ex.: lista de serviços em cache no browser).
+  const settings = await getFiscalSettings();
+  const vatRate = isVatExemptRegime(settings) ? 0 : data.vatRate;
+  const { vatCents, totalCents } = calculateVAT(netAmount, vatRate);
 
   try {
     const transactionNumber = await generateTransactionNumber('income');
@@ -254,7 +259,7 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
       type: 'income',
       date: data.date ?? new Date(),
       amount: netAmount,
-      vatRate: data.vatRate,
+      vatRate,
       vatAmount: vatCents,
       totalWithVat: totalCents,
       incomeCategoryId: data.incomeCategoryId,

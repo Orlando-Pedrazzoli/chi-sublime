@@ -1,3 +1,4 @@
+// 📄 src/lib/server-actions/services.ts
 'use server';
 
 /**
@@ -21,7 +22,17 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
-import { Service, Category, slugify, logAudit } from '@/lib/models';
+import { after } from 'next/server';
+import {
+  Service,
+  Category,
+  slugify,
+  logAudit,
+  getFiscalSettings,
+  isVatExemptRegime,
+} from '@/lib/models';
+import { getMoloniAccessToken } from '@/lib/invoicing/MoloniAuth';
+import { ensureServiceProduct } from '@/lib/invoicing/moloni-catalog';
 import { ok, fail, type ActionResult, type Paginated } from '@/types/common';
 import {
   createServiceSchema,
@@ -146,6 +157,36 @@ function toServiceDetail(doc: any): ServiceDetail {
 // SERVICE — CREATE
 // ============================================================
 
+// ============================================================
+// FISCAL — IVA do serviço e artigo Moloni
+// ============================================================
+
+/** No regime de isenção (art. 53.º) nenhum serviço pode ter IVA. */
+async function effectiveVatRate(requested: number): Promise<number> {
+  const settings = await getFiscalSettings();
+  return isVatExemptRegime(settings) ? 0 : requested;
+}
+
+/**
+ * Mantém o artigo Moloni do serviço atualizado (nome/preço/isenção).
+ * Corre depois da resposta (after) e nunca falha a gravação: se falhar,
+ * o provider cria/sincroniza o artigo na próxima fatura.
+ */
+function scheduleMoloniSync(serviceId: string) {
+  after(async () => {
+    try {
+      const settings = await getFiscalSettings();
+      if (settings.invoiceProvider !== 'moloni') return;
+      const { accessToken, companyId } = await getMoloniAccessToken();
+      await ensureServiceProduct({ accessToken, companyId, settings }, serviceId, {
+        forceUpdate: true,
+      });
+    } catch (err) {
+      console.error('[services] sincronização Moloni falhou para', serviceId, err);
+    }
+  });
+}
+
 export async function createServiceAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminSession();
   if (!admin) return fail('unauthorized', 'Não autorizado');
@@ -173,7 +214,7 @@ export async function createServiceAction(input: unknown): Promise<ActionResult<
       description: data.description,
       duration: data.duration,
       price: data.price,
-      vatRate: data.vatRate,
+      vatRate: await effectiveVatRate(data.vatRate),
       bufferAfter: data.bufferAfter,
       staffIds: data.staffIds,
       image: data.image,
@@ -198,6 +239,7 @@ export async function createServiceAction(input: unknown): Promise<ActionResult<
     });
 
     revalidatePath('/admin/servicos');
+    scheduleMoloniSync(String(service._id));
     return ok({ id: String(service._id) });
   } catch (err) {
     if (isDuplicateKey(err)) return fail('duplicate', 'Já existe um serviço com esse slug');
@@ -236,7 +278,7 @@ export async function updateServiceAction(input: unknown): Promise<ActionResult<
   if (data.description !== undefined) service.set('description', data.description);
   if (data.duration !== undefined) service.duration = data.duration;
   if (data.price !== undefined) service.price = data.price;
-  if (data.vatRate !== undefined) service.vatRate = data.vatRate;
+  if (data.vatRate !== undefined) service.vatRate = await effectiveVatRate(data.vatRate);
   if (data.bufferAfter !== undefined) service.bufferAfter = data.bufferAfter;
   if (data.staffIds !== undefined) {
     service.staffIds = data.staffIds.map((s) => new mongoose.Types.ObjectId(s));
@@ -270,6 +312,7 @@ export async function updateServiceAction(input: unknown): Promise<ActionResult<
   });
 
   revalidatePath('/admin/servicos');
+  scheduleMoloniSync(String(service._id));
   return ok({ id: String(service._id) });
 }
 
