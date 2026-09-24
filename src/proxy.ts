@@ -38,7 +38,9 @@ export default auth((req) => {
   if (isAdminRoute(pathname)) {
     if (!isLoggedIn) {
       const url = new URL(ADMIN_LOGIN_PAGE, nextUrl);
-      url.searchParams.set('redirect', pathname);
+      // Preserva a query string (ex.: /conta/reservas?nova=CHI-…) para o
+      // pós-login voltar exatamente ao mesmo sítio
+      url.searchParams.set('redirect', pathname + nextUrl.search);
       return NextResponse.redirect(url);
     }
     if (role !== 'admin') {
@@ -65,7 +67,9 @@ export default auth((req) => {
   if (isClientRoute(pathname)) {
     if (!isLoggedIn) {
       const url = new URL('/entrar', nextUrl);
-      url.searchParams.set('redirect', pathname);
+      // Preserva a query string (ex.: /conta/reservas?nova=CHI-…) para o
+      // pós-login voltar exatamente ao mesmo sítio
+      url.searchParams.set('redirect', pathname + nextUrl.search);
       return NextResponse.redirect(url);
     }
     // Admin não precisa de área cliente — redirect para admin
