@@ -1,92 +1,160 @@
-// Ã°Å¸â€œâ€ž src/app/marcacoes/horario/page.tsx
+// 📄 src/app/marcacoes/[bookingNumber]/page.tsx
 /**
- * Chi Sublime Ã¢â‚¬â€ Reservar (Step 2: Horario + Staff)
+ * Chi Sublime — Reservar [bookingNumber] (Pagina de sucesso)
  * ============================================================
  *
- * Server Component. Busca staff ativos da DB e passa ao
- * Step2Client (orquestrador client-side).
+ * Server Component publico que mostra os detalhes da reserva
+ * apos criacao bem-sucedida.
  *
- * Mobile-first: header compacto Ã¢â‚¬â€ o profissional e o
- * calendÃƒÂ¡rio sÃƒÂ£o a primeira coisa visÃƒÂ­vel no telemÃƒÂ³vel.
+ * Identificada pelo bookingNumber na URL (ex: /marcacoes/CHI-2026-0042).
+ *
+ * Seguranca (RGPD):
+ *  - O bookingNumber é SEQUENCIAL (CHI-2026-0001, 0002…) e portanto
+ *    adivinhável. Antes a página era pública e mostrava nome, email
+ *    completo, serviços e data de qualquer reserva.
+ *  - Agora só o cliente dono da reserva (sessão) ou um admin a veem.
+ *    Sem sessão → login com regresso a esta página. Sessão de outra
+ *    pessoa → 404 (não revela que a reserva existe).
+ *  - noindex: nunca deve aparecer em motores de busca.
  */
 
 import type { Metadata } from 'next';
-import { getLocale, getTranslations } from 'next-intl/server';
-import type { Locale } from '@/i18n/config';
-import { localizedField } from '@/lib/utils/localized';
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import { BOOKING_RULES } from '@/lib/constants/business';
 import { connectDB } from '@/lib/db/connect';
-import { Staff } from '@/lib/models';
+import { Booking, Client, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
-import { BookingStepper } from '@/components/booking/BookingStepper';
-import { BookingFlowGuard } from '@/components/booking/BookingFlowGuard';
-import { Step2Client } from '@/components/booking/Step2Client';
-import type { StaffOption } from '@/components/booking/StaffPicker';
+import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 
 export const metadata: Metadata = {
-  title: 'Escolher horÃƒÂ¡rio | Chi Sublime',
-  description: 'Escolha a data e o profissional para a sua marcaÃƒÂ§ÃƒÂ£o no Chi Sublime.',
+  title: 'A sua marcação | Chi Sublime',
+  description: 'Detalhes da sua reserva no Chi Sublime.',
+  robots: { index: false, follow: false },
 };
 
-// ============================================================
-// DATA FETCHING
-// ============================================================
+export const dynamic = 'force-dynamic';
 
-async function getActiveStaff(locale: Locale): Promise<StaffOption[]> {
+type Props = {
+  params: Promise<{ bookingNumber: string }>;
+};
+
+async function getBookingByNumber(bookingNumber: string) {
   await connectDB();
-  const staff = await Staff.find({ active: true }).sort({ order: 1 }).lean();
-  return staff.map((s) => ({
-    id: String(s._id),
-    name: s.name,
-    role: localizedField(s.role, locale),
-    photo: s.photo,
-  }));
+
+  const booking = await Booking.findOne({ bookingNumber }).lean();
+  if (!booking) return null;
+
+  // Buscar dados do cliente
+  let clientName = 'Cliente';
+  let clientEmail = '';
+
+  if (booking.clientId) {
+    const client = await Client.findById(booking.clientId).lean();
+    if (client) {
+      clientName = client.name;
+      clientEmail = client.email ?? '';
+    }
+  } else if (booking.guestInfo) {
+    clientName = booking.guestInfo.name;
+    clientEmail = booking.guestInfo.email;
+  }
+
+  // Buscar staff name
+  const staff = await Staff.findById(booking.staffId).lean();
+  const staffName = staff?.name ?? 'Profissional';
+
+  return {
+    ownerClientId: booking.clientId ? String(booking.clientId) : null,
+    bookingNumber: booking.bookingNumber,
+    clientName,
+    clientEmail,
+    staffName,
+    startTime: booking.startTime.toISOString(),
+    endTime: booking.endTime.toISOString(),
+    totalPrice: booking.totalPrice,
+    totalDuration: booking.totalDuration,
+    services: booking.services.map((s) => ({
+      name: s.name,
+      duration: s.duration,
+      price: s.price,
+    })),
+    status: booking.status,
+  };
 }
 
-// ============================================================
-// PAGE
-// ============================================================
+export default async function BookingSuccessPage({ params }: Props) {
+  const { bookingNumber } = await params;
 
-export default async function MarcacoesHorarioPage() {
-  const locale = (await getLocale()) as Locale;
-  const [t, staffOptions] = await Promise.all([
-    getTranslations('booking.pages'),
-    getActiveStaff(locale),
-  ]);
+  // Validar formato
+  if (!/^CHI-\d{4}-\d{4,}$/.test(bookingNumber)) {
+    notFound();
+  }
+
+  const session = await auth();
+  if (!session?.user) {
+    redirect(`/entrar?redirect=${encodeURIComponent(`/marcacoes/${bookingNumber}`)}`);
+  }
+
+  const booking = await getBookingByNumber(bookingNumber);
+
+  const isAdmin = session.user.role === 'admin';
+  const isOwner =
+    !!booking?.ownerClientId &&
+    session.user.role === 'client' &&
+    session.user.clientId === booking.ownerClientId;
+
+  if (!booking || (!isAdmin && !isOwner)) {
+    notFound();
+  }
+
+  // Se reserva foi cancelada, mostrar uma mensagem diferente
+  if (booking.status === 'cancelled') {
+    return (
+      <>
+        <PublicNavbar />
+        <main className="bg-chi-cream flex min-h-screen flex-col items-center justify-center pt-32 pb-20">
+          <div className="max-w-md px-6 text-center">
+            <h1 className="text-chi-charcoal mb-4 font-serif text-3xl md:text-4xl">
+              Reserva cancelada
+            </h1>
+            <p className="text-chi-charcoal-soft mb-8">
+              A reserva <span className="font-mono">{bookingNumber}</span> foi cancelada.
+            </p>
+            <Link
+              href="/marcacoes"
+              className="bg-chi-green-deep inline-block px-8 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase"
+              style={{ color: '#FAF7F2' }}
+            >
+              Fazer nova reserva
+            </Link>
+          </div>
+        </main>
+        <PublicFooter />
+      </>
+    );
+  }
 
   return (
     <>
       <PublicNavbar />
-
-      <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12">
-          {/* Header compacto */}
-          <header className="mb-6 md:mb-10">
-            <div className="flex items-baseline justify-between gap-4">
-              <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
-                {t('step2Title')}
-              </h1>
-              <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
-                {t('stepLabel', { current: 2, total: 3 })}
-              </span>
-            </div>
-            <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
-              {t('step2Intro')}
-            </p>
-          </header>
-
-          {/* Stepper */}
-          <div className="mb-8 md:mb-12">
-            <BookingStepper currentStep="time" />
-          </div>
-
-          {/* Conteudo protegido Ã¢â‚¬â€ exige Step 1 completado */}
-          <BookingFlowGuard requireStep="time">
-            <Step2Client staffOptions={staffOptions} />
-          </BookingFlowGuard>
-        </div>
+      <main className="bg-chi-cream min-h-screen pt-32">
+        <BookingConfirmation
+          bookingNumber={booking.bookingNumber}
+          clientName={booking.clientName}
+          clientEmail={booking.clientEmail}
+          staffName={booking.staffName}
+          startTime={booking.startTime}
+          endTime={booking.endTime}
+          status={booking.status === 'pending' ? 'pending' : 'confirmed'}
+          cancellationWindowHours={BOOKING_RULES.cancellationWindowHours}
+          totalPrice={booking.totalPrice}
+          totalDuration={booking.totalDuration}
+          services={booking.services}
+        />
       </main>
-
       <PublicFooter />
     </>
   );

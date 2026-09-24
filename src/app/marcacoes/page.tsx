@@ -1,14 +1,14 @@
-// ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Å¾ src/app/marcacoes/page.tsx
+// 📄 src/app/marcacoes/page.tsx
 /**
- * Chi Sublime ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Reservar (Step 1: Escolher Servico)
+ * Chi Sublime — Reservar (Step 1: Escolher Servico)
  * ============================================================
  *
  * Server Component. Busca categorias e servicos da DB e
  * passa para o ServicePicker (Client Component).
  *
  * Mobile-first: header compacto (uma linha) para que a lista
- * de serviÃƒÆ’Ã‚Â§os apareÃƒÆ’Ã‚Â§a above the fold ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â o caminho atÃƒÆ’Ã‚Â© ao
- * primeiro toque ÃƒÆ’Ã‚Âºtil ÃƒÆ’Ã‚Â© o mais curto possÃƒÆ’Ã‚Â­vel.
+ * de serviços apareça above the fold — o caminho até ao
+ * primeiro toque útil é o mais curto possível.
  */
 
 import type { Metadata } from 'next';
@@ -24,9 +24,9 @@ import { BookingSummary } from '@/components/booking/BookingSummary';
 import { ServicePicker, type CategoryWithServices } from '@/components/booking/ServicePicker';
 
 export const metadata: Metadata = {
-  title: 'MarcaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes Online | Chi Sublime',
+  title: 'Marcações Online em Cascais | Chi Sublime',
   description:
-    'FaÃƒÆ’Ã‚Â§a a sua marcaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o online no Chi Sublime ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Hair Style & Beauty. Cabeleireiro, sobrancelhas, maquilhagem, unhas e depilaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o em Cascais. Escolha o serviÃƒÆ’Ã‚Â§o, o profissional e o horÃƒÆ’Ã‚Â¡rio em menos de um minuto.',
+    'Faça a sua marcação online no Chi Sublime — Hair Style & Beauty. Cabeleireiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais. Escolha o serviço, o profissional e o horário em menos de um minuto.',
   alternates: { canonical: '/marcacoes' },
 };
 
@@ -87,7 +87,7 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
 
       <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
-          {/* Header compacto ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tÃƒÆ’Ã‚Â­tulo e ajuda numa linha sÃƒÆ’Ã‚Â³ */}
+          {/* Header compacto — título e ajuda numa linha só */}
           <header className="mb-6 md:mb-10">
             <div className="flex items-baseline justify-between gap-4">
               <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
@@ -109,12 +109,12 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
 
           {/* Layout: lista de servicos + sidebar (desktop) */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-12">
-            {/* Coluna principal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â categorias e servicos */}
+            {/* Coluna principal — categorias e servicos */}
             <div>
               <ServicePicker categories={categories} initialOpenSlug={categoria} />
             </div>
 
-            {/* Coluna lateral ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â resumo (sticky em desktop; no mobile o
+            {/* Coluna lateral — resumo (sticky em desktop; no mobile o
                 BookingSummary rende a barra fixa inferior) */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <BookingSummary

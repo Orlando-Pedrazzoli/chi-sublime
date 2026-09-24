@@ -1,13 +1,13 @@
-// Ã°Å¸â€œâ€ž src/app/marcacoes/horario/page.tsx
+// 📄 src/app/marcacoes/horario/page.tsx
 /**
- * Chi Sublime Ã¢â‚¬â€ Reservar (Step 2: Horario + Staff)
+ * Chi Sublime — Reservar (Step 2: Horario + Staff)
  * ============================================================
  *
  * Server Component. Busca staff ativos da DB e passa ao
  * Step2Client (orquestrador client-side).
  *
- * Mobile-first: header compacto Ã¢â‚¬â€ o profissional e o
- * calendÃƒÂ¡rio sÃƒÂ£o a primeira coisa visÃƒÂ­vel no telemÃƒÂ³vel.
+ * Mobile-first: header compacto — o profissional e o
+ * calendário são a primeira coisa visível no telemóvel.
  */
 
 import type { Metadata } from 'next';
@@ -24,8 +24,8 @@ import { Step2Client } from '@/components/booking/Step2Client';
 import type { StaffOption } from '@/components/booking/StaffPicker';
 
 export const metadata: Metadata = {
-  title: 'Escolher horÃƒÂ¡rio | Chi Sublime',
-  description: 'Escolha a data e o profissional para a sua marcaÃƒÂ§ÃƒÂ£o no Chi Sublime.',
+  title: 'Escolher horário | Chi Sublime',
+  description: 'Escolha a data e o profissional para a sua marcação no Chi Sublime.',
 };
 
 // ============================================================
@@ -80,7 +80,7 @@ export default async function MarcacoesHorarioPage() {
             <BookingStepper currentStep="time" />
           </div>
 
-          {/* Conteudo protegido Ã¢â‚¬â€ exige Step 1 completado */}
+          {/* Conteudo protegido — exige Step 1 completado */}
           <BookingFlowGuard requireStep="time">
             <Step2Client staffOptions={staffOptions} />
           </BookingFlowGuard>

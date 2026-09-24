@@ -1,25 +1,25 @@
-// ðŸ“„ src/lib/email/send.ts
+// 📄 src/lib/email/send.ts
 /**
- * Chi Sublime â€” Senders de email (alto nÃ­vel)
+ * Chi Sublime — Senders de email (alto nível)
  * ============================================================
  *
- * Cada funÃ§Ã£o renderiza um template react-email para HTML+texto e
- * envia via `sendEmail` (resend.ts). Templates sÃ£o componentes puros;
- * aqui Ã© que se constroem os URLs e os assuntos.
+ * Cada função renderiza um template react-email para HTML+texto e
+ * envia via `sendEmail` (resend.ts). Templates são componentes puros;
+ * aqui é que se constroem os URLs e os assuntos.
  *
- * NOVO: sendNewBookingAdminEmail â€” alerta ao SALÃƒO a cada reserva
- * nova (substitui o push do Noona HQ). DestinatÃ¡rio configurÃ¡vel
+ * NOVO: sendNewBookingAdminEmail — alerta ao SALÃO a cada reserva
+ * nova (substitui o push do Noona HQ). Destinatário configurável
  * via SALON_NOTIFICATION_EMAIL (fallback: FROM_EMAIL).
  *
- * MarcaÃ§Ãµes (polÃ­tica de confirmaÃ§Ã£o em lib/booking/policy.ts):
- *  - sendBookingConfirmationEmail  â†’ confirmada, com convite .ics anexado
- *  - sendBookingRequestReceivedEmail â†’ pedido pendente (sÃ³ modo manual)
- *  - sendBookingCancellationEmail  â†’ cancelada | pedido recusado
- *  - sendBookingCancelledAdminEmail â†’ alerta ao salÃ£o quando a cliente cancela
+ * Marcações (política de confirmação em lib/booking/policy.ts):
+ *  - sendBookingConfirmationEmail  → confirmada, com convite .ics anexado
+ *  - sendBookingRequestReceivedEmail → pedido pendente (só modo manual)
+ *  - sendBookingCancellationEmail  → cancelada | pedido recusado
+ *  - sendBookingCancelledAdminEmail → alerta ao salão quando a cliente cancela
  *
  * Compatibilidade: `sendPasswordResetEmail({ to, name, token })`
- * mantÃ©m a assinatura antiga (usada pelo auth.ts). A infraestrutura
- * (sendEmail, helpers de URL, tipos) Ã© re-exportada para quem antes
+ * mantém a assinatura antiga (usada pelo auth.ts). A infraestrutura
+ * (sendEmail, helpers de URL, tipos) é re-exportada para quem antes
  * importava daqui.
  */
 
@@ -61,9 +61,9 @@ export {
 export type { SendEmailInput, SendEmailResult } from './resend';
 
 /**
- * Para onde vÃ£o os alertas operacionais do salÃ£o (novas reservas).
+ * Para onde vão os alertas operacionais do salão (novas reservas).
  * Definir SALON_NOTIFICATION_EMAIL no .env; sem ela, cai no FROM
- * (a caixa reservas@chisublime.pt recebe os prÃ³prios alertas).
+ * (a caixa reservas@chisublime.pt recebe os próprios alertas).
  */
 export const SALON_NOTIFICATION_EMAIL = process.env.SALON_NOTIFICATION_EMAIL ?? FROM_EMAIL;
 
@@ -92,7 +92,7 @@ export async function sendPasswordResetEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: 'RecuperaÃ§Ã£o de password â€” Chi Sublime',
+    subject: 'Recuperação de password — Chi Sublime',
     html,
     text,
   });
@@ -117,7 +117,7 @@ export async function sendEmailVerificationEmail(params: {
     verifyUrl: getVerifyEmailUrl(params.token),
   });
   const { html, text } = await renderEmail(node);
-  return sendEmail({ to: params.to, subject: 'Confirma o teu email â€” Chi Sublime', html, text });
+  return sendEmail({ to: params.to, subject: 'Confirma o teu email — Chi Sublime', html, text });
 }
 
 // ============================================================
@@ -133,7 +133,7 @@ export async function sendBookingConfirmationEmail(params: {
   services: string;
   staffName: string;
   total: string;
-  /** Instantes reais â€” para o convite de calendÃ¡rio */
+  /** Instantes reais — para o convite de calendário */
   startTime?: Date;
   endTime?: Date;
   approvedBySalon?: boolean;
@@ -168,7 +168,7 @@ export async function sendBookingConfirmationEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `MarcaÃ§Ã£o confirmada Â· ${params.date}, ${params.time} â€” Chi Sublime`,
+    subject: `Marcação confirmada · ${params.date}, ${params.time} — Chi Sublime`,
     html,
     text,
     attachments: calendarEvent
@@ -206,7 +206,7 @@ export async function sendBookingRequestReceivedEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Pedido de marcaÃ§Ã£o recebido Â· ${params.bookingNumber} â€” Chi Sublime`,
+    subject: `Pedido de marcação recebido · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });
@@ -240,7 +240,7 @@ export async function sendNewBookingAdminEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: SALON_NOTIFICATION_EMAIL,
-    subject: `${params.pendingApproval ? 'â³ Por confirmar' : 'ðŸ—“ Nova marcaÃ§Ã£o'} ${params.time} Â· ${params.clientName} â€” ${params.bookingNumber}`,
+    subject: `${params.pendingApproval ? '⏳ Por confirmar' : '🗓 Nova marcação'} ${params.time} · ${params.clientName} — ${params.bookingNumber}`,
     html,
     text,
   });
@@ -267,7 +267,7 @@ export async function sendBookingReminderEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Lembrete da tua marcaÃ§Ã£o Â· ${params.bookingNumber} â€” Chi Sublime`,
+    subject: `Lembrete da tua marcação · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });
@@ -296,8 +296,8 @@ export async function sendBookingCancellationEmail(params: {
   return sendEmail({
     to: params.to,
     subject: declined
-      ? `NÃ£o foi possÃ­vel confirmar o teu pedido Â· ${params.bookingNumber} â€” Chi Sublime`
-      : `MarcaÃ§Ã£o cancelada Â· ${params.bookingNumber} â€” Chi Sublime`,
+      ? `Não foi possível confirmar o teu pedido · ${params.bookingNumber} — Chi Sublime`
+      : `Marcação cancelada · ${params.bookingNumber} — Chi Sublime`,
     html,
     text,
   });
@@ -320,14 +320,14 @@ export async function sendBookingCancelledAdminEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: SALON_NOTIFICATION_EMAIL,
-    subject: `âŒ Cancelamento ${params.time} Â· ${params.clientName} â€” ${params.bookingNumber}`,
+    subject: `❌ Cancelamento ${params.time} · ${params.clientName} — ${params.bookingNumber}`,
     html,
     text,
   });
 }
 
 // ============================================================
-// FaturaÃ§Ã£o
+// Faturação
 // ============================================================
 
 export async function sendInvoiceReceiptEmail(params: {
@@ -348,7 +348,7 @@ export async function sendInvoiceReceiptEmail(params: {
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `O teu documento ${params.documentNumber} â€” Chi Sublime`,
+    subject: `O teu documento ${params.documentNumber} — Chi Sublime`,
     html,
     text,
   });

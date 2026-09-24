@@ -1,28 +1,28 @@
-// ðŸ“„ scripts/check-calendar.ts
+// 📄 scripts/check-calendar.ts
 /**
- * Chi Sublime â€” DiagnÃ³stico do CALENDÃRIO (SÃ“ LEITURA)
+ * Chi Sublime — Diagnóstico do CALENDÁRIO (SÓ LEITURA)
  * ============================================================
  *
- * Corre exatamente o mesmo cÃ³digo que o calendÃ¡rio de
+ * Corre exatamente o mesmo código que o calendário de
  * /marcacoes/horario usa (getMonthAvailability) e imprime o
- * estado de cada dia. NÃ£o grava nada.
+ * estado de cada dia. Não grava nada.
  *
  * PARA QUE SERVE
  * --------------
- * O check-hours.ts confirma que a BASE DE DADOS estÃ¡ certa.
- * Este confirma o que a APLICAÃ‡ÃƒO conclui a partir dela â€” que
- * Ã© outra coisa. Se aqui os sÃ¡bados aparecerem 'available' mas
- * o site em produÃ§Ã£o disser indisponÃ­vel, entÃ£o o problema nÃ£o
- * Ã© de dados nem de lÃ³gica: Ã© de ambiente (a Vercel estÃ¡ a ler
- * outra base de dados, ou o deploy ainda nÃ£o apanhou o cÃ³digo).
+ * O check-hours.ts confirma que a BASE DE DADOS está certa.
+ * Este confirma o que a APLICAÇÃO conclui a partir dela — que
+ * é outra coisa. Se aqui os sábados aparecerem 'available' mas
+ * o site em produção disser indisponível, então o problema não
+ * é de dados nem de lógica: é de ambiente (a Vercel está a ler
+ * outra base de dados, ou o deploy ainda não apanhou o código).
  *
- * Mostra tambÃ©m a RAZÃƒO de cada dia fechado, o que distingue
- * "encerrado por horÃ¡rio" de "feriado" de "sem profissional".
+ * Mostra também a RAZÃO de cada dia fechado, o que distingue
+ * "encerrado por horário" de "feriado" de "sem profissional".
  *
  * USO
  * ---
  *   npx tsx scripts/check-calendar.ts
- *   npx tsx scripts/check-calendar.ts 2026-08     # outro mÃªs
+ *   npx tsx scripts/check-calendar.ts 2026-08     # outro mês
  */
 
 import { readFileSync } from 'node:fs';
@@ -31,25 +31,25 @@ import mongoose from 'mongoose';
 import { Service, Staff } from '../src/lib/models';
 import { getMonthAvailability } from '../src/lib/booking/month-availability';
 
-const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
+const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-/** SÃ­mbolo por estado, para o output ser legÃ­vel de relance */
+/** Símbolo por estado, para o output ser legível de relance */
 const STATE_ICON: Record<string, string> = {
-  available: 'âœ…',
-  full: 'ðŸŸ ',
-  closed: 'â¬›',
-  'staff-off': 'âŒ',
-  past: 'Â·',
-  'out-of-range': 'Â·',
+  available: '✅',
+  full: '🟠',
+  closed: '⬛',
+  'staff-off': '❌',
+  past: '·',
+  'out-of-range': '·',
 };
 
 function loadMongoUri(): string {
-  // 1) --uri=... na linha de comandos (o mais fiÃ¡vel: nÃ£o depende
-  //    da sessÃ£o do terminal nem de variÃ¡veis de ambiente)
+  // 1) --uri=... na linha de comandos (o mais fiável: não depende
+  //    da sessão do terminal nem de variáveis de ambiente)
   const uriArg = process.argv.find((a) => a.startsWith('--uri='));
   if (uriArg) return uriArg.slice('--uri='.length);
 
-  // 2) variÃ¡vel de ambiente
+  // 2) variável de ambiente
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
 
   try {
@@ -59,17 +59,17 @@ function loadMongoUri(): string {
       if (match) return match[1].trim().replace(/^["']|["']$/g, '');
     }
   } catch {
-    // .env.local nÃ£o existe
+    // .env.local não existe
   }
 
-  console.error('âŒ MONGODB_URI nÃ£o encontrado (ambiente ou .env.local)');
+  console.error('❌ MONGODB_URI não encontrado (ambiente ou .env.local)');
   process.exit(1);
 }
 
 /**
- * Mostra a que base de dados nos ligÃ¡mos, SEM revelar a password.
- * Ã‰ o dado mais importante deste script: se nÃ£o bater certo com a
- * variÃ¡vel de produÃ§Ã£o da Vercel, encontrÃ¡mos a causa.
+ * Mostra a que base de dados nos ligámos, SEM revelar a password.
+ * É o dado mais importante deste script: se não bater certo com a
+ * variável de produção da Vercel, encontrámos a causa.
  */
 function describeUri(uri: string): string {
   try {
@@ -78,7 +78,7 @@ function describeUri(uri: string): string {
     const host = withoutCreds.match(/@([^/]+)/)?.[1] ?? '?';
     return `host=${host}  db=${dbName}`;
   } catch {
-    return '(nÃ£o foi possÃ­vel interpretar o URI)';
+    return '(não foi possível interpretar o URI)';
   }
 }
 
@@ -91,28 +91,28 @@ async function main() {
   const year = arg ? Number(arg.split('-')[0]) : now.getFullYear();
   const month = arg ? Number(arg.split('-')[1]) : now.getMonth() + 1;
 
-  console.log('\n' + 'â•'.repeat(64));
-  console.log('  CHI SUBLIME â€” DiagnÃ³stico do calendÃ¡rio de reservas');
-  console.log('â•'.repeat(64));
+  console.log('\n' + '═'.repeat(64));
+  console.log('  CHI SUBLIME — Diagnóstico do calendário de reservas');
+  console.log('═'.repeat(64));
   console.log(`  Ligado a: ${describeUri(uri)}`);
-  console.log('  âš ï¸  Confirme que bate certo com o MONGODB_URI de');
-  console.log('     PRODUÃ‡ÃƒO na Vercel (Settings â†’ Environment Variables)');
+  console.log('  ⚠️  Confirme que bate certo com o MONGODB_URI de');
+  console.log('     PRODUÇÃO na Vercel (Settings → Environment Variables)');
 
-  // ServiÃ§o e staff de referÃªncia â€” o calendÃ¡rio precisa de ambos
+  // Serviço e staff de referência — o calendário precisa de ambos
   const service = await Service.findOne({ active: true }).lean();
   if (!service) {
-    console.error('\nâŒ Nenhum serviÃ§o ativo. O calendÃ¡rio nÃ£o consegue calcular nada.');
+    console.error('\n❌ Nenhum serviço ativo. O calendário não consegue calcular nada.');
     await mongoose.disconnect();
     return;
   }
 
   const staffCount = await Staff.countDocuments({ active: true });
-  // service.name Ã© { pt, en } â€” extrair o PT para o log
+  // service.name é { pt, en } — extrair o PT para o log
   const serviceName =
     typeof service.name === 'string' ? service.name : (service.name?.pt ?? '(sem nome)');
-  console.log(`\n  ServiÃ§o usado no teste: ${serviceName} (${service.duration} min)`);
+  console.log(`\n  Serviço usado no teste: ${serviceName} (${service.duration} min)`);
   console.log(`  Profissionais ativos: ${staffCount}`);
-  console.log(`  MÃªs: ${year}-${String(month).padStart(2, '0')}  Â·  staffId: any`);
+  console.log(`  Mês: ${year}-${String(month).padStart(2, '0')}  ·  staffId: any`);
 
   const result = await getMonthAvailability({
     year,
@@ -122,13 +122,13 @@ async function main() {
   });
 
   if (result.error) {
-    console.error(`\nâŒ ${result.error.code}: ${result.error.message}`);
+    console.error(`\n❌ ${result.error.code}: ${result.error.message}`);
     await mongoose.disconnect();
     return;
   }
 
   console.log('\n  Data         Dia   Estado         Detalhe');
-  console.log('  ' + 'â”€'.repeat(60));
+  console.log('  ' + '─'.repeat(60));
 
   for (const day of result.days) {
     if (day.state === 'past') continue;
@@ -142,15 +142,15 @@ async function main() {
     );
   }
 
-  // â”€â”€ Resumo focado nos sÃ¡bados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Resumo focado nos sábados ────────────────────────────
   const saturdays = result.days.filter((day) => {
     const d = new Date(`${day.date}T12:00:00`);
     return d.getDay() === 6 && day.state !== 'past';
   });
 
-  console.log('\n  ' + 'â”€'.repeat(60));
-  console.log('  SÃBADOS (o dia que passou a estar aberto):');
-  // 'closed' por FERIADO e 'out-of-range' sao comportamento CORRETO â€”
+  console.log('\n  ' + '─'.repeat(60));
+  console.log('  SÁBADOS (o dia que passou a estar aberto):');
+  // 'closed' por FERIADO e 'out-of-range' sao comportamento CORRETO —
   // nao contam como problema, so como informacao.
   const isExpected = (s: (typeof saturdays)[number]) =>
     s.state === 'available' ||
@@ -160,28 +160,28 @@ async function main() {
 
   for (const s of saturdays) {
     const mark =
-      s.state === 'available' || s.state === 'full' ? 'âœ…' : isExpected(s) ? 'â„¹ï¸ ' : 'âŒ';
+      s.state === 'available' || s.state === 'full' ? '✅' : isExpected(s) ? 'ℹ️ ' : '❌';
     console.log(`    ${s.date}  ${s.state.padEnd(13)} ${mark} ${s.reason ?? ''}`);
   }
 
   const bad = saturdays.filter((s) => !isExpected(s));
 
-  console.log('\n' + 'â•'.repeat(64));
+  console.log('\n' + '═'.repeat(64));
   if (bad.length === 0 && saturdays.length > 0) {
-    console.log('  âœ… Os sÃ¡bados estÃ£o reservÃ¡veis NESTA base de dados.');
-    console.log('     Se o site em produÃ§Ã£o discordar, o problema Ã© de');
-    console.log('     ambiente: a Vercel lÃª outra BD ou outro deploy.');
+    console.log('  ✅ Os sábados estão reserváveis NESTA base de dados.');
+    console.log('     Se o site em produção discordar, o problema é de');
+    console.log('     ambiente: a Vercel lê outra BD ou outro deploy.');
   } else if (saturdays.length === 0) {
-    console.log('  â„¹ï¸  NÃ£o hÃ¡ sÃ¡bados futuros neste mÃªs â€” experimente o mÃªs seguinte.');
+    console.log('  ℹ️  Não há sábados futuros neste mês — experimente o mês seguinte.');
   } else {
-    console.log(`  âŒ ${bad.length} sÃ¡bado(s) indevidamente fechado(s). Ver acima.`);
+    console.log(`  ❌ ${bad.length} sábado(s) indevidamente fechado(s). Ver acima.`);
   }
-  console.log('â•'.repeat(64) + '\n');
+  console.log('═'.repeat(64) + '\n');
 
   await mongoose.disconnect();
 }
 
 main().catch((err) => {
-  console.error('âŒ DiagnÃ³stico falhou:', err);
+  console.error('❌ Diagnóstico falhou:', err);
   process.exit(1);
 });

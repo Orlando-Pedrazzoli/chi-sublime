@@ -8,7 +8,7 @@
  *
  * Mostra foto, role, bio, especialidade e os serviços que o
  * profissional presta (staffIds vazio num serviço = qualquer
- * profissional o presta). CTA → /reservar.
+ * profissional o presta). CTA → /marcacoes.
  *
  * ISR de 10 min (as actions da equipa revalidam o path ao gravar).
  * Profissionais com showOnWebsite=false dão 404. JSON-LD Person para SEO.
@@ -181,7 +181,7 @@ export default async function EquipaPerfilPage({ params }: { params: Params }) {
                 </p>
               )}
               <Link
-                href="/reservar"
+                href="/marcacoes"
                 className="bg-chi-gold hover:bg-chi-gold-soft mt-8 inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
                 style={{ color: '#1F3D2E', borderRadius: '8px' }}
               >

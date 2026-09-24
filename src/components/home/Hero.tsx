@@ -1,26 +1,26 @@
-// ðŸ“„ src/components/home/Hero.tsx
+// 📄 src/components/home/Hero.tsx
 /**
- * Chi Sublime â€” Hero
+ * Chi Sublime — Hero
  * ============================================================
  *
- * Linguagem editorial: conteÃºdo ancorado em baixo Ã  esquerda,
- * tipografia display gigante, uma Ãºnica palavra em itÃ¡lico
- * dourado â€” reservada exclusivamente a este momento.
+ * Linguagem editorial: conteúdo ancorado em baixo à esquerda,
+ * tipografia display gigante, uma única palavra em itálico
+ * dourado — reservada exclusivamente a este momento.
  *
  * i18n: Server Component com getTranslations('home.hero').
- * O tÃ­tulo usa t.rich() â€” as tags <em> e <br> vivem na
- * mensagem, permitindo que a palavra em itÃ¡lico mude de
- * posiÃ§Ã£o entre idiomas ("respira" / "breathes").
+ * O título usa t.rich() — as tags <em> e <br> vivem na
+ * mensagem, permitindo que a palavra em itálico mude de
+ * posição entre idiomas ("respira" / "breathes").
  *
  * OpenStatusBadge (client) acima do eyebrow: estado
  * aberto/fechado em tempo real, fuso Europe/Lisbon.
  *
- * âš ï¸ Cores crÃ­ticas em INLINE STYLE (regra do projeto:
+ * ⚠️ Cores críticas em INLINE STYLE (regra do projeto:
  * Tailwind v4 + Next 16 falha a aplicar classes de cor em
- * alguns elementos â€” o link secundÃ¡rio renderizava escuro).
+ * alguns elementos — o link secundário renderizava escuro).
  * Border-radius de 8px nos CTAs, alinhado com o resto do site.
  *
- * SecundÃ¡rio = ghost button com borda + backdrop-blur, para
+ * Secundário = ghost button com borda + backdrop-blur, para
  * garantir leitura sobre qualquer zona da fotografia.
  */
 
@@ -49,13 +49,13 @@ export async function Hero() {
         </div>
       </div>
 
-      {/* Overlay â€” mais escuro em baixo, onde vive o texto */}
+      {/* Overlay — mais escuro em baixo, onde vive o texto */}
       <div className="from-chi-green-darker/25 via-chi-green-darker/30 to-chi-green-darker/90 absolute inset-0 z-10 bg-gradient-to-b" />
 
-      {/* ConteÃºdo â€” bottom-left */}
+      {/* Conteúdo — bottom-left */}
       <div className="relative z-20 mx-auto w-full max-w-7xl px-6 pt-40 pb-16 md:px-12 md:pb-24">
         <div className="max-w-4xl">
-          {/* Estado do salÃ£o em tempo real (fuso Europe/Lisbon) */}
+          {/* Estado do salão em tempo real (fuso Europe/Lisbon) */}
           <div className="animate-fade-up animate-fade-up-delay-1">
             <OpenStatusBadge />
           </div>
@@ -89,7 +89,7 @@ export async function Hero() {
           </p>
 
           <div className="animate-fade-up animate-fade-up-delay-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-            {/* PRIMARY â€” dourado, radius 8px */}
+            {/* PRIMARY — dourado, radius 8px */}
             <Link
               href="/marcacoes"
               className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
@@ -98,8 +98,8 @@ export async function Hero() {
               {t('ctaPrimary')}
             </Link>
 
-            {/* SECONDARY â€” ghost com borda + blur, cores FIXAS em
-                inline style. O hover NÃƒO troca cores (texto fica
+            {/* SECONDARY — ghost com borda + blur, cores FIXAS em
+                inline style. O hover NÃO troca cores (texto fica
                 branco sempre); apenas a seta desliza. */}
             <Link
               href="#services"
@@ -117,7 +117,7 @@ export async function Hero() {
                 style={{ color: '#D4AF6E' }}
                 aria-hidden
               >
-                â†’
+                →
               </span>
             </Link>
           </div>

@@ -1,14 +1,14 @@
-// Ã°Å¸â€œâ€ž src/app/marcacoes/confirmar/page.tsx
+// 📄 src/app/marcacoes/confirmar/page.tsx
 /**
- * Chi Sublime Ã¢â‚¬â€ Reservar (Step 3: Confirmar)
+ * Chi Sublime — Reservar (Step 3: Confirmar)
  * ============================================================
  *
  * Server Component. Renderiza o form de confirmacao protegido
  * pelo BookingFlowGuard (exige Step 1 + Step 2 completados).
  *
  * Mobile-first: header compacto; no mobile o resumo read-only
- * aparece ANTES do formulÃƒÂ¡rio (o utilizador confirma o que vai
- * pagar antes de preencher dados Ã¢â‚¬â€ preÃƒÂ§o total visÃƒÂ­vel cedo).
+ * aparece ANTES do formulário (o utilizador confirma o que vai
+ * pagar antes de preencher dados — preço total visível cedo).
  */
 
 import type { Metadata } from 'next';
@@ -20,7 +20,7 @@ import { BookingSummaryReadOnly } from '@/components/booking/BookingSummaryReadO
 import { Step3Client } from '@/components/booking/Step3Client';
 
 export const metadata: Metadata = {
-  title: 'Confirmar MarcaÃƒÂ§ÃƒÂ£o | Chi Sublime',
+  title: 'Confirmar Marcação | Chi Sublime',
   description: 'Os seus dados para finalizar a reserva no Chi Sublime.',
 };
 
@@ -42,7 +42,7 @@ export default function MarcacoesConfirmarPage() {
               </span>
             </div>
             <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
-              SÃƒÂ³ faltam os seus dados. Confirme o resumo e termine a reserva.
+              Só faltam os seus dados. Confirme o resumo e termine a reserva.
             </p>
           </header>
 
@@ -53,8 +53,8 @@ export default function MarcacoesConfirmarPage() {
 
           <BookingFlowGuard requireStep="time">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px] lg:gap-12">
-              {/* Mobile: resumo primeiro (preÃƒÂ§o visÃƒÂ­vel antes do form).
-                  Desktop: form ÃƒÂ  esquerda, resumo sticky ÃƒÂ  direita. */}
+              {/* Mobile: resumo primeiro (preço visível antes do form).
+                  Desktop: form à esquerda, resumo sticky à direita. */}
               <aside className="order-first lg:sticky lg:top-24 lg:order-last lg:self-start">
                 <BookingSummaryReadOnly />
               </aside>

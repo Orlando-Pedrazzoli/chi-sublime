@@ -1,20 +1,20 @@
 /**
- * Chi Sublime â€” robots.txt dinÃ¢mico (Next.js Metadata Route)
+ * Chi Sublime — robots.txt dinâmico (Next.js Metadata Route)
  * ============================================================
  *
  * Gerado em: https://www.chisublime.pt/robots.txt
  *
- * EstratÃ©gia:
- * - Regras explÃ­citas para Googlebot e Bingbot (os dois motores
- *   relevantes para o mercado PT) + regra genÃ©rica para os restantes.
- * - Bloqueia tudo o que Ã© privado, transacional ou stateful:
- *   admin, API, Ã¡rea de cliente, autenticaÃ§Ã£o e passos do funil
- *   de reserva (dependem de sessÃ£o â€” crawl geraria soft-404s).
- * - /marcacoes (passo 1) fica INDEXÃVEL â€” Ã© landing page valiosa
+ * Estratégia:
+ * - Regras explícitas para Googlebot e Bingbot (os dois motores
+ *   relevantes para o mercado PT) + regra genérica para os restantes.
+ * - Bloqueia tudo o que é privado, transacional ou stateful:
+ *   admin, API, área de cliente, autenticação e passos do funil
+ *   de reserva (dependem de sessão — crawl geraria soft-404s).
+ * - /marcacoes (passo 1) fica INDEXÁVEL — é landing page valiosa
  *   para "marcar cabeleireiro Cascais". Apenas os sub-passos
- *   (/marcacoes/horario, /marcacoes/confirmar, /marcacoes/[nÂº])
- *   sÃ£o bloqueados via "Disallow: /marcacoes/" (trailing slash
- *   bloqueia sub-rotas mas nÃ£o a rota exata).
+ *   (/marcacoes/horario, /marcacoes/confirmar, /marcacoes/[nº])
+ *   são bloqueados via "Disallow: /marcacoes/" (trailing slash
+ *   bloqueia sub-rotas mas não a rota exata).
  */
 
 import type { MetadataRoute } from 'next';
@@ -52,7 +52,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: 'Bingbot',
         allow: '/',
         disallow: DISALLOWED_PATHS,
-        // Bing respeita crawl-delay â€” 1s evita picos nas serverless functions
+        // Bing respeita crawl-delay — 1s evita picos nas serverless functions
         crawlDelay: 1,
       },
       {

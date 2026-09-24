@@ -6,7 +6,7 @@ import { getMyBookingsAction } from '@/lib/server-actions/bookings';
 import { MyBookings } from '@/components/client-area/MyBookings';
 
 export const metadata: Metadata = {
-  title: 'MarcaÃ§Ãµes',
+  title: 'Marcações',
 };
 
 export default async function ClientBookingsPage() {
@@ -36,7 +36,7 @@ export default async function ClientBookingsPage() {
             As minhas reservas
           </h2>
           <p className="text-sm" style={{ color: '#5A5A5A' }}>
-            VÃª e gere todas as tuas reservas no Chi Sublime.
+            Vê e gere todas as tuas reservas no Chi Sublime.
           </p>
         </div>
         <Link

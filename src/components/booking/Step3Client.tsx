@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Chi Sublime â€” Step 3 Client (Form de confirmaÃ§Ã£o)
+ * Chi Sublime — Step 3 Client (Form de confirmação)
  *
- * REQUER LOGIN. Se nÃ£o autenticado, mostra gate de login/registo.
- * Se admin, bloqueia (admin nÃ£o faz reservas pessoais).
+ * REQUER LOGIN. Se não autenticado, mostra gate de login/registo.
+ * Se admin, bloqueia (admin não faz reservas pessoais).
  */
 
 import { useState } from 'react';
@@ -57,28 +57,28 @@ export function Step3Client() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ============================================================
-  // Estado: a verificar sessÃ£o
+  // Estado: a verificar sessão
   // ============================================================
   if (status === 'loading') {
     return <SessionLoadingState />;
   }
 
   // ============================================================
-  // Estado: NÃƒO logado â†’ gate de auth
+  // Estado: NÃO logado → gate de auth
   // ============================================================
   if (!session?.user) {
     return <AuthGate />;
   }
 
   // ============================================================
-  // Estado: logado como ADMIN â†’ bloquear
+  // Estado: logado como ADMIN → bloquear
   // ============================================================
   if (session.user.role === 'admin') {
     return <AdminBlockedState />;
   }
 
   // ============================================================
-  // Estado: logado como CLIENTE â†’ form de confirmaÃ§Ã£o
+  // Estado: logado como CLIENTE → form de confirmação
   // ============================================================
 
   // Campos do form cujos erros do servidor/cliente usam caminho aninhado
@@ -106,30 +106,30 @@ export function Step3Client() {
     setErrors({});
 
     if (!date || !time || !staffId) {
-      setSubmitError('Falta informaÃ§Ã£o da reserva. Volte ao passo anterior.');
+      setSubmitError('Falta informação da reserva. Volte ao passo anterior.');
       return;
     }
 
     // ------------------------------------------------------------
-    // ValidaÃ§Ã£o client-side ANTES da viagem ao servidor.
+    // Validação client-side ANTES da viagem ao servidor.
     // (o form tem noValidate, por isso o `required` nativo dos
-    // checkboxes nÃ£o dispara â€” sem isto, a polÃ­tica de cancelamento
-    // podia ser ignorada atÃ© ao erro do servidor)
+    // checkboxes não dispara — sem isto, a política de cancelamento
+    // podia ser ignorada até ao erro do servidor)
     // ------------------------------------------------------------
     const clientErrors: FormErrors = {};
 
     const phoneDigits = form.phone.replace(/[\s\-.()]/g, '').replace(/^\+351/, '');
     if (!/^\d{9}$/.test(phoneDigits)) {
-      clientErrors['guestInfo.phone'] = 'Indica um telefone portuguÃªs vÃ¡lido (9 dÃ­gitos)';
+      clientErrors['guestInfo.phone'] = 'Indica um telefone português válido (9 dígitos)';
     }
 
     if (form.requestInvoice && !/^\d{9}$/.test(form.vatNumber.trim())) {
-      clientErrors['fiscalData.vatNumber'] = 'O NIF tem de ter 9 dÃ­gitos';
+      clientErrors['fiscalData.vatNumber'] = 'O NIF tem de ter 9 dígitos';
     }
 
     if (!form.acceptsCancellationPolicy) {
       clientErrors['acceptsCancellationPolicy'] =
-        'Tens de aceitar a polÃ­tica de cancelamento para confirmar';
+        'Tens de aceitar a política de cancelamento para confirmar';
     }
 
     if (Object.keys(clientErrors).length > 0) {
@@ -167,7 +167,7 @@ export function Step3Client() {
         marketingConsent: form.marketingConsent,
         website: form.website,
         source: 'website' as const,
-        // TODO (prÃ³xima fase): passar userId/clientId para vincular ao User
+        // TODO (próxima fase): passar userId/clientId para vincular ao User
         // userId: session.user.id,
         // clientId: session.user.clientId,
       };
@@ -175,8 +175,8 @@ export function Step3Client() {
       const result = await createBookingAction(input);
 
       if (result.success) {
-        // Limpa o carrinho ANTES do redirect â€” sem isto, voltar a
-        // /marcacoes mostrava os serviÃ§os da reserva jÃ¡ concluÃ­da
+        // Limpa o carrinho ANTES do redirect — sem isto, voltar a
+        // /marcacoes mostrava os serviços da reserva já concluída
         clearFlow();
         // Hard navigation para escapar do BookingFlowGuard
         window.location.href = `/marcacoes/${result.booking.bookingNumber}`;
@@ -185,14 +185,14 @@ export function Step3Client() {
         if (result.error.fieldErrors) {
           const flatErrors: FormErrors = {};
           for (const [path, msgs] of Object.entries(result.error.fieldErrors)) {
-            flatErrors[path] = msgs[0] ?? 'InvÃ¡lido';
+            flatErrors[path] = msgs[0] ?? 'Inválido';
           }
           setErrors(flatErrors);
         }
         setSubmitError(result.error.message);
 
         if (result.error.code === 'slot-taken') {
-          setSubmitError('Este horÃ¡rio jÃ¡ nÃ£o estÃ¡ disponÃ­vel. Por favor escolha outro.');
+          setSubmitError('Este horário já não está disponível. Por favor escolha outro.');
         }
       }
     } catch (err) {
@@ -205,13 +205,13 @@ export function Step3Client() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
-      {/* SessÃ£o activa â€” confirmaÃ§Ã£o visual de quem estÃ¡ a reservar */}
+      {/* Sessão activa — confirmação visual de quem está a reservar */}
       <SessionBanner name={session.user.name} email={session.user.email} />
 
       <div>
         <h3 className="text-chi-charcoal mb-2 font-serif text-2xl">Confirmar dados</h3>
         <p className="text-chi-charcoal-soft mb-6 text-sm">
-          Confirma o teu telefone e adiciona notas se necessÃ¡rio.
+          Confirma o teu telefone e adiciona notas se necessário.
         </p>
 
         <div className="space-y-5">
@@ -220,7 +220,7 @@ export function Step3Client() {
             htmlFor="phone"
             error={errors['guestInfo.phone']}
             required
-            helper="Formato portuguÃªs (+351 ou 9 dÃ­gitos)"
+            helper="Formato português (+351 ou 9 dígitos)"
           >
             <input
               id="phone"
@@ -238,7 +238,7 @@ export function Step3Client() {
           <FormField
             label="Notas (opcional)"
             htmlFor="notes"
-            helper="Alergias, preferÃªncias, ou qualquer detalhe importante"
+            helper="Alergias, preferências, ou qualquer detalhe importante"
           >
             <textarea
               id="notes"
@@ -252,7 +252,7 @@ export function Step3Client() {
         </div>
       </div>
 
-      {/* FaturaÃ§Ã£o com NIF */}
+      {/* Faturação com NIF */}
       <div className="border-chi-border border-t pt-6">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -264,7 +264,7 @@ export function Step3Client() {
           <div className="flex-1">
             <span className="text-chi-charcoal font-medium">Quero receber fatura com NIF</span>
             <p className="text-chi-charcoal-light mt-0.5 text-xs">
-              Para faturaÃ§Ã£o empresarial ou recibo mÃ©dico.
+              Para faturação empresarial ou recibo médico.
             </p>
           </div>
         </label>
@@ -290,7 +290,7 @@ export function Step3Client() {
             </FormField>
 
             <FormField
-              label="Nome ou razÃ£o social"
+              label="Nome ou razão social"
               htmlFor="fullLegalName"
               helper="Como aparece na fatura"
             >
@@ -316,7 +316,7 @@ export function Step3Client() {
                 />
               </FormField>
 
-              <FormField label="CÃ³digo postal" htmlFor="postalCode">
+              <FormField label="Código postal" htmlFor="postalCode">
                 <input
                   id="postalCode"
                   type="text"
@@ -342,7 +342,7 @@ export function Step3Client() {
         )}
       </div>
 
-      {/* PolÃ­tica e marketing */}
+      {/* Política e marketing */}
       <div className="border-chi-border space-y-4 border-t pt-6">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -361,12 +361,12 @@ export function Step3Client() {
                 rel="noopener"
                 className="text-chi-gold-deep hover:text-chi-green-deep underline"
               >
-                polÃ­tica de cancelamento
+                política de cancelamento
               </Link>
               <span className="text-chi-danger ml-1">*</span>
             </span>
             <p className="text-chi-charcoal-light mt-0.5 text-xs">
-              Cancelamentos devem ser feitos com pelo menos 24h de antecedÃªncia.
+              Cancelamentos devem ser feitos com pelo menos 24h de antecedência.
             </p>
             {errors['acceptsCancellationPolicy'] && (
               <p className="text-chi-danger mt-1.5 text-xs font-medium">
@@ -385,10 +385,10 @@ export function Step3Client() {
           />
           <div className="flex-1">
             <span className="text-chi-charcoal text-sm">
-              Aceito receber comunicaÃ§Ãµes promocionais
+              Aceito receber comunicações promocionais
             </span>
             <p className="text-chi-charcoal-light mt-0.5 text-xs">
-              PromoÃ§Ãµes, novos serviÃ§os, eventos. Pode cancelar a qualquer momento.
+              Promoções, novos serviços, eventos. Pode cancelar a qualquer momento.
             </p>
           </div>
         </label>
@@ -418,7 +418,7 @@ export function Step3Client() {
         </div>
       )}
 
-      {/* BotÃµes */}
+      {/* Botões */}
       <div className="border-chi-border flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:gap-4">
         <button
           type="button"
@@ -430,7 +430,7 @@ export function Step3Client() {
             borderRadius: '6px',
           }}
         >
-          <span>â†</span>
+          <span>←</span>
           Voltar
         </button>
 
@@ -457,20 +457,20 @@ export function Step3Client() {
               A processar...
             </>
           ) : (
-            <>Confirmar Reserva â†’</>
+            <>Confirmar Reserva →</>
           )}
         </button>
       </div>
 
       <p className="text-chi-charcoal-light text-center text-xs italic">
-        Os teus dados sÃ£o tratados com confidencialidade e usados apenas para gerir a tua reserva.
+        Os teus dados são tratados com confidencialidade e usados apenas para gerir a tua reserva.
       </p>
     </form>
   );
 }
 
 // ============================================================
-// SUBCOMPONENTES â€” Estados auxiliares
+// SUBCOMPONENTES — Estados auxiliares
 // ============================================================
 
 function SessionLoadingState() {
@@ -480,7 +480,7 @@ function SessionLoadingState() {
         className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
         style={{ borderColor: '#1F3D2E', borderTopColor: 'transparent' }}
       />
-      <p className="text-chi-charcoal-soft text-sm">A verificar sessÃ£o...</p>
+      <p className="text-chi-charcoal-soft text-sm">A verificar sessão...</p>
     </div>
   );
 }
@@ -490,12 +490,12 @@ function AuthGate() {
     <div className="space-y-6">
       <div className="text-center">
         <p className="mb-3 text-[10px] tracking-[0.3em] uppercase" style={{ color: '#B8924A' }}>
-          Quase lÃ¡
+          Quase lá
         </p>
         <h3 className="text-chi-charcoal mb-3 font-serif text-3xl">Falta apenas um passo</h3>
         <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
           Para confirmar a tua reserva, entra na tua conta ou cria uma agora. Vai demorar menos de
-          um minuto e poderÃ¡s gerir todas as tuas reservas num sÃ³ lugar.
+          um minuto e poderás gerir todas as tuas reservas num só lugar.
         </p>
       </div>
 
@@ -516,7 +516,7 @@ function AuthGate() {
           }}
         >
           <LogIn size={14} strokeWidth={1.5} />
-          JÃ¡ tenho conta
+          Já tenho conta
         </Link>
 
         <Link
@@ -551,8 +551,8 @@ function AdminBlockedState() {
     <div className="space-y-4 py-12 text-center">
       <h3 className="text-chi-charcoal font-serif text-2xl">Conta administrativa</h3>
       <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
-        EstÃ¡s autenticado como administrador. As reservas online destinam-se a clientes. Para criar
-        uma reserva no balcÃ£o, usa o mÃ³dulo de Receitas / Caixa no painel administrativo.
+        Estás autenticado como administrador. As reservas online destinam-se a clientes. Para criar
+        uma reserva no balcão, usa o módulo de Receitas / Caixa no painel administrativo.
       </p>
       <Link
         href="/admin/dashboard"
@@ -585,7 +585,7 @@ function SessionBanner({ name, email }: { name: string; email: string }) {
           A reservar como
         </p>
         <p className="truncate text-sm font-medium" style={{ color: '#1F3D2E' }}>
-          {name} <span className="text-chi-charcoal-light font-normal">Â· {email}</span>
+          {name} <span className="text-chi-charcoal-light font-normal">· {email}</span>
         </p>
       </div>
     </div>

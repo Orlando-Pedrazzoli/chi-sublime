@@ -6,7 +6,7 @@
  * A "carta" completa de uma categoria: lista editorial de
  * serviços com descrição, duração, preço e badge Popular.
  *
- * - CTA → /reservar?categoria={slug} (o ServicePicker já abre
+ * - CTA → /marcacoes?categoria={slug} (o ServicePicker já abre
  *   essa categoria via initialOpenSlug — sinergia existente)
  * - ISR de 10 min (catálogo muda raramente)
  * - JSON-LD: ItemList de serviços + BreadcrumbList (SEO local)
@@ -280,7 +280,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
           <Reveal delay={0.1}>
             <div className="mt-14 flex flex-col items-center gap-5 text-center">
               <Link
-                href={`/reservar?categoria=${category.slug}`}
+                href={`/marcacoes?categoria=${category.slug}`}
                 className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-12 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
                 style={{ color: '#1F3D2E' }}
               >

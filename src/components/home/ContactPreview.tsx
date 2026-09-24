@@ -1,22 +1,22 @@
-// ðŸ“„ src/components/home/ContactPreview.tsx
+// 📄 src/components/home/ContactPreview.tsx
 /**
- * Chi Sublime â€” ContactPreview
+ * Chi Sublime — ContactPreview
  * ============================================================
  *
  * Fecho da homepage: bloco em verde profundo com o convite
- * final Ã  reserva + informaÃ§Ã£o prÃ¡tica em trÃªs colunas
- * (morada, contacto, horÃ¡rio).
+ * final à reserva + informação prática em três colunas
+ * (morada, contacto, horário).
  *
  * i18n: getTranslations('home.contact'). NOMES dos dias nos JSONs
- * (texto, traduzÃ­vel); HORAS e agrupamento vÃªm de SALON_HOURS
- * (dados â€” fonte de verdade em constants/business.ts).
+ * (texto, traduzível); HORAS e agrupamento vêm de SALON_HOURS
+ * (dados — fonte de verdade em constants/business.ts).
  *
- * âœ… HorÃ¡rio confirmado (Jean Pierre, jul/2026):
- *    TerÃ§a a SÃ¡bado 09:00â€“18:00 Â· Segunda e Domingo encerrado
+ * ✅ Horário confirmado (Jean Pierre, jul/2026):
+ *    Terça a Sábado 09:00–18:00 · Segunda e Domingo encerrado
  *
- * O bloco Ã© gerado por groupSalonHours(): dias consecutivos com o
- * mesmo horÃ¡rio colapsam numa linha e os dias fechados juntam-se
- * numa Ãºnica linha "Encerrado". Mudar o horÃ¡rio na constante
+ * O bloco é gerado por groupSalonHours(): dias consecutivos com o
+ * mesmo horário colapsam numa linha e os dias fechados juntam-se
+ * numa única linha "Encerrado". Mudar o horário na constante
  * reescreve este bloco sozinho.
  */
 
@@ -30,7 +30,7 @@ const PHONE_TEL = 'tel:+351932932691';
 const WHATSAPP = 'https://wa.me/351932932691';
 const MAPS_URL = 'https://maps.google.com/?q=38.709560,-9.446915';
 
-/** WeekDayIndex â†’ chave de traduÃ§Ã£o em home.contact.hours.days.* */
+/** WeekDayIndex → chave de tradução em home.contact.hours.days.* */
 const DAY_KEYS: Record<WeekDayIndex, string> = {
   0: 'sun',
   1: 'mon',
@@ -47,7 +47,7 @@ export async function ContactPreview() {
   const groups = groupSalonHours();
   const dayName = (d: WeekDayIndex) => t(`hours.days.${DAY_KEYS[d]}`);
 
-  /** [Ter, Qua, Qui, Sex, SÃ¡b] â†’ "TerÃ§a a SÃ¡bado"; [Seg, Dom] â†’ "Segunda e Domingo" */
+  /** [Ter, Qua, Qui, Sex, Sáb] → "Terça a Sábado"; [Seg, Dom] → "Segunda e Domingo" */
   const joinDays = (days: WeekDayIndex[], consecutive: boolean) => {
     if (days.length === 1) return dayName(days[0]);
     const from = dayName(days[0]);
@@ -56,16 +56,16 @@ export async function ContactPreview() {
     return t('hours.and', { from, to });
   };
 
-  // Dias abertos: uma linha por bloco de horÃ¡rio
+  // Dias abertos: uma linha por bloco de horário
   const openRows = groups
     .filter((g) => g.open)
     .map((g) => ({
       key: `open-${g.days.join('-')}`,
       label: joinDays(g.days, true),
-      value: `${g.start} â€“ ${g.end}`,
+      value: `${g.start} – ${g.end}`,
     }));
 
-  // Dias fechados: colapsados numa Ãºnica linha
+  // Dias fechados: colapsados numa única linha
   const closedDays = groups.filter((g) => !g.open).flatMap((g) => g.days);
   const closedRow =
     closedDays.length > 0
@@ -109,14 +109,14 @@ export async function ContactPreview() {
                   {t('ctaWhatsapp')}
                 </span>
                 <span className="text-chi-gold transition-transform duration-300 group-hover:translate-x-1">
-                  â†’
+                  →
                 </span>
               </Link>
             </div>
           </Reveal>
         </div>
 
-        {/* InformaÃ§Ã£o prÃ¡tica â€” trÃªs colunas sobre rÃ©gua */}
+        {/* Informação prática — três colunas sobre régua */}
         <div className="border-chi-cream/15 grid grid-cols-1 gap-12 border-t pt-14 sm:grid-cols-2 lg:grid-cols-3">
           <Reveal delay={0.05}>
             <h3 className="text-chi-gold mb-6 text-[11px] font-semibold tracking-[0.28em] uppercase">
@@ -134,7 +134,7 @@ export async function ContactPreview() {
               className="group text-chi-cream/60 hover:text-chi-gold mt-5 inline-flex items-center gap-2 text-xs tracking-[0.18em] uppercase transition-colors duration-300"
             >
               {t('viewMap')}
-              <span className="transition-transform duration-300 group-hover:translate-x-1">â†’</span>
+              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
 

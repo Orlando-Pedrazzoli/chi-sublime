@@ -1,8 +1,8 @@
-// ðŸ“„ src/components/booking/Step2Client.tsx
+// 📄 src/components/booking/Step2Client.tsx
 'use client';
 
 /**
- * Chi Sublime â€” Step 2 Client (Orchestrator)
+ * Chi Sublime — Step 2 Client (Orchestrator)
  * ============================================================
  *
  * MUDANCAS (auditoria):
@@ -13,10 +13,10 @@
  *    escolheu "qualquer profissional".
  *  - CTAs empilham confortavelmente no mobile.
  *
- * âš ï¸ FIX botÃµes "espremidos" (bug Tailwind v4 + Next 16): as
+ * ⚠️ FIX botões "espremidos" (bug Tailwind v4 + Next 16): as
  * classes de PADDING (py-3.5/py-4) estavam a ser ignoradas em
- * produÃ§Ã£o. Padding, border-radius (8px) e cores dos CTAs
- * passaram para INLINE STYLE â€” regra do projeto.
+ * produção. Padding, border-radius (8px) e cores dos CTAs
+ * passaram para INLINE STYLE — regra do projeto.
  */
 
 import { useState, useTransition } from 'react';
@@ -28,7 +28,7 @@ import { StaffPicker, type StaffOption } from './StaffPicker';
 import { CalendarPicker } from './CalendarPicker';
 import { TimeSlotGrid, type SlotData } from './TimeSlotGrid';
 
-/* Estilos crÃ­ticos dos CTAs â€” sempre inline */
+/* Estilos críticos dos CTAs — sempre inline */
 const CTA_PRIMARY: React.CSSProperties = {
   backgroundColor: '#1F3D2E',
   color: '#FAF7F2',
@@ -185,7 +185,7 @@ export function Step2Client({ staffOptions }: Props) {
             </p>
           )}
 
-          {/* ConfirmaÃ§Ã£o contextual â€” aparece colada ao horÃ¡rio escolhido */}
+          {/* Confirmação contextual — aparece colada ao horário escolhido */}
           {canContinue && date && time && (
             <div
               className="mt-5 border p-5"
@@ -207,7 +207,7 @@ export function Step2Client({ staffOptions }: Props) {
                   day: 'numeric',
                   month: 'long',
                 }).format(new Date(`${date}T12:00:00`))}
-                {' Â· '}
+                {' · '}
                 <span style={{ color: '#1F3D2E' }}>{time}</span>
               </p>
               {assignedStaffName && (
@@ -223,7 +223,7 @@ export function Step2Client({ staffOptions }: Props) {
                 style={CTA_CONFIRM}
               >
                 {t('confirmSlot')}
-                <span>â†’</span>
+                <span>→</span>
               </button>
               <p className="mt-2.5 text-center text-xs italic" style={{ color: '#8A8A8A' }}>
                 {t('changeHint')}
@@ -233,29 +233,29 @@ export function Step2Client({ staffOptions }: Props) {
         </div>
       </div>
 
-      {/* CTAs â€” Voltar discreto Ã  esquerda, Continuar destacado Ã  direita */}
+      {/* CTAs — Voltar discreto à esquerda, Continuar destacado à direita */}
       <div className="border-chi-border mt-4 border-t pt-8">
-        {/* Helper text quando nÃ£o pode continuar */}
+        {/* Helper text quando não pode continuar */}
         {!canContinue && (
           <p className="mb-6 text-center text-sm italic" style={{ color: '#8A8A8A' }}>
             {!date ? t('chooseDateHint') : t('chooseTimeHint')}
           </p>
         )}
 
-        {/* Linha de botÃµes */}
+        {/* Linha de botões */}
         <div className="flex items-center justify-between gap-4">
-          {/* Voltar â€” link discreto Ã  esquerda (cor inline por seguranÃ§a) */}
+          {/* Voltar — link discreto à esquerda (cor inline por segurança) */}
           <button
             type="button"
             onClick={handleBack}
             className="inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors hover:opacity-70"
             style={{ color: '#5A5A5A', padding: '8px 0' }}
           >
-            <span>â†</span>
+            <span>←</span>
             {t('back')}
           </button>
 
-          {/* Continuar â€” padding, radius e cores SEMPRE inline */}
+          {/* Continuar — padding, radius e cores SEMPRE inline */}
           {canContinue ? (
             <button
               type="button"
@@ -264,7 +264,7 @@ export function Step2Client({ staffOptions }: Props) {
               style={CTA_PRIMARY}
             >
               {t('continue')}
-              <span>â†’</span>
+              <span>→</span>
             </button>
           ) : (
             <button
@@ -274,7 +274,7 @@ export function Step2Client({ staffOptions }: Props) {
               style={CTA_DISABLED}
             >
               {t('continue')}
-              <span>â†’</span>
+              <span>→</span>
             </button>
           )}
         </div>

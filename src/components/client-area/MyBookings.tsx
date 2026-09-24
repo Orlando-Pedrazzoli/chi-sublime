@@ -1,4 +1,4 @@
-// ðŸ“„ src/components/client-area/MyBookings.tsx
+// 📄 src/components/client-area/MyBookings.tsx
 'use client';
 
 import { useState, useTransition, type ReactNode } from 'react';
@@ -59,7 +59,7 @@ export function MyBookings({ bookings: initialBookings }: Props) {
           Sem reservas ainda
         </h3>
         <p className="mb-6 text-sm" style={{ color: '#5A5A5A' }}>
-          Marca a tua primeira reserva e comeÃ§a a tua experiÃªncia Chi Sublime.
+          Marca a tua primeira reserva e começa a tua experiência Chi Sublime.
         </p>
         <Link
           href="/marcacoes"
@@ -91,7 +91,7 @@ export function MyBookings({ bookings: initialBookings }: Props) {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-            PrÃ³ximas reservas
+            Próximas reservas
           </h2>
           <span className="text-xs tracking-[0.18em] uppercase" style={{ color: '#5A5A5A' }}>
             {future.length} {future.length === 1 ? 'reserva' : 'reservas'}
@@ -107,13 +107,13 @@ export function MyBookings({ bookings: initialBookings }: Props) {
               color: '#5A5A5A',
             }}
           >
-            NÃ£o tens reservas futuras agendadas.{' '}
+            Não tens reservas futuras agendadas.{' '}
             <Link
               href="/marcacoes"
               className="font-medium underline-offset-2 hover:underline"
               style={{ color: '#1F3D2E' }}
             >
-              Agendar agora â†’
+              Agendar agora →
             </Link>
           </div>
         ) : (
@@ -137,7 +137,7 @@ export function MyBookings({ bookings: initialBookings }: Props) {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-              HistÃ³rico
+              Histórico
             </h2>
             <span className="text-xs tracking-[0.18em] uppercase" style={{ color: '#5A5A5A' }}>
               {past.length} {past.length === 1 ? 'reserva' : 'reservas'}
@@ -178,8 +178,8 @@ function BookingCard({
   onConfirmCancel,
   onAbortCancel,
 }: BookingCardProps) {
-  // Sempre no fuso do salÃ£o: no SSR (Vercel = UTC) e para clientes
-  // noutro fuso, a hora mostrada tem de ser a hora da marcaÃ§Ã£o em Cascais.
+  // Sempre no fuso do salão: no SSR (Vercel = UTC) e para clientes
+  // noutro fuso, a hora mostrada tem de ser a hora da marcação em Cascais.
   const dateFormat = new Intl.DateTimeFormat('pt-PT', {
     timeZone: 'Europe/Lisbon',
     weekday: 'long',
@@ -223,7 +223,7 @@ function BookingCard({
           <div className="flex items-center gap-2">
             <Clock size={14} strokeWidth={1.5} style={{ color: '#D4AF6E' }} />
             <span>
-              {timeFormat.format(new Date(booking.startTime))} Â· {booking.totalDuration} min
+              {timeFormat.format(new Date(booking.startTime))} · {booking.totalDuration} min
             </span>
           </div>
 
@@ -241,7 +241,7 @@ function BookingCard({
               <li key={idx} className="flex items-center justify-between">
                 <span style={{ color: '#1A1A1A' }}>{s.name}</span>
                 <span className="font-mono text-xs" style={{ color: '#5A5A5A' }}>
-                  {(s.price / 100).toFixed(2)} â‚¬
+                  {(s.price / 100).toFixed(2)} €
                 </span>
               </li>
             ))}
@@ -254,7 +254,7 @@ function BookingCard({
               Total
             </span>
             <span className="font-mono text-base font-semibold" style={{ color: '#1F3D2E' }}>
-              {(booking.totalPrice / 100).toFixed(2)} â‚¬
+              {(booking.totalPrice / 100).toFixed(2)} €
             </span>
           </div>
         </div>
@@ -262,7 +262,7 @@ function BookingCard({
         {!isPast && booking.isCancellable && !isConfirmingCancel && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs" style={{ color: '#5A5A5A' }}>
-              Cancelamento possÃ­vel atÃ© 24h antes
+              Cancelamento possível até 24h antes
             </p>
             <button
               type="button"
@@ -290,7 +290,7 @@ function BookingCard({
               className="mr-2 inline-block"
               style={{ color: '#B8924A' }}
             />
-            Cancelamento nÃ£o disponÃ­vel (faltam menos de 24h). Contacta o salÃ£o pelo +351 932 932
+            Cancelamento não disponível (faltam menos de 24h). Contacta o salão pelo +351 932 932
             691.
           </div>
         )}
@@ -307,7 +307,7 @@ function BookingCard({
               Tens a certeza que queres cancelar esta reserva?
             </p>
             <p className="mb-4 text-xs" style={{ color: '#5A5A5A' }}>
-              Esta acÃ§Ã£o nÃ£o pode ser desfeita. Se quiseres remarcar, terÃ¡s de fazer uma nova
+              Esta acção não pode ser desfeita. Se quiseres remarcar, terás de fazer uma nova
               reserva.
             </p>
             <div className="flex gap-2">
@@ -368,7 +368,7 @@ const STATUS_CONFIG: Record<BookingForClient['status'], BadgeConfig> = {
     icon: <Clock size={12} strokeWidth={2} />,
   },
   completed: {
-    label: 'ConcluÃ­da',
+    label: 'Concluída',
     bg: 'rgba(31,61,46,0.1)',
     color: '#1F3D2E',
     icon: <CheckCircle2 size={12} strokeWidth={2} />,
@@ -380,7 +380,7 @@ const STATUS_CONFIG: Record<BookingForClient['status'], BadgeConfig> = {
     icon: <XCircle size={12} strokeWidth={2} />,
   },
   'no-show': {
-    label: 'NÃ£o compareceu',
+    label: 'Não compareceu',
     bg: 'rgba(90,90,90,0.1)',
     color: '#5A5A5A',
     icon: <XCircle size={12} strokeWidth={2} />,

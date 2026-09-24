@@ -1,10 +1,10 @@
-// ðŸ“„ src/components/layout/PublicFooter.tsx
+// 📄 src/components/layout/PublicFooter.tsx
 /**
- * Chi Sublime â€” PublicFooter
+ * Chi Sublime — PublicFooter
  * ============================================================
  *
  * Estrutura de 4 colunas mantida; refinamentos:
- *  - Marca sem itÃ¡lico (coerente com navbar)
+ *  - Marca sem itálico (coerente com navbar)
  *  - "Reservar Online" agora aponta para /marcacoes (era #contact)
  *  - Socials quadrados de cantos retos (linguagem do site)
  */
@@ -14,17 +14,17 @@ import Image from 'next/image';
 import { Lock } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: 'InÃ­cio', href: '#home' },
-  { label: 'ServiÃ§os', href: '#services' },
+  { label: 'Início', href: '#home' },
+  { label: 'Serviços', href: '#services' },
   { label: 'Equipa', href: '#team' },
   { label: 'Galeria', href: '#gallery' },
   { label: 'Contacto', href: '#contact' },
 ];
 
 const BOOKING_LINKS = [
-  { label: 'MarcaÃ§Ãµes Online', href: '/marcacoes' },
+  { label: 'Marcações Online', href: '/marcacoes' },
   { label: 'A Minha Conta', href: '/conta' },
-  { label: 'PolÃ­tica de Cancelamento', href: '/cancelamento' },
+  { label: 'Política de Cancelamento', href: '/cancelamento' },
 ];
 
 const LEGAL_LINKS = [
@@ -40,9 +40,9 @@ export function PublicFooter() {
   return (
     <footer className="bg-chi-sand border-chi-gold/30 text-chi-charcoal-soft border-t px-6 pt-16 pb-8 md:px-12 md:pt-20">
       <div className="mx-auto max-w-7xl">
-        {/* Grid principal â€” 4 colunas em desktop */}
+        {/* Grid principal — 4 colunas em desktop */}
         <div className="mb-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
-          {/* Coluna 1 â€” Marca + Socials
+          {/* Coluna 1 — Marca + Socials
               Mesmo lockup vertical da navbar (logo-mark + SUBLIME
               em HTML). No fundo areia, o texto usa gold-deep. */}
           <div>
@@ -71,10 +71,10 @@ export function PublicFooter() {
             <p className="text-chi-charcoal-soft mb-8 max-w-xs text-sm leading-[1.9]">
               Hair Style &amp; Beauty
               <br />
-              Um refÃºgio sensorial em Cascais.
+              Um refúgio sensorial em Cascais.
             </p>
 
-            {/* Socials â€” quadrados retos */}
+            {/* Socials — quadrados retos */}
             <div className="flex gap-3">
               <Link
                 href="https://www.instagram.com/chiptsublime/"
@@ -135,10 +135,10 @@ export function PublicFooter() {
             </div>
           </div>
 
-          {/* Coluna 2 â€” NavegaÃ§Ã£o */}
+          {/* Coluna 2 — Navegação */}
           <div>
             <h6 className="text-chi-green-deep mb-6 text-xs font-semibold tracking-[0.25em] uppercase">
-              NavegaÃ§Ã£o
+              Navegação
             </h6>
             <ul className="space-y-3">
               {NAV_LINKS.map((link) => (
@@ -154,10 +154,10 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Coluna 3 â€” Reservas */}
+          {/* Coluna 3 — Reservas */}
           <div>
             <h6 className="text-chi-green-deep mb-6 text-xs font-semibold tracking-[0.25em] uppercase">
-              MarcaÃ§Ãµes
+              Marcações
             </h6>
             <ul className="space-y-3">
               {BOOKING_LINKS.map((link) => (
@@ -173,7 +173,7 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Coluna 4 â€” Legal */}
+          {/* Coluna 4 — Legal */}
           <div>
             <h6 className="text-chi-green-deep mb-6 text-xs font-semibold tracking-[0.25em] uppercase">
               Legal
@@ -195,7 +195,7 @@ export function PublicFooter() {
 
         {/* Footer bottom */}
         <div className="border-chi-charcoal/10 text-chi-charcoal-light flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:justify-between">
-          <span>Â© {currentYear} Chi Sublime Â· Todos os direitos reservados</span>
+          <span>© {currentYear} Chi Sublime · Todos os direitos reservados</span>
           <span className="flex items-center gap-2">
             Desenvolvido por{' '}
             <Link

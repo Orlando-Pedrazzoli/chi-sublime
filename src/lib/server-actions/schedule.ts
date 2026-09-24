@@ -1,46 +1,46 @@
-// ðŸ“„ src/lib/server-actions/schedule.ts
+// 📄 src/lib/server-actions/schedule.ts
 'use server';
 
 /**
- * Chi Sublime â€” Server Actions: HorÃ¡rios do SalÃ£o
+ * Chi Sublime — Server Actions: Horários do Salão
  * ============================================================
  *
- * GestÃ£o do modelo Schedule pelo admin (/admin/horarios):
- *  - HorÃ¡rio semanal (type='regular', 7 documentos upsert)
- *  - Feriados (type='holiday', com recorrÃªncia anual)
- *  - ExceÃ§Ãµes (type='exception', dia fechado ou horÃ¡rio especial)
+ * Gestão do modelo Schedule pelo admin (/admin/horarios):
+ *  - Horário semanal (type='regular', 7 documentos upsert)
+ *  - Feriados (type='holiday', com recorrência anual)
+ *  - Exceções (type='exception', dia fechado ou horário especial)
  *
- * Ã‰ ESTA gestÃ£o que alimenta o schedule-resolver e, por
- * consequÃªncia, a disponibilidade do site pÃºblico (calendÃ¡rio
- * e grelha de horÃ¡rios do cliente).
+ * É ESTA gestão que alimenta o schedule-resolver e, por
+ * consequência, a disponibilidade do site público (calendário
+ * e grelha de horários do cliente).
  *
- * FIX SINCRONIZAÃ‡ÃƒO (jul/2026) â€” causa raiz do bug de
- * /marcacoes/horario nÃ£o refletir horÃ¡rios novos:
+ * FIX SINCRONIZAÇÃO (jul/2026) — causa raiz do bug de
+ * /marcacoes/horario não refletir horários novos:
  *
- *   O motor de disponibilidade faz a INTERSEÃ‡ÃƒO de duas fontes:
- *     1. Schedule type='regular'   â†’ horÃ¡rio do SALÃƒO
- *     2. Staff.workingHours        â†’ horÃ¡rio de CADA profissional
+ *   O motor de disponibilidade faz a INTERSEÇÃO de duas fontes:
+ *     1. Schedule type='regular'   → horário do SALÃO
+ *     2. Staff.workingHours        → horário de CADA profissional
  *
- *   Esta action gravava sÃ³ (1). Um dia novo aberto ficava com
+ *   Esta action gravava só (1). Um dia novo aberto ficava com
  *   staff `enabled=false`, e horas estendidas eram cortadas por
- *   `min(salonEnd, staffEnd)` â€” zero slots novos no site.
+ *   `min(salonEnd, staffEnd)` — zero slots novos no site.
  *
  *   Agora, com `syncStaff=true` (default do editor), gravar o
- *   horÃ¡rio semanal tambÃ©m alinha Staff.workingHours de TODOS
- *   os profissionais: enabled/start/end espelham o salÃ£o e as
- *   pausas individuais sÃ£o preservadas (descartando apenas as
- *   que caem fora da nova janela, para passar na validaÃ§Ã£o do
- *   modelo). Mesma polÃ­tica do scripts/fix-salon-hours.ts.
+ *   horário semanal também alinha Staff.workingHours de TODOS
+ *   os profissionais: enabled/start/end espelham o salão e as
+ *   pausas individuais são preservadas (descartando apenas as
+ *   que caem fora da nova janela, para passar na validação do
+ *   modelo). Mesma política do scripts/fix-salon-hours.ts.
  *
- * Segue o padrÃ£o de staff.ts: requireAdminSession local,
+ * Segue o padrão de staff.ts: requireAdminSession local,
  * Zod + fieldErrors, ok/fail, logAudit, revalidatePath, e
- * validaÃ§Ã£o pesada delegada ao pre('save') do modelo com
- * traduÃ§Ã£o do erro para 'validation'.
+ * validação pesada delegada ao pre('save') do modelo com
+ * tradução do erro para 'validation'.
  *
- * Datas de feriados/exceÃ§Ãµes sÃ£o gravadas ancoradas ao MEIO-DIA
+ * Datas de feriados/exceções são gravadas ancoradas ao MEIO-DIA
  * de Lisboa (combineDateAndTime), garantindo que caem sempre
  * dentro da janela do dia certo no resolver, em qualquer TZ de
- * servidor e em horÃ¡rio de verÃ£o/inverno.
+ * servidor e em horário de verão/inverno.
  */
 
 import mongoose from 'mongoose';
@@ -86,7 +86,7 @@ function fieldErrors(err: z.ZodError): Record<string, string[]> {
   return out;
 }
 
-/** Data ISO YYYY-MM-DD â†’ Date ancorada ao meio-dia de Lisboa. */
+/** Data ISO YYYY-MM-DD → Date ancorada ao meio-dia de Lisboa. */
 function anchorNoon(isoDay: string): Date {
   return combineDateAndTime(new Date(`${isoDay}T12:00:00`), '12:00');
 }
@@ -103,12 +103,12 @@ function dayWindow(isoDay: string): { start: Date; end: Date } {
 function revalidateScheduleViews() {
   revalidatePath('/admin/horarios');
   revalidatePath('/admin/equipa');
-  // A disponibilidade pÃºblica depende deste modelo
+  // A disponibilidade pública depende deste modelo
   revalidatePath('/marcacoes');
   revalidatePath('/marcacoes/horario');
 }
 
-/** dayOfWeek numÃ©rico (0=Dom â€¦ 6=SÃ¡b) â†’ nome usado em Staff.workingHours */
+/** dayOfWeek numérico (0=Dom … 6=Sáb) → nome usado em Staff.workingHours */
 const NUMBER_TO_WEEKDAY: Record<number, WeekDay> = {
   0: 'sunday',
   1: 'monday',
@@ -121,17 +121,17 @@ const NUMBER_TO_WEEKDAY: Record<number, WeekDay> = {
 
 /**
  * Alinha Staff.workingHours de TODOS os profissionais com o
- * horÃ¡rio semanal do salÃ£o acabado de gravar.
+ * horário semanal do salão acabado de gravar.
  *
- * PolÃ­tica (idÃªntica ao scripts/fix-salon-hours.ts):
- *  - Dia fechado no salÃ£o  â†’ enabled=false (janela mantida sÃ³
+ * Política (idêntica ao scripts/fix-salon-hours.ts):
+ *  - Dia fechado no salão  → enabled=false (janela mantida só
  *    como placeholder, tal como o defaultWorkingHours faz)
- *  - Dia aberto no salÃ£o   â†’ enabled=true, start/end = salÃ£o
+ *  - Dia aberto no salão   → enabled=true, start/end = salão
  *  - Pausas individuais preservadas SE couberem na nova janela;
- *    as que ficarem fora sÃ£o descartadas (o pre('save') do Staff
- *    rejeitaria breaks fora do horÃ¡rio e abortava a gravaÃ§Ã£o).
+ *    as que ficarem fora são descartadas (o pre('save') do Staff
+ *    rejeitaria breaks fora do horário e abortava a gravação).
  *
- * Devolve o nÂº de profissionais efetivamente alterados.
+ * Devolve o nº de profissionais efetivamente alterados.
  */
 async function syncStaffWorkingHours(week: SalonDayInput[]): Promise<number> {
   const salonByName = new Map<WeekDay, SalonDayInput>();
@@ -139,8 +139,8 @@ async function syncStaffWorkingHours(week: SalonDayInput[]): Promise<number> {
     salonByName.set(NUMBER_TO_WEEKDAY[day.dayOfWeek], day);
   }
 
-  // Todos (ativos e inativos): um staff reativado amanhÃ£ deve
-  // acordar jÃ¡ alinhado com o horÃ¡rio atual do salÃ£o.
+  // Todos (ativos e inativos): um staff reativado amanhã deve
+  // acordar já alinhado com o horário atual do salão.
   const allStaff = await Staff.find({});
   let changed = 0;
 
@@ -199,16 +199,16 @@ async function syncStaffWorkingHours(week: SalonDayInput[]): Promise<number> {
 }
 
 // ============================================================
-// HORÃRIO SEMANAL (regular)
+// HORÁRIO SEMANAL (regular)
 // ============================================================
 
 export async function setSalonWeekAction(input: unknown): Promise<ActionResult> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
+  if (!admin) return fail('unauthorized', 'Não autorizado');
 
   const parsed = setSalonWeekSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'HorÃ¡rio invÃ¡lido. Verifica os campos.', fieldErrors(parsed.error));
+    return fail('validation', 'Horário inválido. Verifica os campos.', fieldErrors(parsed.error));
   }
 
   await connectDB();
@@ -216,7 +216,7 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
   try {
     for (const day of parsed.data.week) {
       // sort por updatedAt: se existirem duplicados antigos na BD,
-      // editamos SEMPRE o mais recente â€” o mesmo que os leitores
+      // editamos SEMPRE o mais recente — o mesmo que os leitores
       // (schedule-resolver e month-availability) agora escolhem.
       let doc = await Schedule.findOne({ type: 'regular', dayOfWeek: day.dayOfWeek }).sort({
         updatedAt: -1,
@@ -228,28 +228,28 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
       doc.start = day.open ? day.start : undefined;
       doc.end = day.open ? day.end : undefined;
       doc.set('breaks', day.open ? day.breaks : []);
-      await doc.save(); // pre('save') do modelo revalida start<end, breaks dentro do horÃ¡rio
+      await doc.save(); // pre('save') do modelo revalida start<end, breaks dentro do horário
     }
   } catch (err) {
     if (err instanceof Error) return fail('validation', err.message);
     console.error('[setSalonWeekAction]', err);
-    return fail('server', 'Erro ao gravar o horÃ¡rio semanal');
+    return fail('server', 'Erro ao gravar o horário semanal');
   }
 
-  // â”€â”€ FIX sincronizaÃ§Ã£o: alinhar o horÃ¡rio da equipa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FIX sincronização: alinhar o horário da equipa ──────────
   let staffChanged = 0;
   if (parsed.data.syncStaff) {
     try {
       staffChanged = await syncStaffWorkingHours(parsed.data.week);
     } catch (err) {
-      // O salÃ£o JÃ foi gravado; reportar com clareza para o admin
+      // O salão JÁ foi gravado; reportar com clareza para o admin
       // poder corrigir a equipa manualmente em /admin/equipa.
       console.error('[setSalonWeekAction] syncStaffWorkingHours', err);
       const detail = err instanceof Error ? ` (${err.message})` : '';
       return fail(
         'server',
-        `HorÃ¡rio do salÃ£o gravado, mas falhou o alinhamento da equipa${detail}. ` +
-          'Verifica os horÃ¡rios individuais em Equipa.',
+        `Horário do salão gravado, mas falhou o alinhamento da equipa${detail}. ` +
+          'Verifica os horários individuais em Equipa.',
       );
     }
   }
@@ -257,14 +257,14 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
   await logAudit({
     action: 'update',
     resource: 'schedule',
-    resourceLabel: 'HorÃ¡rio semanal do salÃ£o',
+    resourceLabel: 'Horário semanal do salão',
     userId: new mongoose.Types.ObjectId(admin.id),
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
     message: parsed.data.syncStaff
-      ? `HorÃ¡rio semanal do salÃ£o atualizado (equipa alinhada: ${staffChanged} profissional/is)`
-      : 'HorÃ¡rio semanal do salÃ£o atualizado (sem alinhar equipa)',
+      ? `Horário semanal do salão atualizado (equipa alinhada: ${staffChanged} profissional/is)`
+      : 'Horário semanal do salão atualizado (sem alinhar equipa)',
     severity: 'info',
   });
 
@@ -278,11 +278,11 @@ export async function setSalonWeekAction(input: unknown): Promise<ActionResult> 
 
 export async function addHolidayAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
+  if (!admin) return fail('unauthorized', 'Não autorizado');
 
   const parsed = addHolidaySchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'Feriado invÃ¡lido.', fieldErrors(parsed.error));
+    return fail('validation', 'Feriado inválido.', fieldErrors(parsed.error));
   }
 
   await connectDB();
@@ -290,12 +290,12 @@ export async function addHolidayAction(input: unknown): Promise<ActionResult<{ i
   const { date, reason, recurringYearly } = parsed.data;
   const window = dayWindow(date);
 
-  // Duplicado no mesmo dia (a unique index sÃ³ apanha igualdade exata do timestamp)
+  // Duplicado no mesmo dia (a unique index só apanha igualdade exata do timestamp)
   const existing = await Schedule.findOne({
     type: 'holiday',
     date: { $gte: window.start, $lte: window.end },
   }).lean();
-  if (existing) return fail('duplicate', 'JÃ¡ existe um feriado nessa data');
+  if (existing) return fail('duplicate', 'Já existe um feriado nessa data');
 
   try {
     const doc = await Schedule.create({
@@ -316,7 +316,7 @@ export async function addHolidayAction(input: unknown): Promise<ActionResult<{ i
       userName: admin.name,
       userEmail: admin.email,
       userRole: 'admin',
-      message: `Feriado adicionado: ${date}${recurringYearly ? ' (anual)' : ''} â€” ${reason || 'Feriado'}`,
+      message: `Feriado adicionado: ${date}${recurringYearly ? ' (anual)' : ''} — ${reason || 'Feriado'}`,
       severity: 'info',
     });
 
@@ -324,7 +324,7 @@ export async function addHolidayAction(input: unknown): Promise<ActionResult<{ i
     return ok({ id: String(doc._id) });
   } catch (err) {
     if (err instanceof Error && err.message.includes('E11000')) {
-      return fail('duplicate', 'JÃ¡ existe um feriado nessa data');
+      return fail('duplicate', 'Já existe um feriado nessa data');
     }
     console.error('[addHolidayAction]', err);
     return fail('server', 'Erro ao adicionar feriado');
@@ -332,16 +332,16 @@ export async function addHolidayAction(input: unknown): Promise<ActionResult<{ i
 }
 
 // ============================================================
-// EXCEÃ‡Ã•ES (exception) â€” dia fechado ou horÃ¡rio especial
+// EXCEÇÕES (exception) — dia fechado ou horário especial
 // ============================================================
 
 export async function upsertExceptionAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
+  if (!admin) return fail('unauthorized', 'Não autorizado');
 
   const parsed = upsertExceptionSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'ExceÃ§Ã£o invÃ¡lida.', fieldErrors(parsed.error));
+    return fail('validation', 'Exceção inválida.', fieldErrors(parsed.error));
   }
 
   await connectDB();
@@ -363,7 +363,7 @@ export async function upsertExceptionAction(input: unknown): Promise<ActionResul
     doc.start = open ? start : undefined;
     doc.end = open ? end : undefined;
     doc.set('breaks', []);
-    doc.reason = reason || (open ? 'HorÃ¡rio especial' : 'Encerrado');
+    doc.reason = reason || (open ? 'Horário especial' : 'Encerrado');
 
     await doc.save();
 
@@ -371,14 +371,14 @@ export async function upsertExceptionAction(input: unknown): Promise<ActionResul
       action: 'update',
       resource: 'schedule',
       resourceId: String(doc._id),
-      resourceLabel: `ExceÃ§Ã£o ${date}`,
+      resourceLabel: `Exceção ${date}`,
       userId: new mongoose.Types.ObjectId(admin.id),
       userName: admin.name,
       userEmail: admin.email,
       userRole: 'admin',
       message: open
-        ? `ExceÃ§Ã£o: ${date} aberto ${start}â€“${end} â€” ${doc.reason}`
-        : `ExceÃ§Ã£o: ${date} encerrado â€” ${doc.reason}`,
+        ? `Exceção: ${date} aberto ${start}–${end} — ${doc.reason}`
+        : `Exceção: ${date} encerrado — ${doc.reason}`,
       severity: 'info',
     });
 
@@ -387,32 +387,32 @@ export async function upsertExceptionAction(input: unknown): Promise<ActionResul
   } catch (err) {
     if (err instanceof Error) return fail('validation', err.message);
     console.error('[upsertExceptionAction]', err);
-    return fail('server', 'Erro ao gravar a exceÃ§Ã£o');
+    return fail('server', 'Erro ao gravar a exceção');
   }
 }
 
 // ============================================================
-// APAGAR feriado/exceÃ§Ã£o (hard delete â€” nÃ£o sÃ£o referenciados
-// por histÃ³rico, ao contrÃ¡rio de clientes/serviÃ§os)
+// APAGAR feriado/exceção (hard delete — não são referenciados
+// por histórico, ao contrário de clientes/serviços)
 // ============================================================
 
 export async function deleteScheduleEntryAction(input: unknown): Promise<ActionResult> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
+  if (!admin) return fail('unauthorized', 'Não autorizado');
 
   const parsed = scheduleIdSchema.safeParse(input);
-  if (!parsed.success) return fail('validation', 'ID invÃ¡lido.');
+  if (!parsed.success) return fail('validation', 'ID inválido.');
 
   await connectDB();
 
   const doc = await Schedule.findById(parsed.data.id);
-  if (!doc) return fail('not_found', 'Entrada nÃ£o encontrada');
+  if (!doc) return fail('not_found', 'Entrada não encontrada');
 
   if (doc.type === 'regular') {
-    return fail('validation', 'O horÃ¡rio semanal nÃ£o pode ser apagado â€” edite os dias.');
+    return fail('validation', 'O horário semanal não pode ser apagado — edite os dias.');
   }
 
-  const label = `${doc.type === 'holiday' ? 'Feriado' : 'ExceÃ§Ã£o'} ${doc.date ? toISODate(new Date(doc.date)) : ''}`;
+  const label = `${doc.type === 'holiday' ? 'Feriado' : 'Exceção'} ${doc.date ? toISODate(new Date(doc.date)) : ''}`;
   await doc.deleteOne();
 
   await logAudit({

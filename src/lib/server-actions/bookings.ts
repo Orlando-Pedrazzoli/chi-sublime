@@ -1,31 +1,31 @@
-// ðŸ“„ src/lib/server-actions/bookings.ts
+// 📄 src/lib/server-actions/bookings.ts
 'use server';
 
 /**
- * Chi Sublime â€” Server Actions: marcaÃ§Ã£o online (cliente)
+ * Chi Sublime — Server Actions: marcação online (cliente)
  * ============================================================
  *
- * CHANGELOG (revisÃ£o do sistema de marcaÃ§Ã£o):
- *  - SEGURANÃ‡A: createBookingAction exige sessÃ£o de cliente. O fluxo
- *    /marcacoes/confirmar sÃ³ funciona com login, mas a action podia ser
+ * CHANGELOG (revisão do sistema de marcação):
+ *  - SEGURANÇA: createBookingAction exige sessão de cliente. O fluxo
+ *    /marcacoes/confirmar só funciona com login, mas a action podia ser
  *    chamada diretamente com qualquer nome/email/telefone.
- *  - DADOS: a reserva liga-se ao Client da SESSÃƒO. Antes procurava
- *    por email OU telefone e renomeava o registo encontrado â€” uma mÃ£e
+ *  - DADOS: a reserva liga-se ao Client da SESSÃO. Antes procurava
+ *    por email OU telefone e renomeava o registo encontrado — uma mãe
  *    a marcar para a filha com o mesmo telefone ficava com a reserva
  *    (e o nome) trocados.
- *  - AGENDA: a verificaÃ§Ã£o final de conflito considera o buffer das
- *    reservas existentes e qualquer sobreposiÃ§Ã£o, igual ao motor de
+ *  - AGENDA: a verificação final de conflito considera o buffer das
+ *    reservas existentes e qualquer sobreposição, igual ao motor de
  *    disponibilidade (antes ignorava o buffer).
- *  - `source` forÃ§ado a 'website' (vinha do browser).
+ *  - `source` forçado a 'website' (vinha do browser).
  *  - Cancelamento por token: o email ao cliente usava guestInfo, que
- *    nunca existe em reservas online â†’ nenhum email era enviado.
+ *    nunca existe em reservas online → nenhum email era enviado.
  *  - Janela de cancelamento lida de BOOKING_RULES.
- *  - getAvailableSlotsAction valida o input (IDs invÃ¡lidos rebentavam).
- *  - POLÃTICA: confirmaÃ§Ã£o instantÃ¢nea (lib/booking/policy.ts). A
- *    reserva nasce 'confirmed' e o email de confirmaÃ§Ã£o leva o convite
+ *  - getAvailableSlotsAction valida o input (IDs inválidos rebentavam).
+ *  - POLÍTICA: confirmação instantânea (lib/booking/policy.ts). A
+ *    reserva nasce 'confirmed' e o email de confirmação leva o convite
  *    .ics. Com approvalMode='manual' nasce 'pending' e o cliente recebe
  *    "pedido recebido".
- *  - Cancelamentos pela cliente alertam o salÃ£o (horÃ¡rio ficou livre).
+ *  - Cancelamentos pela cliente alertam o salão (horário ficou livre).
  */
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -156,13 +156,13 @@ export type CancelMyBookingResult =
 // ============================================================
 
 export async function createBookingAction(input: unknown): Promise<CreateBookingResult> {
-  // A marcaÃ§Ã£o online exige conta de cliente (o Step3 sÃ³ submete com sessÃ£o).
+  // A marcação online exige conta de cliente (o Step3 só submete com sessão).
   const session = await auth();
   const sessionClientId = session?.user?.role === 'client' ? session.user.clientId : undefined;
   if (!session?.user || !sessionClientId) {
     return {
       success: false,
-      error: { code: 'unauthorized', message: 'Inicia sessÃ£o para concluir a marcaÃ§Ã£o.' },
+      error: { code: 'unauthorized', message: 'Inicia sessão para concluir a marcação.' },
     };
   }
 
@@ -197,13 +197,13 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const dateObj = parseDateString(data.date);
 
-  // â”€â”€ Guarda explÃ­cita do horizonte de reserva â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // O getAvailableSlots abaixo jÃ¡ valida isto, mas Ã© uma funÃ§Ã£o de
-  // LEITURA. Garantir uma invariante de ESCRITA atravÃ©s de um efeito
-  // secundÃ¡rio de uma leitura Ã© frÃ¡gil: qualquer caminho novo (API
-  // route, webhook, futuro reagendamento) perde a proteÃ§Ã£o sem que
-  // ninguÃ©m repare. Esta guarda vive na fronteira de escrita, que Ã©
-  // onde pertence â€” e Ã© barata.
+  // ── Guarda explícita do horizonte de reserva ────────────────
+  // O getAvailableSlots abaixo já valida isto, mas é uma função de
+  // LEITURA. Garantir uma invariante de ESCRITA através de um efeito
+  // secundário de uma leitura é frágil: qualquer caminho novo (API
+  // route, webhook, futuro reagendamento) perde a proteção sem que
+  // ninguém repare. Esta guarda vive na fronteira de escrita, que é
+  // onde pertence — e é barata.
   const dateError = validateDate(dateObj);
   if (dateError) {
     return { success: false, error: { code: 'validation', message: dateError.message } };
@@ -266,22 +266,22 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const totalPrice = serviceItems.reduce((sum, item) => sum + item.price, 0);
 
-  // Cliente = o da sessÃ£o. Nunca procurar por email/telefone vindos do
-  // formulÃ¡rio: nÃ£o se sobrescrevem dados de outra pessoa.
+  // Cliente = o da sessão. Nunca procurar por email/telefone vindos do
+  // formulário: não se sobrescrevem dados de outra pessoa.
   const clientDoc = await Client.findOne({ _id: sessionClientId, active: true });
   if (!clientDoc) {
     return {
       success: false,
       error: {
         code: 'unauthorized',
-        message: 'Conta de cliente nÃ£o encontrada. Contacta o salÃ£o.',
+        message: 'Conta de cliente não encontrada. Contacta o salão.',
       },
     };
   }
 
   let needsSave = false;
   if (data.guestInfo.phone && phoneDigits(data.guestInfo.phone) !== phoneDigits(clientDoc.phone)) {
-    // O Step3 pede ao cliente para confirmar o telefone â€” Ã© o dado mais atual
+    // O Step3 pede ao cliente para confirmar o telefone — é o dado mais atual
     clientDoc.phone = data.guestInfo.phone;
     needsSave = true;
   }
@@ -307,10 +307,10 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
   const bookingNumber = await generateBookingNumber();
 
   try {
-    // VerificaÃ§Ã£o final contra reservas criadas entre o cÃ¡lculo dos slots e
-    // agora. Mesma regra do motor de disponibilidade: sobreposiÃ§Ã£o real,
-    // contando o buffer apÃ³s cada reserva existente. (O Ã­ndice Ãºnico sÃ³
-    // apanha o MESMO startTime; sobreposiÃ§Ãµes parciais passavam.)
+    // Verificação final contra reservas criadas entre o cálculo dos slots e
+    // agora. Mesma regra do motor de disponibilidade: sobreposição real,
+    // contando o buffer após cada reserva existente. (O índice único só
+    // apanha o MESMO startTime; sobreposições parciais passavam.)
     const MAX_BUFFER_MS = 120 * 60_000;
     const nearby = await Booking.find({
       staffId: requestedSlot.staffId,
@@ -372,9 +372,9 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       metadata: { bookingNumber, totalPrice, totalDuration, source: 'website' },
     });
 
-    // Emails reais (cliente + alerta ao salÃ£o). AWAIT obrigatÃ³rio:
+    // Emails reais (cliente + alerta ao salão). AWAIT obrigatório:
     // em serverless, um fire-and-forget pode ser morto com a lambda
-    // antes de o Resend responder. notifyBookingCreated nunca lanÃ§a.
+    // antes de o Resend responder. notifyBookingCreated nunca lança.
     await notifyBookingCreated({
       bookingNumber,
       startTime,
@@ -405,8 +405,8 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       },
     };
   } catch (err) {
-    // E11000 = Ã­ndice Ãºnico anti-double-booking disparou: dois pedidos
-    // simultÃ¢neos apanharam o mesmo slot e este perdeu a corrida.
+    // E11000 = índice único anti-double-booking disparou: dois pedidos
+    // simultâneos apanharam o mesmo slot e este perdeu a corrida.
     if (isDuplicateKeyError(err)) {
       return {
         success: false,
@@ -424,7 +424,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
   }
 }
 
-/** Deteta o erro de chave duplicada do MongoDB (cÃ³digo 11000), venha de onde vier. */
+/** Deteta o erro de chave duplicada do MongoDB (código 11000), venha de onde vier. */
 function isDuplicateKeyError(err: unknown): boolean {
   return (
     typeof err === 'object' &&
@@ -500,7 +500,7 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
     metadata: { reason: booking.cancellationReason },
   });
 
-  // Reservas online tÃªm clientId (nÃ£o guestInfo) â€” resolver o contacto no Client
+  // Reservas online têm clientId (não guestInfo) — resolver o contacto no Client
   const [bookingClient, bookingStaff] = await Promise.all([
     booking.clientId ? Client.findById(booking.clientId).select('name email phone').lean() : null,
     Staff.findById(booking.staffId).select('name').lean(),
@@ -553,7 +553,7 @@ export async function getAvailableSlotsAction(input: {
         candidateStaffIds: [],
         serviceNames: [],
       },
-      error: { code: 'invalid-services', message: 'Pedido de disponibilidade invÃ¡lido' },
+      error: { code: 'invalid-services', message: 'Pedido de disponibilidade inválido' },
     };
   }
   return getAvailableSlots({
@@ -564,13 +564,13 @@ export async function getAvailableSlotsAction(input: {
 }
 
 // ============================================================
-// CLIENT AREA â€” Server Actions
+// CLIENT AREA — Server Actions
 // ============================================================
 
 export async function getMyBookingsAction(): Promise<GetMyBookingsResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== 'client' || !session.user.clientId) {
-    return { success: false, error: 'NÃ£o autenticado' };
+    return { success: false, error: 'Não autenticado' };
   }
 
   await connectDB();
@@ -624,7 +624,7 @@ export async function cancelMyBookingAction(input: {
 }): Promise<CancelMyBookingResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== 'client' || !session.user.clientId) {
-    return { success: false, error: { code: 'unauthorized', message: 'NÃ£o autenticado' } };
+    return { success: false, error: { code: 'unauthorized', message: 'Não autenticado' } };
   }
 
   await connectDB();
@@ -635,20 +635,20 @@ export async function cancelMyBookingAction(input: {
   });
 
   if (!booking) {
-    return { success: false, error: { code: 'not-found', message: 'Reserva nÃ£o encontrada' } };
+    return { success: false, error: { code: 'not-found', message: 'Reserva não encontrada' } };
   }
 
   if (booking.status === 'cancelled') {
     return {
       success: false,
-      error: { code: 'already-cancelled', message: 'Reserva jÃ¡ cancelada' },
+      error: { code: 'already-cancelled', message: 'Reserva já cancelada' },
     };
   }
 
   if (!['pending', 'confirmed'].includes(booking.status)) {
     return {
       success: false,
-      error: { code: 'already-completed', message: 'Esta reserva jÃ¡ nÃ£o pode ser cancelada' },
+      error: { code: 'already-completed', message: 'Esta reserva já não pode ser cancelada' },
     };
   }
 
@@ -658,13 +658,13 @@ export async function cancelMyBookingAction(input: {
       success: false,
       error: {
         code: 'too-late',
-        message: `Cancelamentos sÃ³ podem ser feitos com pelo menos ${BOOKING_RULES.cancellationWindowHours}h de antecedÃªncia. Por favor contacta o salÃ£o pelo telefone +351 932 932 691.`,
+        message: `Cancelamentos só podem ser feitos com pelo menos ${BOOKING_RULES.cancellationWindowHours}h de antecedência. Por favor contacta o salão pelo telefone +351 932 932 691.`,
       },
     };
   }
 
   booking.status = 'cancelled';
-  booking.cancellationReason = input.reason ?? 'Cancelado pelo cliente na Ã¡rea de cliente';
+  booking.cancellationReason = input.reason ?? 'Cancelado pelo cliente na área de cliente';
   booking.cancelledBy = 'client';
   booking.cancelledAt = new Date();
   await booking.save();
@@ -678,7 +678,7 @@ export async function cancelMyBookingAction(input: {
     userName: session.user.name,
     userEmail: session.user.email,
     userRole: 'client',
-    message: `Cliente cancelou reserva ${input.bookingNumber} pela Ã¡rea de cliente`,
+    message: `Cliente cancelou reserva ${input.bookingNumber} pela área de cliente`,
     severity: 'info',
     metadata: { reason: booking.cancellationReason },
   });
@@ -717,12 +717,12 @@ export async function cancelMyBookingAction(input: {
 // HELPERS
 // ============================================================
 
-/** Compara telefones PT ignorando espaÃ§os e o prefixo +351/00351. */
+/** Compara telefones PT ignorando espaços e o prefixo +351/00351. */
 function phoneDigits(phone?: string): string {
   return (phone ?? '').replace(/\D/g, '').replace(/^(00)?351(?=\d{9}$)/, '');
 }
 
-/** ComparaÃ§Ã£o em tempo constante (evita timing attacks no token). */
+/** Comparação em tempo constante (evita timing attacks no token). */
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Chi Sublime â€” Booking Flow Guard
+ * Chi Sublime — Booking Flow Guard
  * ============================================================
  *
  * Componente que protege rotas do flow de reserva.
