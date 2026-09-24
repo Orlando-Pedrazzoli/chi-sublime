@@ -26,6 +26,16 @@ import type { BookingForClient } from '@/lib/server-actions/bookings';
 
 const TZ = 'Europe/Lisbon';
 
+/* Botões de calendário — border/padding/gap inline (Tailwind v4 + Next 16
+   descarta `border`, `gap-*` e `px-*` em produção) */
+const CAL_BTN: React.CSSProperties = {
+  padding: '12px 16px',
+  gap: '8px',
+  border: '1px solid rgba(31,61,46,0.2)',
+  backgroundColor: 'transparent',
+  color: '#1F3D2E',
+};
+
 const dateFmt = new Intl.DateTimeFormat('pt-PT', {
   timeZone: TZ,
   weekday: 'long',
@@ -103,7 +113,10 @@ export function BookingSuccessModal({ booking, clientFirstName, clientEmail, onC
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div
+      className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4"
+      style={{ zIndex: 200 }}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-sm"
@@ -262,12 +275,8 @@ export function BookingSuccessModal({ booking, clientFirstName, clientEmail, onC
                 href={googleCalendarUrl(calendarEvent)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border text-xs font-medium tracking-[0.14em] uppercase transition-colors hover:bg-white"
-                style={{
-                  padding: '12px 16px',
-                  borderColor: 'rgba(31,61,46,0.2)',
-                  color: '#1F3D2E',
-                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md text-xs font-medium tracking-[0.14em] uppercase transition-colors hover:bg-white"
+                style={CAL_BTN}
               >
                 <CalendarPlus size={14} strokeWidth={1.5} />
                 Google Calendar
@@ -275,12 +284,8 @@ export function BookingSuccessModal({ booking, clientFirstName, clientEmail, onC
               <button
                 type="button"
                 onClick={downloadIcs}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border text-xs font-medium tracking-[0.14em] uppercase transition-colors hover:bg-white"
-                style={{
-                  padding: '12px 16px',
-                  borderColor: 'rgba(31,61,46,0.2)',
-                  color: '#1F3D2E',
-                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md text-xs font-medium tracking-[0.14em] uppercase transition-colors hover:bg-white"
+                style={CAL_BTN}
               >
                 <CalendarPlus size={14} strokeWidth={1.5} />
                 Apple / Outlook
