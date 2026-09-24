@@ -17,7 +17,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useBookingFlow, useIsHydrated } from '@/hooks/useBookingFlow';
+import { isLeavingFlow, useBookingFlow, useIsHydrated } from '@/hooks/useBookingFlow';
 
 type Props = {
   /** O que mostrar enquanto verifica (ou se redirect estiver em curso) */
@@ -35,6 +35,10 @@ export function BookingFlowGuard({ fallback, children, requireStep }: Props) {
 
   useEffect(() => {
     if (!isHydrated) return;
+
+    // Reserva acabada de criar e hard navigation em curso — não
+    // interferir (ver markLeavingFlow no Step3Client)
+    if (isLeavingFlow()) return;
 
     // Step "time" requires services selected
     if (requireStep === 'time' && selectedServices.length === 0) {
@@ -55,7 +59,7 @@ export function BookingFlowGuard({ fallback, children, requireStep }: Props) {
   }
 
   // Se condicao nao cumprida, mostra fallback enquanto redirect acontece
-  if (requireStep === 'time' && selectedServices.length === 0) {
+  if (!isLeavingFlow() && requireStep === 'time' && selectedServices.length === 0) {
     return <>{fallback ?? <DefaultFallback />}</>;
   }
 

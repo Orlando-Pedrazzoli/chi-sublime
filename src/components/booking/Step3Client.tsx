@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { User, LogIn, UserPlus } from 'lucide-react';
-import { useBookingFlow } from '@/hooks/useBookingFlow';
+import { markLeavingFlow, useBookingFlow } from '@/hooks/useBookingFlow';
 import { createBookingAction } from '@/lib/server-actions/bookings';
 import { cn } from '@/lib/utils/cn';
 
@@ -49,7 +49,7 @@ const INITIAL_FORM: FormState = {
 export function Step3Client() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { selectedServiceIds, staffId, date, time, clearFlow } = useBookingFlow();
+  const { selectedServiceIds, staffId, date, time } = useBookingFlow();
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -139,6 +139,7 @@ export function Step3Client() {
     }
 
     setIsSubmitting(true);
+    let navigating = false;
 
     try {
       const input = {
@@ -175,15 +176,24 @@ export function Step3Client() {
       const result = await createBookingAction(input);
 
       if (result.success) {
-        // Limpa o carrinho ANTES do redirect — sem isto, voltar a
-        // /marcacoes mostrava os serviços da reserva já concluída
-        clearFlow();
-        // Hard navigation para escapar do BookingFlowGuard.
-        // Vai directo para a área de cliente: /conta/reservas abre o
-        // modal "Obrigada pela sua marcação" (BookingSuccessModal) e
-        // destaca a nova reserva na lista. A página /marcacoes/[n]
-        // continua a existir para os links do email.
-        window.location.href = `/conta/reservas?nova=${encodeURIComponent(result.booking.bookingNumber)}`;
+        // NÃO limpar o carrinho aqui. Qualquer alteração ao estado do
+        // funil antes da navegação faz o BookingFlowGuard ver o
+        // carrinho vazio e disparar router.replace('/marcacoes') —
+        // no Safari iOS esse redirect ganhava à hard navigation e o
+        // cliente voltava ao passo 1. O carrinho é limpo na página de
+        // destino (MyBookings → clearBookingFlowStorage) quando
+        // chega o ?nova=.
+        markLeavingFlow();
+
+        // Hard navigation para a área de cliente: /conta/reservas
+        // lê ?nova=, abre o BookingSuccessModal ("Obrigada pela sua
+        // marcação…") e destaca a nova reserva na lista.
+        // A página /marcacoes/[n] continua a existir para o email.
+        navigating = true;
+        window.location.assign(
+          `/conta/reservas?nova=${encodeURIComponent(result.booking.bookingNumber)}`,
+        );
+        // Mantém o botão em "A confirmar…" até a página descarregar
         return;
       } else {
         if (result.error.fieldErrors) {
@@ -203,7 +213,7 @@ export function Step3Client() {
       console.error('Submit failed:', err);
       setSubmitError('Erro ao processar reserva. Tente novamente.');
     } finally {
-      setIsSubmitting(false);
+      if (!navigating) setIsSubmitting(false);
     }
   };
 

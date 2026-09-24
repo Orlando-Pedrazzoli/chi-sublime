@@ -105,6 +105,38 @@ function writeState(state: BookingFlowState): void {
 
 let cachedState: BookingFlowState | null = null;
 
+/**
+ * Flag "a sair do funil": ligada pelo Step3Client no instante em que a
+ * reserva é criada e antes da hard navigation para /conta/reservas.
+ * Enquanto estiver ligada, o BookingFlowGuard NÃO redireciona — evita a
+ * corrida que no Safari iOS mandava o cliente de volta ao passo 1.
+ * (Uma hard navigation reinicia o módulo, por isso volta a false sozinha.)
+ */
+let leavingFlow = false;
+
+export function markLeavingFlow(): void {
+  leavingFlow = true;
+}
+
+export function isLeavingFlow(): boolean {
+  return leavingFlow;
+}
+
+/**
+ * Limpa o carrinho directamente no sessionStorage, sem passar pelo hook
+ * e sem disparar eventos. Usado na página de destino (/conta/reservas)
+ * depois de uma reserva criada — o funil já não está montado.
+ */
+export function clearBookingFlowStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* sessionStorage indisponível (modo privado antigo) — ignorar */
+  }
+  cachedState = INITIAL_STATE;
+}
+
 function subscribe(callback: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
   const handler = () => {
@@ -193,11 +225,24 @@ export function useBookingFlow() {
     }
   }, []);
 
-  const clearFlow = useCallback(() => {
+  /**
+   * Limpa o carrinho.
+   *
+   * `silent: true` — limpa o sessionStorage SEM disparar o evento
+   * 'chi-booking-flow-change'. Usado imediatamente antes de uma hard
+   * navigation (window.location.href) após criar a reserva: se o
+   * evento disparasse, o BookingFlowGuard reagia (selectedServices
+   * vazio) e fazia router.replace('/marcacoes'), competindo com o
+   * redirect para /conta/reservas — o cliente voltava ao passo 1 em
+   * vez de ver o modal de confirmação.
+   */
+  const clearFlow = useCallback((options?: { silent?: boolean }) => {
     cachedState = INITIAL_STATE;
     if (typeof window !== 'undefined') {
       window.sessionStorage.removeItem(STORAGE_KEY);
-      window.dispatchEvent(new Event('chi-booking-flow-change'));
+      if (!options?.silent) {
+        window.dispatchEvent(new Event('chi-booking-flow-change'));
+      }
     }
   }, []);
 

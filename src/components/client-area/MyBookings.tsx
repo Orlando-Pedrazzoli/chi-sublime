@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cancelMyBookingAction, type BookingForClient } from '@/lib/server-actions/bookings';
 import { BookingSuccessModal } from './BookingSuccessModal';
+import { clearBookingFlowStorage } from '@/hooks/useBookingFlow';
 
 type Props = {
   bookings: BookingForClient[];
@@ -41,6 +42,12 @@ export function MyBookings({
   const [showSuccess, setShowSuccess] = useState(Boolean(newBooking));
   const [highlighted, setHighlighted] = useState<string | null>(newBooking?.bookingNumber ?? null);
   const highlightRef = useRef<HTMLElement | null>(null);
+
+  // Chegámos aqui com ?nova= → a reserva foi criada: limpar o carrinho
+  // do funil (não é limpo no Step3Client para não acordar o guard)
+  useEffect(() => {
+    if (newBookingNumber) clearBookingFlowStorage();
+  }, [newBookingNumber]);
 
   // Ao fechar o modal: scroll até ao cartão novo, destaque desaparece após uns segundos
   useEffect(() => {
