@@ -1,7 +1,7 @@
 // 📄 src/components/client-area/MyBookings.tsx
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   Calendar,
@@ -13,13 +13,42 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cancelMyBookingAction, type BookingForClient } from '@/lib/server-actions/bookings';
+import { BookingSuccessModal } from './BookingSuccessModal';
 
 type Props = {
   bookings: BookingForClient[];
+  /**
+   * bookingNumber acabado de criar (vem de /conta/reservas?nova=CHI-…).
+   * Abre o modal de sucesso e destaca o cartão correspondente.
+   */
+  newBookingNumber?: string | null;
+  clientFirstName?: string;
+  clientEmail?: string;
 };
 
-export function MyBookings({ bookings: initialBookings }: Props) {
+export function MyBookings({
+  bookings: initialBookings,
+  newBookingNumber = null,
+  clientFirstName = '',
+  clientEmail = '',
+}: Props) {
   const [bookings, setBookings] = useState(initialBookings);
+
+  // Modal de sucesso: só abre se a reserva do ?nova= existir na lista
+  const newBooking = newBookingNumber
+    ? (initialBookings.find((b) => b.bookingNumber === newBookingNumber) ?? null)
+    : null;
+  const [showSuccess, setShowSuccess] = useState(Boolean(newBooking));
+  const [highlighted, setHighlighted] = useState<string | null>(newBooking?.bookingNumber ?? null);
+  const highlightRef = useRef<HTMLElement | null>(null);
+
+  // Ao fechar o modal: scroll até ao cartão novo, destaque desaparece após uns segundos
+  useEffect(() => {
+    if (showSuccess || !highlighted) return;
+    highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlighted(null), 6000);
+    return () => clearTimeout(t);
+  }, [showSuccess, highlighted]);
   const [confirmingCancel, setConfirmingCancel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -74,6 +103,15 @@ export function MyBookings({ bookings: initialBookings }: Props) {
 
   return (
     <div className="space-y-10">
+      {showSuccess && newBooking && (
+        <BookingSuccessModal
+          booking={newBooking}
+          clientFirstName={clientFirstName}
+          clientEmail={clientEmail}
+          onClose={() => setShowSuccess(false)}
+        />
+      )}
+
       {errorMessage && (
         <div
           role="alert"
@@ -121,7 +159,9 @@ export function MyBookings({ bookings: initialBookings }: Props) {
             {future.map((booking) => (
               <BookingCard
                 key={booking.bookingNumber}
+                ref={highlighted === booking.bookingNumber ? highlightRef : undefined}
                 booking={booking}
+                isNew={highlighted === booking.bookingNumber}
                 isPending={isPending && confirmingCancel === booking.bookingNumber}
                 isConfirmingCancel={confirmingCancel === booking.bookingNumber}
                 onRequestCancel={() => setConfirmingCancel(booking.bookingNumber)}
@@ -162,6 +202,9 @@ export function MyBookings({ bookings: initialBookings }: Props) {
 type BookingCardProps = {
   booking: BookingForClient;
   isPast?: boolean;
+  /** Reserva acabada de criar — borda dourada + selo "Nova" */
+  isNew?: boolean;
+  ref?: React.Ref<HTMLElement>;
   isPending?: boolean;
   isConfirmingCancel?: boolean;
   onRequestCancel?: () => void;
@@ -172,6 +215,8 @@ type BookingCardProps = {
 function BookingCard({
   booking,
   isPast,
+  isNew,
+  ref,
   isPending,
   isConfirmingCancel,
   onRequestCancel,
@@ -195,10 +240,14 @@ function BookingCard({
 
   return (
     <article
-      className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
+      ref={ref}
+      className="overflow-hidden rounded-lg border transition-all hover:shadow-md"
       style={{
         backgroundColor: '#FFFFFF',
-        borderColor: 'rgba(31,61,46,0.08)',
+        borderColor: isNew ? '#D4AF6E' : 'rgba(31,61,46,0.08)',
+        boxShadow: isNew
+          ? '0 0 0 4px rgba(212,175,110,0.18), 0 8px 24px rgba(31,61,46,0.10)'
+          : undefined,
         opacity: isPast && booking.status !== 'completed' ? 0.7 : 1,
       }}
     >
@@ -207,6 +256,19 @@ function BookingCard({
           <div>
             <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
               Reserva
+              {isNew && (
+                <span
+                  className="rounded-full text-[9px] font-semibold tracking-[0.18em]"
+                  style={{
+                    marginLeft: '8px',
+                    padding: '2px 8px',
+                    backgroundColor: '#D4AF6E',
+                    color: '#142820',
+                  }}
+                >
+                  Nova
+                </span>
+              )}
             </p>
             <p className="font-mono text-sm" style={{ color: '#1F3D2E' }}>
               {booking.bookingNumber}

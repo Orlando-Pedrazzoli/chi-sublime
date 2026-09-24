@@ -1,3 +1,4 @@
+// 📄 src/app/conta/reservas/page.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
@@ -9,8 +10,13 @@ export const metadata: Metadata = {
   title: 'Marcações',
 };
 
-export default async function ClientBookingsPage() {
-  await requireClient();
+type Props = {
+  searchParams: Promise<{ nova?: string }>;
+};
+
+export default async function ClientBookingsPage({ searchParams }: Props) {
+  const user = await requireClient();
+  const { nova } = await searchParams;
   const result = await getMyBookingsAction();
 
   if (!result.success) {
@@ -49,7 +55,12 @@ export default async function ClientBookingsPage() {
         </Link>
       </div>
 
-      <MyBookings bookings={result.bookings} />
+      <MyBookings
+        bookings={result.bookings}
+        newBookingNumber={nova ?? null}
+        clientFirstName={user.name.split(/\s+/)[0]}
+        clientEmail={user.email}
+      />
     </div>
   );
 }

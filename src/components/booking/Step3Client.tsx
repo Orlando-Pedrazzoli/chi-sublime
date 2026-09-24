@@ -178,8 +178,12 @@ export function Step3Client() {
         // Limpa o carrinho ANTES do redirect — sem isto, voltar a
         // /marcacoes mostrava os serviços da reserva já concluída
         clearFlow();
-        // Hard navigation para escapar do BookingFlowGuard
-        window.location.href = `/marcacoes/${result.booking.bookingNumber}`;
+        // Hard navigation para escapar do BookingFlowGuard.
+        // Vai directo para a área de cliente: /conta/reservas abre o
+        // modal "Obrigada pela sua marcação" (BookingSuccessModal) e
+        // destaca a nova reserva na lista. A página /marcacoes/[n]
+        // continua a existir para os links do email.
+        window.location.href = `/conta/reservas?nova=${encodeURIComponent(result.booking.bookingNumber)}`;
         return;
       } else {
         if (result.error.fieldErrors) {

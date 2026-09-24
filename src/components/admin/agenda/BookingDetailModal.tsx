@@ -43,6 +43,17 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   'no-show': { label: 'Não compareceu', bg: 'rgba(90,90,90,0.1)', color: '#5A5A5A' },
 };
 
+/**
+ * ⚠️ Tailwind v4 + Next 16 descarta `px-*`/`py-*`/`gap-*` em produção
+ * (texto colado às bordas dos botões). Padding/gap dos botões de acção
+ * vão em INLINE STYLE, como no resto do admin.
+ */
+const ACTION_BTN: React.CSSProperties = {
+  padding: '12px 18px',
+  gap: '8px',
+  minHeight: '44px',
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   website: 'Site',
   phone: 'Telefone',
@@ -296,8 +307,8 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     type="button"
                     onClick={() => handleStatusChange('cancelled', cancelReason || 'Sem razão')}
                     disabled={isPending || !cancelReason.trim()}
-                    className="rounded-md px-4 py-2 text-xs font-semibold tracking-wide transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: '#B23C3C', color: '#FAF7F2' }}
+                    className="rounded-md text-xs font-semibold tracking-wide transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: '#B23C3C', color: '#FAF7F2', padding: '10px 16px' }}
                   >
                     Confirmar cancelamento
                   </button>
@@ -305,8 +316,12 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     type="button"
                     onClick={() => setConfirmCancel(false)}
                     disabled={isPending}
-                    className="rounded-md border px-4 py-2 text-xs tracking-wide hover:bg-white"
-                    style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#1A1A1A' }}
+                    className="rounded-md border text-xs tracking-wide hover:bg-white"
+                    style={{
+                      borderColor: 'rgba(31,61,46,0.2)',
+                      color: '#1A1A1A',
+                      padding: '10px 16px',
+                    }}
                   >
                     Voltar
                   </button>
@@ -334,8 +349,13 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                 type="button"
                 onClick={() => setCheckoutOpen(true)}
                 disabled={isPending}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3.5 text-sm font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
-                style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
+                className="inline-flex w-full items-center justify-center rounded-md text-sm font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
+                style={{
+                  backgroundColor: '#D4AF6E',
+                  color: '#1F3D2E',
+                  ...ACTION_BTN,
+                  minHeight: '48px',
+                }}
               >
                 <Euro size={16} strokeWidth={1.5} />
                 Cobrar {(booking.totalPrice / 100).toFixed(2)} €
@@ -344,16 +364,16 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
 
             {!confirmCancel && booking.status !== 'cancelled' && booking.status !== 'completed' ? (
               <div
-                className="grid grid-cols-2 gap-2 border-t pt-4"
-                style={{ borderColor: 'rgba(31,61,46,0.08)' }}
+                className="grid grid-cols-2 border-t"
+                style={{ borderColor: 'rgba(31,61,46,0.08)', gap: '10px', paddingTop: '16px' }}
               >
                 {booking.status === 'pending' ? (
                   <button
                     type="button"
                     onClick={() => handleStatusChange('confirmed')}
                     disabled={isPending}
-                    className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
-                    style={{ backgroundColor: '#5C8A2F', color: '#FAF7F2' }}
+                    className="col-span-2 inline-flex items-center justify-center rounded-md text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
+                    style={{ backgroundColor: '#5C8A2F', color: '#FAF7F2', ...ACTION_BTN }}
                   >
                     <CheckCircle2 size={14} strokeWidth={1.5} />
                     Confirmar reserva
@@ -365,8 +385,8 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     type="button"
                     onClick={() => handleStatusChange('in-progress')}
                     disabled={isPending}
-                    className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
-                    style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+                    className="inline-flex items-center justify-center rounded-md text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
+                    style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2', ...ACTION_BTN }}
                   >
                     <PlayCircle size={14} strokeWidth={1.5} />
                     Iniciar
@@ -378,8 +398,8 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     type="button"
                     onClick={() => handleStatusChange('completed')}
                     disabled={isPending}
-                    className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
-                    style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
+                    className="col-span-2 inline-flex items-center justify-center rounded-md text-xs font-semibold tracking-wide transition-all hover:-translate-y-[1px] disabled:opacity-50"
+                    style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2', ...ACTION_BTN }}
                   >
                     <CheckCircle2 size={14} strokeWidth={1.5} />
                     Concluir serviço
@@ -391,8 +411,8 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     type="button"
                     onClick={() => handleStatusChange('no-show')}
                     disabled={isPending}
-                    className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-3 text-xs tracking-wide transition-colors hover:bg-gray-50 disabled:opacity-50"
-                    style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#5A5A5A' }}
+                    className="inline-flex items-center justify-center rounded-md border text-xs tracking-wide transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#5A5A5A', ...ACTION_BTN }}
                   >
                     <AlertCircle size={14} strokeWidth={1.5} />
                     Não compareceu
@@ -403,8 +423,8 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                   type="button"
                   onClick={() => setConfirmCancel(true)}
                   disabled={isPending}
-                  className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border px-4 py-3 text-xs tracking-wide transition-colors hover:bg-red-50 disabled:opacity-50"
-                  style={{ borderColor: 'rgba(178,60,60,0.3)', color: '#B23C3C' }}
+                  className="col-span-2 inline-flex items-center justify-center rounded-md border text-xs tracking-wide transition-colors hover:bg-red-50 disabled:opacity-50"
+                  style={{ borderColor: 'rgba(178,60,60,0.3)', color: '#B23C3C', ...ACTION_BTN }}
                 >
                   <Trash2 size={14} strokeWidth={1.5} />
                   Cancelar reserva
