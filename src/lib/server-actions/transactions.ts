@@ -32,6 +32,7 @@ import { connectDB } from '@/lib/db/connect';
 import { auth } from '@/lib/auth';
 import {
   Transaction,
+  Booking,
   IncomeCategory,
   ExpenseCategory,
   generateTransactionNumber,
@@ -246,6 +247,26 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
 
   if (netAmount <= 0) return fail('validation', 'O valor da receita tem de ser positivo');
 
+  // Venda a partir de uma reserva: garantir que a reserva existe, que
+  // ainda pode ser cobrada e que não foi cobrada antes (uma reserva ↔ uma
+  // venda). O status da reserva passa a 'completed' na mesma operação.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  let booking: any = null;
+  if (data.bookingId) {
+    booking = await Booking.findById(data.bookingId);
+    if (!booking) return fail('not_found', 'Reserva não encontrada');
+    if (booking.transactionId) {
+      return fail('already_charged', 'Esta reserva já foi cobrada');
+    }
+    if (booking.status === 'cancelled' || booking.status === 'no-show') {
+      return fail(
+        'invalid_status',
+        'Não é possível cobrar uma reserva cancelada ou sem comparência',
+      );
+    }
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   // Regime de isenção (art. 53.º): as receitas nunca levam IVA, mesmo que o
   // cliente envie outra taxa (ex.: lista de serviços em cache no browser).
   const settings = await getFiscalSettings();
@@ -276,19 +297,45 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
       createdBy: new mongoose.Types.ObjectId(admin.id),
     });
 
+    // Ligar a venda à reserva e fechá-la. Se isto falhar a venda já
+    // existe — registar no audit em vez de rebentar o checkout.
+    if (booking) {
+      try {
+        booking.transactionId = tx._id;
+        if (booking.status !== 'completed') booking.status = 'completed';
+        await booking.save();
+      } catch (linkErr) {
+        console.error('[createIncomeAction] falha a ligar reserva → venda', linkErr);
+        await logAudit({
+          action: 'update',
+          resource: 'booking',
+          resourceId: String(booking._id),
+          resourceLabel: booking.bookingNumber,
+          ...auditActor(admin),
+          message: `Venda ${transactionNumber} criada mas não ligada à reserva ${booking.bookingNumber}`,
+          severity: 'critical',
+          metadata: { transactionId: String(tx._id) },
+        });
+      }
+    }
+
     await logAudit({
       action: 'create',
       resource: 'transaction',
       resourceId: String(tx._id),
       resourceLabel: transactionNumber,
       ...auditActor(admin),
-      message: `Receita ${transactionNumber}: ${totalCents} cêntimos (${data.paymentMethod})`,
+      message: `Receita ${transactionNumber}: ${totalCents} cêntimos (${data.paymentMethod})${
+        booking ? ` · reserva ${booking.bookingNumber}` : ''
+      }`,
       severity: 'info',
-      metadata: { total: totalCents, tip: data.tipAmount },
+      metadata: { total: totalCents, tip: data.tipAmount, bookingId: data.bookingId },
     });
 
     revalidatePath('/admin/receitas');
     revalidatePath('/admin/caixa');
+    revalidatePath('/admin/dashboard');
+    if (booking) revalidatePath('/admin/reservas');
     return ok({ id: String(tx._id) });
   } catch (err) {
     console.error('[createIncomeAction]', err);

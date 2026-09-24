@@ -1,14 +1,14 @@
 'use client';
 
 /**
- * Chi Sublime — useBookingFlow Hook
+ * Chi Sublime â€” useBookingFlow Hook
  * ============================================================
  *
  * State management central do fluxo de reserva (3 passos).
  *
  * Decisoes:
  *  - Persiste em sessionStorage (sobrevive a F5 mas reset ao fechar browser)
- *  - State partilhado entre /reservar, /reservar/horario, /reservar/confirmar
+ *  - State partilhado entre /marcacoes, /marcacoes/horario, /marcacoes/confirmar
  *  - Calcula totais (duracao + preco) automaticamente
  *  - Reset automatico quando reserva e concluida com sucesso
  *
@@ -34,19 +34,19 @@ export type BookingFlowState = {
   /** Servicos selecionados (com snapshot do nome/preco/duracao) */
   selectedServices: BookingFlowService[];
 
-  /** Staff selecionado (ou "any") — definido no Step 2 */
+  /** Staff selecionado (ou "any") â€” definido no Step 2 */
   staffId: string | 'any' | null;
 
-  /** Data ISO YYYY-MM-DD — definida no Step 2 */
+  /** Data ISO YYYY-MM-DD â€” definida no Step 2 */
   date: string | null;
 
-  /** Hora HH:MM — definida no Step 2 */
+  /** Hora HH:MM â€” definida no Step 2 */
   time: string | null;
 
   /** Nome do staff atribuido pelo algoritmo (snapshot para Step 3) */
   assignedStaffName: string | null;
 
-  /** Dados do cliente — definidos no Step 3 */
+  /** Dados do cliente â€” definidos no Step 3 */
   guestInfo: {
     name: string;
     email: string;
@@ -95,7 +95,7 @@ function writeState(state: BookingFlowState): void {
     // Notifica outras tabs/componentes
     window.dispatchEvent(new Event('chi-booking-flow-change'));
   } catch {
-    // sessionStorage cheio ou indisponivel — falha silenciosa
+    // sessionStorage cheio ou indisponivel â€” falha silenciosa
   }
 }
 
@@ -247,7 +247,7 @@ export function useBookingFlow() {
 }
 
 // ============================================================
-// HOOK AUXILIAR — para hidratacao (evita SSR mismatch)
+// HOOK AUXILIAR â€” para hidratacao (evita SSR mismatch)
 // ============================================================
 
 /**

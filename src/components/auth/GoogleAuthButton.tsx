@@ -1,25 +1,25 @@
-// 📄 src/components/auth/GoogleAuthButton.tsx
+// ðŸ“„ src/components/auth/GoogleAuthButton.tsx
 'use client';
 
 /**
- * Chi Sublime — "Continuar com Google"
+ * Chi Sublime â€” "Continuar com Google"
  * ============================================================
  *
- * Botão de OAuth seguindo as guidelines de branding da Google:
- * fundo branco, borda neutra, logótipo "G" oficial multicolor
+ * BotÃ£o de OAuth seguindo as guidelines de branding da Google:
+ * fundo branco, borda neutra, logÃ³tipo "G" oficial multicolor
  * e o texto recomendado "Continuar com Google" (serve login E
- * registo — o NextAuth cria a conta na primeira entrada).
+ * registo â€” o NextAuth cria a conta na primeira entrada).
  *
- * `redirectTo` preserva o destino (ex.: fluxo de marcação):
- * /entrar?redirect=/reservar/confirmar → volta lá após o OAuth.
+ * `redirectTo` preserva o destino (ex.: fluxo de marcaÃ§Ã£o):
+ * /entrar?redirect=/marcacoes/confirmar â†’ volta lÃ¡ apÃ³s o OAuth.
  *
- * Estilos críticos inline (regra do projeto).
+ * Estilos crÃ­ticos inline (regra do projeto).
  */
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 
-/** Logótipo G oficial (SVG multicolor, guidelines Google) */
+/** LogÃ³tipo G oficial (SVG multicolor, guidelines Google) */
 function GoogleG() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -44,9 +44,9 @@ function GoogleG() {
 }
 
 export type GoogleAuthButtonProps = {
-  /** URL de destino após autenticação (default: /conta) */
+  /** URL de destino apÃ³s autenticaÃ§Ã£o (default: /conta) */
   redirectTo?: string;
-  /** Texto do botão (default: "Continuar com Google") */
+  /** Texto do botÃ£o (default: "Continuar com Google") */
   label?: string;
 };
 
@@ -55,7 +55,7 @@ export function GoogleAuthButton({ redirectTo = '/conta', label }: GoogleAuthBut
 
   const handleClick = async () => {
     setLoading(true);
-    // redirect: true (default) — o NextAuth trata do round-trip OAuth
+    // redirect: true (default) â€” o NextAuth trata do round-trip OAuth
     await signIn('google', { callbackUrl: redirectTo });
   };
 
@@ -82,12 +82,12 @@ export function GoogleAuthButton({ redirectTo = '/conta', label }: GoogleAuthBut
       }}
     >
       <GoogleG />
-      {loading ? 'A redirecionar…' : (label ?? 'Continuar com Google')}
+      {loading ? 'A redirecionarâ€¦' : (label ?? 'Continuar com Google')}
     </button>
   );
 }
 
-/** Divisor "ou" entre o OAuth e o formulário de email */
+/** Divisor "ou" entre o OAuth e o formulÃ¡rio de email */
 export function AuthDivider({ dark }: { dark?: boolean }) {
   const line = dark ? 'rgba(250,247,242,0.2)' : '#e8e4da';
   const text = dark ? 'rgba(250,247,242,0.6)' : '#9a9a9a';

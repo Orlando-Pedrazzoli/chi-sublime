@@ -1,44 +1,44 @@
 # Chi Sublime
 
-Plataforma de gestão para salão de cabeleireiro e estética. Reúne, numa única aplicação, o site público de reservas, a área de cliente e um painel de administração completo (clientes, serviços, equipa, agenda, ponto de venda, caixa, faturação certificada e relatórios).
+Plataforma de gestÃ£o para salÃ£o de cabeleireiro e estÃ©tica. ReÃºne, numa Ãºnica aplicaÃ§Ã£o, o site pÃºblico de reservas, a Ã¡rea de cliente e um painel de administraÃ§Ã£o completo (clientes, serviÃ§os, equipa, agenda, ponto de venda, caixa, faturaÃ§Ã£o certificada e relatÃ³rios).
 
-Projeto desenvolvido para o salão Chi Sublime (Cascais, Portugal). Interface e conteúdos em português (pt-PT), com suporte parcial a inglês em componentes bilingues.
+Projeto desenvolvido para o salÃ£o Chi Sublime (Cascais, Portugal). Interface e conteÃºdos em portuguÃªs (pt-PT), com suporte parcial a inglÃªs em componentes bilingues.
 
 ---
 
-## Índice
+## Ãndice
 
-1. [Visão geral](#visão-geral)
-2. [Stack tecnológica](#stack-tecnológica)
-3. [Arquitetura e convenções](#arquitetura-e-convenções)
+1. [VisÃ£o geral](#visÃ£o-geral)
+2. [Stack tecnolÃ³gica](#stack-tecnolÃ³gica)
+3. [Arquitetura e convenÃ§Ãµes](#arquitetura-e-convenÃ§Ãµes)
 4. [Estrutura do projeto](#estrutura-do-projeto)
 5. [Funcionalidades e estado atual](#funcionalidades-e-estado-atual)
 6. [Modelos de dados](#modelos-de-dados)
-7. [Faturação (Mock / Moloni)](#faturação-mock--moloni)
-8. [Email e geração de PDF](#email-e-geração-de-pdf)
-9. [Variáveis de ambiente](#variáveis-de-ambiente)
-10. [Instalação e execução](#instalação-e-execução)
-11. [Configuração necessária](#configuração-necessária)
+7. [FaturaÃ§Ã£o (Mock / Moloni)](#faturaÃ§Ã£o-mock--moloni)
+8. [Email e geraÃ§Ã£o de PDF](#email-e-geraÃ§Ã£o-de-pdf)
+9. [VariÃ¡veis de ambiente](#variÃ¡veis-de-ambiente)
+10. [InstalaÃ§Ã£o e execuÃ§Ã£o](#instalaÃ§Ã£o-e-execuÃ§Ã£o)
+11. [ConfiguraÃ§Ã£o necessÃ¡ria](#configuraÃ§Ã£o-necessÃ¡ria)
 12. [Estado do build e deploy](#estado-do-build-e-deploy)
 13. [Trabalho em falta (roadmap)](#trabalho-em-falta-roadmap)
 14. [Scripts](#scripts)
-15. [Notas de manutenção](#notas-de-manutenção)
+15. [Notas de manutenÃ§Ã£o](#notas-de-manutenÃ§Ã£o)
 
 ---
 
-## Visão geral
+## VisÃ£o geral
 
-A aplicação está organizada em três grandes áreas:
+A aplicaÃ§Ã£o estÃ¡ organizada em trÃªs grandes Ã¡reas:
 
-- **Site público** (`/`, `/servicos`, `/reservar`): apresentação do salão e fluxo de marcação online.
-- **Área de cliente** (`/conta`): perfil, reservas e segurança do utilizador autenticado.
-- **Painel de administração** (`/admin`): gestão operacional e financeira do salão, acessível apenas a utilizadores com perfil de administrador.
+- **Site pÃºblico** (`/`, `/servicos`, `/marcacoes`): apresentaÃ§Ã£o do salÃ£o e fluxo de marcaÃ§Ã£o online.
+- **Ãrea de cliente** (`/conta`): perfil, reservas e seguranÃ§a do utilizador autenticado.
+- **Painel de administraÃ§Ã£o** (`/admin`): gestÃ£o operacional e financeira do salÃ£o, acessÃ­vel apenas a utilizadores com perfil de administrador.
 
-O modelo de acesso tem apenas dois papéis: `client` e `admin`. Os profissionais do salão (equipa) são registos de perfil geridos pelo administrador e **não possuem conta de login própria** — toda a gestão (agenda, horários, faturação) é feita pelo administrador.
+O modelo de acesso tem apenas dois papÃ©is: `client` e `admin`. Os profissionais do salÃ£o (equipa) sÃ£o registos de perfil geridos pelo administrador e **nÃ£o possuem conta de login prÃ³pria** â€” toda a gestÃ£o (agenda, horÃ¡rios, faturaÃ§Ã£o) Ã© feita pelo administrador.
 
 ---
 
-## Stack tecnológica
+## Stack tecnolÃ³gica
 
 | Camada             | Tecnologia                                                    |
 | ------------------ | ------------------------------------------------------------- |
@@ -46,41 +46,41 @@ O modelo de acesso tem apenas dois papéis: `client` e `admin`. Os profissionais
 | Runtime UI         | React 19                                                      |
 | Linguagem          | TypeScript 5 (modo estrito)                                   |
 | Base de dados      | MongoDB via Mongoose 9                                        |
-| Autenticação       | NextAuth v5 (beta) + `@auth/mongodb-adapter`                  |
+| AutenticaÃ§Ã£o       | NextAuth v5 (beta) + `@auth/mongodb-adapter`                  |
 | Estilos            | Tailwind CSS v4 (tokens via `@theme`, sem ficheiro de config) |
-| Formulários        | React Hook Form + `@hookform/resolvers`                       |
-| Validação          | Zod                                                           |
+| FormulÃ¡rios        | React Hook Form + `@hookform/resolvers`                       |
+| ValidaÃ§Ã£o          | Zod                                                           |
 | Email              | Resend + React Email                                          |
 | PDF                | `@react-pdf/renderer`                                         |
-| Faturação          | Moloni (API v1) — abstração com fallback Mock                 |
+| FaturaÃ§Ã£o          | Moloni (API v1) â€” abstraÃ§Ã£o com fallback Mock                 |
 | Uploads            | Cloudinary (`next-cloudinary`)                                |
-| Ícones             | lucide-react                                                  |
+| Ãcones             | lucide-react                                                  |
 | Datas              | date-fns / date-fns-tz                                        |
-| Gráficos / tabelas | recharts, `@tanstack/react-table` (disponíveis)               |
+| GrÃ¡ficos / tabelas | recharts, `@tanstack/react-table` (disponÃ­veis)               |
 | i18n               | next-intl (parcial)                                           |
-| Utilitários        | clsx, tailwind-merge, nanoid, papaparse, xlsx                 |
+| UtilitÃ¡rios        | clsx, tailwind-merge, nanoid, papaparse, xlsx                 |
 
 ---
 
-## Arquitetura e convenções
+## Arquitetura e convenÃ§Ãµes
 
-Estas convenções são transversais a todo o código e devem ser respeitadas em qualquer nova funcionalidade.
+Estas convenÃ§Ãµes sÃ£o transversais a todo o cÃ³digo e devem ser respeitadas em qualquer nova funcionalidade.
 
-- **Valores monetários em cêntimos.** Toda a lógica de negócio guarda e calcula dinheiro como inteiros (cêntimos). A conversão para/de euros acontece apenas na fronteira da UI. Helpers em `src/lib/utils/cents.ts` (`eurosToCents`, `centsToEuros`, `calculateVAT`, `applyDiscount`).
+- **Valores monetÃ¡rios em cÃªntimos.** Toda a lÃ³gica de negÃ³cio guarda e calcula dinheiro como inteiros (cÃªntimos). A conversÃ£o para/de euros acontece apenas na fronteira da UI. Helpers em `src/lib/utils/cents.ts` (`eurosToCents`, `centsToEuros`, `calculateVAT`, `applyDiscount`).
 
-- **Contrato uniforme de resultado (`ActionResult`).** As server actions mais recentes devolvem `{ success: true, data } | { success: false, error: { code, message, fieldErrors } }` (definido em `src/types/common.ts`, com os helpers `ok()` e `fail()`, e `Paginated<T>` para listas). A UI lê sempre `result.error.message` e hidrata `result.error.fieldErrors` nos formulários. Algumas actions antigas (`admin-bookings.ts`, `auth.ts`) usam ainda um formato inline `{ success, error: string }`.
+- **Contrato uniforme de resultado (`ActionResult`).** As server actions mais recentes devolvem `{ success: true, data } | { success: false, error: { code, message, fieldErrors } }` (definido em `src/types/common.ts`, com os helpers `ok()` e `fail()`, e `Paginated<T>` para listas). A UI lÃª sempre `result.error.message` e hidrata `result.error.fieldErrors` nos formulÃ¡rios. Algumas actions antigas (`admin-bookings.ts`, `auth.ts`) usam ainda um formato inline `{ success, error: string }`.
 
-- **Server actions como camada principal.** A aplicação usa server actions para praticamente toda a leitura/escrita. As rotas em `src/app/api` existem como pontos de extensão REST, mas a maioria está por implementar (ver roadmap).
+- **Server actions como camada principal.** A aplicaÃ§Ã£o usa server actions para praticamente toda a leitura/escrita. As rotas em `src/app/api` existem como pontos de extensÃ£o REST, mas a maioria estÃ¡ por implementar (ver roadmap).
 
-- **Validação isolada da base de dados.** Os schemas Zod em `src/lib/validation/` não importam modelos Mongoose (para não arrastar o Mongoose para o bundle de cliente através dos resolvers do RHF); usam enums literais.
+- **ValidaÃ§Ã£o isolada da base de dados.** Os schemas Zod em `src/lib/validation/` nÃ£o importam modelos Mongoose (para nÃ£o arrastar o Mongoose para o bundle de cliente atravÃ©s dos resolvers do RHF); usam enums literais.
 
-- **Soft-delete.** Entidades referenciadas por histórico (clientes, serviços, equipa, categorias) são desativadas (`active: false`) em vez de removidas.
+- **Soft-delete.** Entidades referenciadas por histÃ³rico (clientes, serviÃ§os, equipa, categorias) sÃ£o desativadas (`active: false`) em vez de removidas.
 
-- **Autorização.** Páginas de servidor protegem-se com `requireAdmin()` (redireciona). As actions validam a sessão com um guarda local que devolve `null` quando não há administrador.
+- **AutorizaÃ§Ã£o.** PÃ¡ginas de servidor protegem-se com `requireAdmin()` (redireciona). As actions validam a sessÃ£o com um guarda local que devolve `null` quando nÃ£o hÃ¡ administrador.
 
 - **Design tokens.** Paleta e tipografia definidas como tokens `chi-*` em `globals.css` (`chi-green-deep`, `chi-gold`, `chi-cream`, `chi-charcoal`, `chi-border`, estados `chi-success/danger/warning/info`, etc.). Tipos de letra: `font-serif` (Fraunces) e `font-sans` (Manrope). Helper `cn()` em `src/lib/utils/cn.ts`.
 
-- **Cabeçalho de caminho em cada ficheiro.** Todos os ficheiros começam com um comentário `// 📄 caminho/do/ficheiro` para evitar ambiguidade em revisões e cópias.
+- **CabeÃ§alho de caminho em cada ficheiro.** Todos os ficheiros comeÃ§am com um comentÃ¡rio `// ðŸ“„ caminho/do/ficheiro` para evitar ambiguidade em revisÃµes e cÃ³pias.
 
 ---
 
@@ -88,86 +88,86 @@ Estas convenções são transversais a todo o código e devem ser respeitadas em
 
 ```
 src/
-├── app/                          App Router (rotas)
-│   ├── (público)                 /, servicos, reservar, entrar, registar,
-│   │                             recuperar-password, redefinir-password
-│   ├── conta/                    Área de cliente (perfil, reservas, seguranca)
-│   ├── admin/                    Painel de administração
-│   │   ├── dashboard, reservas, clientes, servicos, equipa,
-│   │   ├── receitas, despesas, caixa,
-│   │   ├── relatorios/ (financeiro, iva, staff, clientes),
-│   │   ├── definicoes/ (faturacao, empresa, notificacoes, utilizadores),
-│   │   └── conteudo, horarios, galeria
-│   └── api/
-│       ├── auth/[...nextauth]    Autenticação (implementado)
-│       ├── pdf/financial         Download do relatório financeiro (implementado)
-│       ├── clients, services, staff, transactions, invoices  (stubs 501)
-│       ├── cron/ (reminders, recurring-expenses)             (stubs 501)
-│       ├── upload                                            (stub 501)
-│       └── webhooks/resend                                   (stub 501)
-│
-├── components/
-│   ├── ui/                       Sistema de componentes base
-│   ├── admin/                    agenda, cash, checkout, clients, dashboard,
-│   │                             layout, reports, services, settings, staff,
-│   │                             transactions
-│   ├── auth/, booking/, client-area/, home/, layout/,
-│   └── services/, team/, shared/
-│
-├── lib/
-│   ├── auth/                     Configuração NextAuth + permissões
-│   ├── db/                       Ligação ao MongoDB
-│   ├── models/                   Modelos Mongoose (ver secção Modelos)
-│   ├── validation/               Schemas Zod
-│   ├── server-actions/           Lógica de negócio (clients, services, staff,
-│   │                             transactions, cash-register, reports, settings,
-│   │                             bookings, admin-bookings, auth)
-│   ├── invoicing/                Abstração de faturação + Mock + Moloni
-│   ├── email/                    Resend + templates React Email
-│   ├── pdf/                      Geração de PDF + templates
-│   ├── booking/, cloudinary/, constants/, utils/
-│   └── types/                    Tipos partilhados (ActionResult, DTOs)
-│
-├── hooks/                        useToast, useDebounce
-└── proxy.ts                      Middleware (proxy)
+â”œâ”€â”€ app/                          App Router (rotas)
+â”‚   â”œâ”€â”€ (pÃºblico)                 /, servicos, reservar, entrar, registar,
+â”‚   â”‚                             recuperar-password, redefinir-password
+â”‚   â”œâ”€â”€ conta/                    Ãrea de cliente (perfil, reservas, seguranca)
+â”‚   â”œâ”€â”€ admin/                    Painel de administraÃ§Ã£o
+â”‚   â”‚   â”œâ”€â”€ dashboard, reservas, clientes, servicos, equipa,
+â”‚   â”‚   â”œâ”€â”€ receitas, despesas, caixa,
+â”‚   â”‚   â”œâ”€â”€ relatorios/ (financeiro, iva, staff, clientes),
+â”‚   â”‚   â”œâ”€â”€ definicoes/ (faturacao, empresa, notificacoes, utilizadores),
+â”‚   â”‚   â””â”€â”€ conteudo, horarios, galeria
+â”‚   â””â”€â”€ api/
+â”‚       â”œâ”€â”€ auth/[...nextauth]    AutenticaÃ§Ã£o (implementado)
+â”‚       â”œâ”€â”€ pdf/financial         Download do relatÃ³rio financeiro (implementado)
+â”‚       â”œâ”€â”€ clients, services, staff, transactions, invoices  (stubs 501)
+â”‚       â”œâ”€â”€ cron/ (reminders, recurring-expenses)             (stubs 501)
+â”‚       â”œâ”€â”€ upload                                            (stub 501)
+â”‚       â””â”€â”€ webhooks/resend                                   (stub 501)
+â”‚
+â”œâ”€â”€ components/
+â”‚   â”œâ”€â”€ ui/                       Sistema de componentes base
+â”‚   â”œâ”€â”€ admin/                    agenda, cash, checkout, clients, dashboard,
+â”‚   â”‚                             layout, reports, services, settings, staff,
+â”‚   â”‚                             transactions
+â”‚   â”œâ”€â”€ auth/, booking/, client-area/, home/, layout/,
+â”‚   â””â”€â”€ services/, team/, shared/
+â”‚
+â”œâ”€â”€ lib/
+â”‚   â”œâ”€â”€ auth/                     ConfiguraÃ§Ã£o NextAuth + permissÃµes
+â”‚   â”œâ”€â”€ db/                       LigaÃ§Ã£o ao MongoDB
+â”‚   â”œâ”€â”€ models/                   Modelos Mongoose (ver secÃ§Ã£o Modelos)
+â”‚   â”œâ”€â”€ validation/               Schemas Zod
+â”‚   â”œâ”€â”€ server-actions/           LÃ³gica de negÃ³cio (clients, services, staff,
+â”‚   â”‚                             transactions, cash-register, reports, settings,
+â”‚   â”‚                             bookings, admin-bookings, auth)
+â”‚   â”œâ”€â”€ invoicing/                AbstraÃ§Ã£o de faturaÃ§Ã£o + Mock + Moloni
+â”‚   â”œâ”€â”€ email/                    Resend + templates React Email
+â”‚   â”œâ”€â”€ pdf/                      GeraÃ§Ã£o de PDF + templates
+â”‚   â”œâ”€â”€ booking/, cloudinary/, constants/, utils/
+â”‚   â””â”€â”€ types/                    Tipos partilhados (ActionResult, DTOs)
+â”‚
+â”œâ”€â”€ hooks/                        useToast, useDebounce
+â””â”€â”€ proxy.ts                      Middleware (proxy)
 ```
 
-Ficheiros de configuração na raiz: `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`.
+Ficheiros de configuraÃ§Ã£o na raiz: `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`.
 
 ---
 
 ## Funcionalidades e estado atual
 
-Legenda: **Completo** (funcional e navegável) · **Parcial** (existe mas incompleto) · **Placeholder** (rota válida, "em construção") · **Stub** (endpoint devolve 501).
+Legenda: **Completo** (funcional e navegÃ¡vel) Â· **Parcial** (existe mas incompleto) Â· **Placeholder** (rota vÃ¡lida, "em construÃ§Ã£o") Â· **Stub** (endpoint devolve 501).
 
-### Painel de administração
+### Painel de administraÃ§Ã£o
 
-| Módulo                                             | Rota                                       | Estado        | Notas                                                                              |
+| MÃ³dulo                                             | Rota                                       | Estado        | Notas                                                                              |
 | -------------------------------------------------- | ------------------------------------------ | ------------- | ---------------------------------------------------------------------------------- |
-| Clientes                                           | `/admin/clientes`                          | Completo      | CRUD, pesquisa, filtros, paginação, bloquear/desbloquear, desativar                |
-| Serviços e categorias                              | `/admin/servicos`                          | Completo      | Separadores Serviços/Categorias; preço, IVA, duração, profissionais                |
-| Equipa                                             | `/admin/equipa` e `/admin/equipa/[id]`     | Completo      | Lista + detalhe com perfil, editor de horário semanal e gestão de férias           |
-| Despesas                                           | `/admin/despesas`                          | Completo      | Registo, categorias, ver detalhe, reembolso; recorrência opcional                  |
-| Receitas / POS                                     | `/admin/receitas`                          | Completo      | Ponto de venda em painel único; aciona a faturação                                 |
-| Caixa                                              | `/admin/caixa`                             | Completo      | Abertura, fecho "blind" (contado antes do esperado), diferença + motivo, histórico |
-| Relatório financeiro                               | `/admin/relatorios/financeiro`             | Completo      | Período com presets, KPIs, detalhe por categoria, IVA, exportação PDF              |
-| Definições — Faturação                             | `/admin/definicoes/faturacao`              | Completo      | Escolha de provider e configuração dos IDs Moloni pela interface                   |
-| Definições — Hub                                   | `/admin/definicoes`                        | Completo      | Índice das secções de configuração                                                 |
-| Dashboard, Agenda/Reservas                         | `/admin/dashboard`, `/admin/reservas`      | Pré-existente | Construídos em fases anteriores; não revistos nesta iteração                       |
-| Relatórios IVA / Equipa / Clientes                 | `/admin/relatorios/*`                      | Placeholder   | Índice pronto; relatórios por construir                                            |
-| Definições — Empresa / Notificações / Utilizadores | `/admin/definicoes/*`                      | Placeholder   | Por construir                                                                      |
-| Conteúdo, Horários, Galeria                        | `/admin/conteudo`, `/horarios`, `/galeria` | Placeholder   | Por construir                                                                      |
+| Clientes                                           | `/admin/clientes`                          | Completo      | CRUD, pesquisa, filtros, paginaÃ§Ã£o, bloquear/desbloquear, desativar                |
+| ServiÃ§os e categorias                              | `/admin/servicos`                          | Completo      | Separadores ServiÃ§os/Categorias; preÃ§o, IVA, duraÃ§Ã£o, profissionais                |
+| Equipa                                             | `/admin/equipa` e `/admin/equipa/[id]`     | Completo      | Lista + detalhe com perfil, editor de horÃ¡rio semanal e gestÃ£o de fÃ©rias           |
+| Despesas                                           | `/admin/despesas`                          | Completo      | Registo, categorias, ver detalhe, reembolso; recorrÃªncia opcional                  |
+| Receitas / POS                                     | `/admin/receitas`                          | Completo      | Ponto de venda em painel Ãºnico; aciona a faturaÃ§Ã£o                                 |
+| Caixa                                              | `/admin/caixa`                             | Completo      | Abertura, fecho "blind" (contado antes do esperado), diferenÃ§a + motivo, histÃ³rico |
+| RelatÃ³rio financeiro                               | `/admin/relatorios/financeiro`             | Completo      | PerÃ­odo com presets, KPIs, detalhe por categoria, IVA, exportaÃ§Ã£o PDF              |
+| DefiniÃ§Ãµes â€” FaturaÃ§Ã£o                             | `/admin/definicoes/faturacao`              | Completo      | Escolha de provider e configuraÃ§Ã£o dos IDs Moloni pela interface                   |
+| DefiniÃ§Ãµes â€” Hub                                   | `/admin/definicoes`                        | Completo      | Ãndice das secÃ§Ãµes de configuraÃ§Ã£o                                                 |
+| Dashboard, Agenda/Reservas                         | `/admin/dashboard`, `/admin/reservas`      | PrÃ©-existente | ConstruÃ­dos em fases anteriores; nÃ£o revistos nesta iteraÃ§Ã£o                       |
+| RelatÃ³rios IVA / Equipa / Clientes                 | `/admin/relatorios/*`                      | Placeholder   | Ãndice pronto; relatÃ³rios por construir                                            |
+| DefiniÃ§Ãµes â€” Empresa / NotificaÃ§Ãµes / Utilizadores | `/admin/definicoes/*`                      | Placeholder   | Por construir                                                                      |
+| ConteÃºdo, HorÃ¡rios, Galeria                        | `/admin/conteudo`, `/horarios`, `/galeria` | Placeholder   | Por construir                                                                      |
 | Detalhe de reserva                                 | `/admin/reservas/[id]`                     | Placeholder   | Por construir                                                                      |
 
-### Site público e área de cliente
+### Site pÃºblico e Ã¡rea de cliente
 
-Construídos em fases anteriores (não revistos nesta iteração): site de reservas (`/reservar`), catálogo de serviços (`/servicos`), autenticação (`/entrar`, `/registar`, recuperação de password) e área de cliente (`/conta`). O registo de conta e a recuperação de password disparam emails transacionais.
+ConstruÃ­dos em fases anteriores (nÃ£o revistos nesta iteraÃ§Ã£o): site de reservas (`/marcacoes`), catÃ¡logo de serviÃ§os (`/servicos`), autenticaÃ§Ã£o (`/entrar`, `/registar`, recuperaÃ§Ã£o de password) e Ã¡rea de cliente (`/conta`). O registo de conta e a recuperaÃ§Ã£o de password disparam emails transacionais.
 
 ### Sistema de componentes de UI (`src/components/ui`)
 
 Completo: Button, Badge, Card, Input, Label, Modal, Select, Textarea, Spinner, Toast (com `ToastProvider`), EmptyState, Checkbox, RadioGroup, DatePicker, TimePicker, Skeleton, Pagination, Tabs, Accordion, Drawer.
 
-O `ToastProvider` está montado no layout raiz (`src/app/layout.tsx`), dentro do `SessionProvider`.
+O `ToastProvider` estÃ¡ montado no layout raiz (`src/app/layout.tsx`), dentro do `SessionProvider`.
 
 ---
 
@@ -179,44 +179,44 @@ Modelos Mongoose em `src/lib/models/` (barrel em `index.ts`):
 
 Pontos a reter:
 
-- **Transaction**: campo `type` (`income`/`expense`), `amount` (líquido, cêntimos), `vatAmount`, `totalWithVat`, `tipAmount`, referência a `IncomeCategory`/`ExpenseCategory`, `status` (`completed`/`refunded`/`pending`/`cancelled`) e um sub-documento `invoiceData`. Os relatórios e a caixa contam apenas `completed`.
-- **Staff**: inclui um campo opcional `userId` (ligação a `User`) preparado para um eventual login de profissionais, atualmente não utilizado.
-- **FiscalSettings**: documento único (`key: 'default'`) com `invoiceProvider`, `defaultVatRate`, `vatExemptionReason`, prefixos e o sub-documento `moloni` (tokens OAuth + IDs de configuração).
+- **Transaction**: campo `type` (`income`/`expense`), `amount` (lÃ­quido, cÃªntimos), `vatAmount`, `totalWithVat`, `tipAmount`, referÃªncia a `IncomeCategory`/`ExpenseCategory`, `status` (`completed`/`refunded`/`pending`/`cancelled`) e um sub-documento `invoiceData`. Os relatÃ³rios e a caixa contam apenas `completed`.
+- **Staff**: inclui um campo opcional `userId` (ligaÃ§Ã£o a `User`) preparado para um eventual login de profissionais, atualmente nÃ£o utilizado.
+- **FiscalSettings**: documento Ãºnico (`key: 'default'`) com `invoiceProvider`, `defaultVatRate`, `vatExemptionReason`, prefixos e o sub-documento `moloni` (tokens OAuth + IDs de configuraÃ§Ã£o).
 
 ---
 
-## Faturação (Mock / Moloni)
+## FaturaÃ§Ã£o (Mock / Moloni)
 
-A faturação está desenhada como uma abstração (`src/lib/invoicing/`):
+A faturaÃ§Ã£o estÃ¡ desenhada como uma abstraÃ§Ã£o (`src/lib/invoicing/`):
 
-- `InvoiceProvider.ts` — interface e tipos comuns.
-- `MockProvider.ts` — provider de testes (documentos fictícios; permite validar todo o fluxo sem faturação real).
-- `MoloniProvider.ts` + `MoloniAuth.ts` — integração com a API v1 do Moloni (OAuth2 com refresh de token, resolução de cliente por NIF, emissão de fatura-recibo, obtenção do PDF).
-- `issueInvoiceAction.ts` — `issueInvoiceAction` (emite com cliente explícito) e `retryInvoiceAction` (deriva o cliente da transação).
-- `index.ts` — fábrica `getInvoiceProvider()`.
+- `InvoiceProvider.ts` â€” interface e tipos comuns.
+- `MockProvider.ts` â€” provider de testes (documentos fictÃ­cios; permite validar todo o fluxo sem faturaÃ§Ã£o real).
+- `MoloniProvider.ts` + `MoloniAuth.ts` â€” integraÃ§Ã£o com a API v1 do Moloni (OAuth2 com refresh de token, resoluÃ§Ã£o de cliente por NIF, emissÃ£o de fatura-recibo, obtenÃ§Ã£o do PDF).
+- `issueInvoiceAction.ts` â€” `issueInvoiceAction` (emite com cliente explÃ­cito) e `retryInvoiceAction` (deriva o cliente da transaÃ§Ã£o).
+- `index.ts` â€” fÃ¡brica `getInvoiceProvider()`.
 
-Estado: **Mock** e **Moloni** implementados. Os providers `invoicexpress`, `vendus` e `atura` estão previstos na fábrica mas **não implementados** (lançam erro). O ponto de venda regista sempre a venda; a emissão de fatura é tentada a seguir e, se falhar (por exemplo, Moloni não configurado), a transação fica marcada como pendente para reemissão.
+Estado: **Mock** e **Moloni** implementados. Os providers `invoicexpress`, `vendus` e `atura` estÃ£o previstos na fÃ¡brica mas **nÃ£o implementados** (lanÃ§am erro). O ponto de venda regista sempre a venda; a emissÃ£o de fatura Ã© tentada a seguir e, se falhar (por exemplo, Moloni nÃ£o configurado), a transaÃ§Ã£o fica marcada como pendente para reemissÃ£o.
 
-Só o tipo de documento **FR (fatura-recibo)** está implementado no Moloni. Assume-se uma única taxa de IVA por transação.
-
----
-
-## Email e geração de PDF
-
-**Email** (`src/lib/email/`): infraestrutura Resend (`resend.ts`), remetentes de alto nível (`send.ts`) e templates React Email (boas-vindas, verificação, recuperação de password, confirmação/lembrete/cancelamento de reserva, fatura-recibo). Sem `RESEND_API_KEY`, o sistema entra em modo mock e regista o email no terminal em vez de o enviar.
-
-**PDF** (`src/lib/pdf/`): geração com `@react-pdf/renderer` (`generate.ts`) e templates para talão de balcão (não fiscal), relatório financeiro e fecho de caixa. A rota de download `GET /api/pdf/financial` já serve o relatório financeiro; rotas de download para os restantes PDFs ainda não foram criadas.
+SÃ³ o tipo de documento **FR (fatura-recibo)** estÃ¡ implementado no Moloni. Assume-se uma Ãºnica taxa de IVA por transaÃ§Ã£o.
 
 ---
 
-## Variáveis de ambiente
+## Email e geraÃ§Ã£o de PDF
 
-Criar um ficheiro `.env.local` na raiz. Confirmar os nomes exatos em `src/lib/auth`, `src/lib/db` e `src/lib/cloudinary` antes de produção.
+**Email** (`src/lib/email/`): infraestrutura Resend (`resend.ts`), remetentes de alto nÃ­vel (`send.ts`) e templates React Email (boas-vindas, verificaÃ§Ã£o, recuperaÃ§Ã£o de password, confirmaÃ§Ã£o/lembrete/cancelamento de reserva, fatura-recibo). Sem `RESEND_API_KEY`, o sistema entra em modo mock e regista o email no terminal em vez de o enviar.
 
-### Base de dados e autenticação
+**PDF** (`src/lib/pdf/`): geraÃ§Ã£o com `@react-pdf/renderer` (`generate.ts`) e templates para talÃ£o de balcÃ£o (nÃ£o fiscal), relatÃ³rio financeiro e fecho de caixa. A rota de download `GET /api/pdf/financial` jÃ¡ serve o relatÃ³rio financeiro; rotas de download para os restantes PDFs ainda nÃ£o foram criadas.
+
+---
+
+## VariÃ¡veis de ambiente
+
+Criar um ficheiro `.env.local` na raiz. Confirmar os nomes exatos em `src/lib/auth`, `src/lib/db` e `src/lib/cloudinary` antes de produÃ§Ã£o.
+
+### Base de dados e autenticaÃ§Ã£o
 
 ```
-MONGODB_URI=...                     # string de ligação MongoDB
+MONGODB_URI=...                     # string de ligaÃ§Ã£o MongoDB
 AUTH_SECRET=...                     # segredo NextAuth v5 (gerar com: npx auth secret)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -224,19 +224,19 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### Email (Resend)
 
 ```
-RESEND_API_KEY=...                  # sem esta chave, emails vão para o terminal (mock)
-RESEND_FROM_EMAIL=...               # remetente verificado (domínio com DKIM/SPF)
+RESEND_API_KEY=...                  # sem esta chave, emails vÃ£o para o terminal (mock)
+RESEND_FROM_EMAIL=...               # remetente verificado (domÃ­nio com DKIM/SPF)
 ```
 
-### Faturação (Moloni)
+### FaturaÃ§Ã£o (Moloni)
 
 ```
 MOLONI_CLIENT_ID=...
 MOLONI_CLIENT_SECRET=...
 MOLONI_USERNAME=...
 MOLONI_PASSWORD=...
-MOLONI_BASE_URL=https://api.moloni.pt/sandbox/    # sandbox para testes; produção: https://api.moloni.pt/v1/
-MOLONI_COMPANY_ID=...               # opcional (também pode vir do FiscalSettings)
+MOLONI_BASE_URL=https://api.moloni.pt/sandbox/    # sandbox para testes; produÃ§Ã£o: https://api.moloni.pt/v1/
+MOLONI_COMPANY_ID=...               # opcional (tambÃ©m pode vir do FiscalSettings)
 ```
 
 ### Uploads (Cloudinary)
@@ -248,57 +248,57 @@ CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 ```
 
-As credenciais do Moloni ficam sempre em variáveis de ambiente. Os IDs específicos da conta (Company ID, série, imposto de IVA, cliente Consumidor Final, método de pagamento) configuram-se pela interface em Definições > Faturação.
+As credenciais do Moloni ficam sempre em variÃ¡veis de ambiente. Os IDs especÃ­ficos da conta (Company ID, sÃ©rie, imposto de IVA, cliente Consumidor Final, mÃ©todo de pagamento) configuram-se pela interface em DefiniÃ§Ãµes > FaturaÃ§Ã£o.
 
 ---
 
-## Instalação e execução
+## InstalaÃ§Ã£o e execuÃ§Ã£o
 
-Pré-requisitos: Node.js 20 ou superior e acesso a uma instância MongoDB.
+PrÃ©-requisitos: Node.js 20 ou superior e acesso a uma instÃ¢ncia MongoDB.
 
 ```
-# 1. Instalar dependências
+# 1. Instalar dependÃªncias
 npm install
 
 # 2. Configurar o ambiente
-cp .env.example .env.local        # criar/preencher conforme a secção anterior
+cp .env.example .env.local        # criar/preencher conforme a secÃ§Ã£o anterior
 
 # 3. Ambiente de desenvolvimento
 npm run dev                       # http://localhost:3000
 
-# 4. Build de produção
+# 4. Build de produÃ§Ã£o
 npm run build
 npm run start
 ```
 
 Notas:
 
-- É necessário um utilizador com perfil `admin` na base de dados para aceder a `/admin`. Sem sessão de administrador, as rotas de admin redirecionam para o login.
-- Em desenvolvimento, o Next compila as rotas apenas quando são visitadas; um erro de rota pode só aparecer no primeiro acesso.
+- Ã‰ necessÃ¡rio um utilizador com perfil `admin` na base de dados para aceder a `/admin`. Sem sessÃ£o de administrador, as rotas de admin redirecionam para o login.
+- Em desenvolvimento, o Next compila as rotas apenas quando sÃ£o visitadas; um erro de rota pode sÃ³ aparecer no primeiro acesso.
 
 ---
 
-## Configuração necessária
+## ConfiguraÃ§Ã£o necessÃ¡ria
 
-Passos para colocar as integrações a funcionar a sério (para além do CRUD, que funciona apenas com o MongoDB ligado):
+Passos para colocar as integraÃ§Ãµes a funcionar a sÃ©rio (para alÃ©m do CRUD, que funciona apenas com o MongoDB ligado):
 
-1. **MongoDB** — definir `MONGODB_URI` e criar um utilizador administrador.
-2. **NextAuth** — definir `AUTH_SECRET`.
-3. **Resend (email real)** — definir `RESEND_API_KEY` e `RESEND_FROM_EMAIL`, e verificar o domínio de envio (DKIM/SPF). Sem chave, funciona em modo mock (terminal).
-4. **Moloni (faturação real)**:
-   - Definir as credenciais nas variáveis de ambiente e apontar `MOLONI_BASE_URL` ao sandbox.
-   - Em Definições > Faturação, preencher Company ID, série (document set), imposto de IVA (tax ID), cliente Consumidor Final e método de pagamento, e mudar o provider para Moloni.
-   - Testar uma emissão no sandbox antes de mudar `MOLONI_BASE_URL` para produção.
-5. **Cloudinary** — necessário para uploads de imagens (fotos de serviços/equipa), assim que o endpoint de upload for implementado.
-6. **Cron jobs** — os endpoints `api/cron/reminders` e `api/cron/recurring-expenses` estão como stubs; quando implementados, agendar (por exemplo, via Vercel Cron).
+1. **MongoDB** â€” definir `MONGODB_URI` e criar um utilizador administrador.
+2. **NextAuth** â€” definir `AUTH_SECRET`.
+3. **Resend (email real)** â€” definir `RESEND_API_KEY` e `RESEND_FROM_EMAIL`, e verificar o domÃ­nio de envio (DKIM/SPF). Sem chave, funciona em modo mock (terminal).
+4. **Moloni (faturaÃ§Ã£o real)**:
+   - Definir as credenciais nas variÃ¡veis de ambiente e apontar `MOLONI_BASE_URL` ao sandbox.
+   - Em DefiniÃ§Ãµes > FaturaÃ§Ã£o, preencher Company ID, sÃ©rie (document set), imposto de IVA (tax ID), cliente Consumidor Final e mÃ©todo de pagamento, e mudar o provider para Moloni.
+   - Testar uma emissÃ£o no sandbox antes de mudar `MOLONI_BASE_URL` para produÃ§Ã£o.
+5. **Cloudinary** â€” necessÃ¡rio para uploads de imagens (fotos de serviÃ§os/equipa), assim que o endpoint de upload for implementado.
+6. **Cron jobs** â€” os endpoints `api/cron/reminders` e `api/cron/recurring-expenses` estÃ£o como stubs; quando implementados, agendar (por exemplo, via Vercel Cron).
 
 ---
 
 ## Estado do build e deploy
 
-O comando `npm run build` conclui com sucesso: compilação, verificação de TypeScript e geração de páginas sem erros. A aplicação está pronta para deploy (por exemplo, Vercel), desde que as variáveis de ambiente estejam definidas na plataforma.
+O comando `npm run build` conclui com sucesso: compilaÃ§Ã£o, verificaÃ§Ã£o de TypeScript e geraÃ§Ã£o de pÃ¡ginas sem erros. A aplicaÃ§Ã£o estÃ¡ pronta para deploy (por exemplo, Vercel), desde que as variÃ¡veis de ambiente estejam definidas na plataforma.
 
-Todas as rotas admin respondem (200, redirect ou placeholder). As rotas API não implementadas respondem 501 de forma controlada, mantendo o build válido.
+Todas as rotas admin respondem (200, redirect ou placeholder). As rotas API nÃ£o implementadas respondem 501 de forma controlada, mantendo o build vÃ¡lido.
 
 ---
 
@@ -306,25 +306,25 @@ Todas as rotas admin respondem (200, redirect ou placeholder). As rotas API não
 
 ### Endpoints por implementar (atualmente stubs 501)
 
-- `api/webhooks/resend` — processamento de eventos de email (entregue, aberto, bounce).
-- `api/cron/reminders` — envio de lembretes de marcação.
-- `api/cron/recurring-expenses` — geração automática de despesas recorrentes.
-- `api/upload` — upload de imagens (Cloudinary).
-- `api/clients`, `api/services`, `api/staff`, `api/transactions`, `api/invoices` (e respetivos `[id]`) — API REST; opcionais se a aplicação continuar a assentar em server actions.
+- `api/webhooks/resend` â€” processamento de eventos de email (entregue, aberto, bounce).
+- `api/cron/reminders` â€” envio de lembretes de marcaÃ§Ã£o.
+- `api/cron/recurring-expenses` â€” geraÃ§Ã£o automÃ¡tica de despesas recorrentes.
+- `api/upload` â€” upload de imagens (Cloudinary).
+- `api/clients`, `api/services`, `api/staff`, `api/transactions`, `api/invoices` (e respetivos `[id]`) â€” API REST; opcionais se a aplicaÃ§Ã£o continuar a assentar em server actions.
 
-### Ecrãs por construir (atualmente placeholders)
+### EcrÃ£s por construir (atualmente placeholders)
 
-- Relatórios de IVA, Equipa e Clientes (a agregação já existe para o financeiro e pode ser estendida).
-- Definições: Empresa, Notificações, Utilizadores.
-- Conteúdo, Horários, Galeria.
+- RelatÃ³rios de IVA, Equipa e Clientes (a agregaÃ§Ã£o jÃ¡ existe para o financeiro e pode ser estendida).
+- DefiniÃ§Ãµes: Empresa, NotificaÃ§Ãµes, Utilizadores.
+- ConteÃºdo, HorÃ¡rios, Galeria.
 - Detalhe de reserva no admin (`/admin/reservas/[id]`).
 
-### Melhorias e dívida técnica
+### Melhorias e dÃ­vida tÃ©cnica
 
-- **Avisos do Mongoose** ("Duplicate schema index") nos modelos `Schedule` e `AuditLog`: um índice está declarado duas vezes (`index: true` e `schema.index()`). Não afeta o funcionamento, mas deve ser limpo removendo a declaração duplicada.
-- **Rotas de download de PDF** para o talão de balcão e o fecho de caixa (o gerador já existe).
-- **Login de profissionais (opcional)**: o campo `Staff.userId` está preparado, mas o self-service da equipa não está implementado (decisão de manter gestão exclusiva pelo administrador).
-- **Cobertura de testes**: não existem testes automatizados.
+- **Avisos do Mongoose** ("Duplicate schema index") nos modelos `Schedule` e `AuditLog`: um Ã­ndice estÃ¡ declarado duas vezes (`index: true` e `schema.index()`). NÃ£o afeta o funcionamento, mas deve ser limpo removendo a declaraÃ§Ã£o duplicada.
+- **Rotas de download de PDF** para o talÃ£o de balcÃ£o e o fecho de caixa (o gerador jÃ¡ existe).
+- **Login de profissionais (opcional)**: o campo `Staff.userId` estÃ¡ preparado, mas o self-service da equipa nÃ£o estÃ¡ implementado (decisÃ£o de manter gestÃ£o exclusiva pelo administrador).
+- **Cobertura de testes**: nÃ£o existem testes automatizados.
 
 ---
 
@@ -332,27 +332,27 @@ Todas as rotas admin respondem (200, redirect ou placeholder). As rotas API não
 
 ```
 npm run dev        # desenvolvimento (Turbopack)
-npm run build      # build de produção
-npm run start      # servir o build de produção
+npm run build      # build de produÃ§Ã£o
+npm run start      # servir o build de produÃ§Ã£o
 npm run lint       # ESLint
 ```
 
-Verificação de tipos recomendada antes de commits: `npx tsc --noEmit` (deve terminar com zero erros).
+VerificaÃ§Ã£o de tipos recomendada antes de commits: `npx tsc --noEmit` (deve terminar com zero erros).
 
 ---
 
-## Notas de manutenção
+## Notas de manutenÃ§Ã£o
 
 - **Novas server actions** devem seguir o contrato `ActionResult` de `src/types/common.ts` e validar a entrada com Zod.
-- **Novos ecrãs de listagem** devem reutilizar o padrão já estabelecido (filtros no topo, `Pagination`, estados de carregamento com `Skeleton`, estados vazios com `EmptyState`, ações destrutivas com confirmação explícita).
-- **Ficheiros de rota vazios partem o build de produção.** Antes de um build, confirmar que não há `page.tsx` nem `route.ts` a zero bytes:
+- **Novos ecrÃ£s de listagem** devem reutilizar o padrÃ£o jÃ¡ estabelecido (filtros no topo, `Pagination`, estados de carregamento com `Skeleton`, estados vazios com `EmptyState`, aÃ§Ãµes destrutivas com confirmaÃ§Ã£o explÃ­cita).
+- **Ficheiros de rota vazios partem o build de produÃ§Ã£o.** Antes de um build, confirmar que nÃ£o hÃ¡ `page.tsx` nem `route.ts` a zero bytes:
 
   ```powershell
   Get-ChildItem -Recurse src/app -Include page.tsx,route.ts | Where-Object { $_.Length -eq 0 } | Select-Object FullName
   ```
 
-- **Páginas estáticas que usam `useSearchParams`** (diretamente ou via componente) têm de estar envolvidas em `<Suspense>` ou marcadas como dinâmicas (`export const dynamic = 'force-dynamic'`), caso contrário o build falha na pré-renderização.
+- **PÃ¡ginas estÃ¡ticas que usam `useSearchParams`** (diretamente ou via componente) tÃªm de estar envolvidas em `<Suspense>` ou marcadas como dinÃ¢micas (`export const dynamic = 'force-dynamic'`), caso contrÃ¡rio o build falha na prÃ©-renderizaÃ§Ã£o.
 
 ---
 
-Documento gerado como referência de estado do projeto. Para dúvidas sobre módulos específicos, consultar o código na pasta correspondente em `src/lib/server-actions` (lógica) e `src/components/admin` (interface).
+Documento gerado como referÃªncia de estado do projeto. Para dÃºvidas sobre mÃ³dulos especÃ­ficos, consultar o cÃ³digo na pasta correspondente em `src/lib/server-actions` (lÃ³gica) e `src/components/admin` (interface).

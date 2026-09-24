@@ -1,13 +1,13 @@
-// 📄 src/app/reservar/horario/page.tsx
+// Ã°Å¸â€œâ€ž src/app/marcacoes/horario/page.tsx
 /**
- * Chi Sublime — Reservar (Step 2: Horario + Staff)
+ * Chi Sublime Ã¢â‚¬â€ Reservar (Step 2: Horario + Staff)
  * ============================================================
  *
  * Server Component. Busca staff ativos da DB e passa ao
  * Step2Client (orquestrador client-side).
  *
- * Mobile-first: header compacto — o profissional e o
- * calendário são a primeira coisa visível no telemóvel.
+ * Mobile-first: header compacto Ã¢â‚¬â€ o profissional e o
+ * calendÃƒÂ¡rio sÃƒÂ£o a primeira coisa visÃƒÂ­vel no telemÃƒÂ³vel.
  */
 
 import type { Metadata } from 'next';
@@ -24,8 +24,8 @@ import { Step2Client } from '@/components/booking/Step2Client';
 import type { StaffOption } from '@/components/booking/StaffPicker';
 
 export const metadata: Metadata = {
-  title: 'Escolher horário | Chi Sublime',
-  description: 'Escolha a data e o profissional para a sua marcação no Chi Sublime.',
+  title: 'Escolher horÃƒÂ¡rio | Chi Sublime',
+  description: 'Escolha a data e o profissional para a sua marcaÃƒÂ§ÃƒÂ£o no Chi Sublime.',
 };
 
 // ============================================================
@@ -47,7 +47,7 @@ async function getActiveStaff(locale: Locale): Promise<StaffOption[]> {
 // PAGE
 // ============================================================
 
-export default async function ReservarHorarioPage() {
+export default async function MarcacoesHorarioPage() {
   const locale = (await getLocale()) as Locale;
   const [t, staffOptions] = await Promise.all([
     getTranslations('booking.pages'),
@@ -80,7 +80,7 @@ export default async function ReservarHorarioPage() {
             <BookingStepper currentStep="time" />
           </div>
 
-          {/* Conteudo protegido — exige Step 1 completado */}
+          {/* Conteudo protegido Ã¢â‚¬â€ exige Step 1 completado */}
           <BookingFlowGuard requireStep="time">
             <Step2Client staffOptions={staffOptions} />
           </BookingFlowGuard>

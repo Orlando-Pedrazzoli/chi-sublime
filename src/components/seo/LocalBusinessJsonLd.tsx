@@ -1,22 +1,22 @@
-// 📄 src/components/seo/LocalBusinessJsonLd.tsx
+// ðŸ“„ src/components/seo/LocalBusinessJsonLd.tsx
 /**
- * Chi Sublime — Structured Data (JSON-LD) · Schema.org HairSalon
+ * Chi Sublime â€” Structured Data (JSON-LD) Â· Schema.org HairSalon
  * ============================================================
  *
  * O sitemap/robots dizem aos bots O QUE rastrear; o JSON-LD diz
- * O QUE o negócio É. Para um salão local em Cascais, este é o
+ * O QUE o negÃ³cio Ã‰. Para um salÃ£o local em Cascais, este Ã© o
  * fator decisivo para:
- * - Rich results no Google (horário, morada, telefone no SERP)
- * - Local Pack / Google Maps (reforça o Google Business Profile)
+ * - Rich results no Google (horÃ¡rio, morada, telefone no SERP)
+ * - Local Pack / Google Maps (reforÃ§a o Google Business Profile)
  * - Bing Places
  *
- * ✅ Dados confirmados:
- *    Horário: derivado de SALON_HOURS (constants/business.ts)
- *    → Terça a Sábado 09:00–18:00 · Segunda e Domingo encerrado
- *    GPS: 38.709560, -9.446915 (Google Maps do salão)
+ * âœ… Dados confirmados:
+ *    HorÃ¡rio: derivado de SALON_HOURS (constants/business.ts)
+ *    â†’ TerÃ§a a SÃ¡bado 09:00â€“18:00 Â· Segunda e Domingo encerrado
+ *    GPS: 38.709560, -9.446915 (Google Maps do salÃ£o)
  *
- * ⚠️ Não escrever horas à mão aqui. O openingHoursSpecification
- * é gerado a partir da fonte de verdade — assim o que o Google
+ * âš ï¸ NÃ£o escrever horas Ã  mÃ£o aqui. O openingHoursSpecification
+ * Ã© gerado a partir da fonte de verdade â€” assim o que o Google
  * mostra no SERP nunca diverge do que o site mostra.
  */
 
@@ -26,8 +26,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chisublime.pt'
 
 /**
  * Gera o openingHoursSpecification a partir de SALON_HOURS.
- * Só os dias ABERTOS entram — a ausência de um dia já significa
- * "encerrado" para o Schema.org, e é o que o Google espera.
+ * SÃ³ os dias ABERTOS entram â€” a ausÃªncia de um dia jÃ¡ significa
+ * "encerrado" para o Schema.org, e Ã© o que o Google espera.
  */
 const openingHoursSpecification = groupSalonHours()
   .filter((g) => g.open)
@@ -42,14 +42,14 @@ const schema = {
   '@context': 'https://schema.org',
   '@type': 'HairSalon',
   '@id': `${BASE_URL}/#salon`,
-  name: 'Chi Sublime — Hair Style & Beauty',
+  name: 'Chi Sublime â€” Hair Style & Beauty',
   url: BASE_URL,
   logo: `${BASE_URL}/images/logo.png`,
   image: `${BASE_URL}/images/salao_novo.jpg`,
   description:
-    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabeleireiro, maquilhagem, sobrancelhas, unhas e depilação.',
+    'SalÃ£o de beleza premium em Quinta da Bicuda, Cascais. Cabeleireiro, maquilhagem, sobrancelhas, unhas e depilaÃ§Ã£o.',
   telephone: '+351932932691',
-  priceRange: '€€',
+  priceRange: 'â‚¬â‚¬',
   currenciesAccepted: 'EUR',
   paymentAccepted: 'Cash, Credit Card, MB Way',
   address: {
@@ -78,14 +78,14 @@ const schema = {
     '@type': 'ReserveAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${BASE_URL}/reservar`,
+      urlTemplate: `${BASE_URL}/marcacoes`,
       inLanguage: 'pt-PT',
       actionPlatform: [
         'http://schema.org/DesktopWebPlatform',
         'http://schema.org/MobileWebPlatform',
       ],
     },
-    result: { '@type': 'Reservation', name: 'Marcação Chi Sublime' },
+    result: { '@type': 'Reservation', name: 'MarcaÃ§Ã£o Chi Sublime' },
   },
 } as const;
 
@@ -93,7 +93,7 @@ export function LocalBusinessJsonLd() {
   return (
     <script
       type="application/ld+json"
-      // JSON.stringify de objeto controlado — sem input de utilizador
+      // JSON.stringify de objeto controlado â€” sem input de utilizador
       dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
     />
   );

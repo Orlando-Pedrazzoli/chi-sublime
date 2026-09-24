@@ -1,22 +1,22 @@
-// 📄 src/app/sitemap.ts
+// ðŸ“„ src/app/sitemap.ts
 /**
- * Chi Sublime — sitemap.xml dinâmico (Next.js Metadata Route)
+ * Chi Sublime â€” sitemap.xml dinÃ¢mico (Next.js Metadata Route)
  * ============================================================
  *
  * Gerado em: https://www.chisublime.pt/sitemap.xml
  *
- * Estratégia:
- * - Rotas estáticas com prioridades calibradas para SEO local
- *   (home e serviços no topo; legais no fundo).
- * - Rotas dinâmicas (/servicos/[slug] e /equipa/[slug]) lidas
- *   diretamente do MongoDB — apenas documentos `active: true`,
+ * EstratÃ©gia:
+ * - Rotas estÃ¡ticas com prioridades calibradas para SEO local
+ *   (home e serviÃ§os no topo; legais no fundo).
+ * - Rotas dinÃ¢micas (/servicos/[slug] e /equipa/[slug]) lidas
+ *   diretamente do MongoDB â€” apenas documentos `active: true`,
  *   com `lastModified` real vindo de `updatedAt` (timestamps
  *   do Mongoose). Google/Bing usam este campo para priorizar
- *   re-crawl de páginas alteradas.
+ *   re-crawl de pÃ¡ginas alteradas.
  * - ISR de 1 hora (`revalidate = 3600`): o sitemap reflete
- *   novos serviços/staff sem redeploy, sem custo por request.
+ *   novos serviÃ§os/staff sem redeploy, sem custo por request.
  * - Fail-safe: se a DB falhar (build sem env, cold start com
- *   timeout), devolve as rotas estáticas em vez de rebentar
+ *   timeout), devolve as rotas estÃ¡ticas em vez de rebentar
  *   o build ou servir um 500 aos bots.
  */
 
@@ -30,7 +30,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chisublime.pt'
 export const revalidate = 3600;
 
 /* ============================================================
-   Rotas estáticas — prioridade e frequência calibradas
+   Rotas estÃ¡ticas â€” prioridade e frequÃªncia calibradas
    ============================================================ */
 
 const STATIC_ROUTES: MetadataRoute.Sitemap = [
@@ -41,7 +41,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
     priority: 1.0,
   },
   {
-    url: `${BASE_URL}/reservar`,
+    url: `${BASE_URL}/marcacoes`,
     lastModified: new Date(),
     changeFrequency: 'monthly',
     priority: 0.9,
@@ -74,7 +74,7 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
 ];
 
 /* ============================================================
-   Rotas dinâmicas — MongoDB
+   Rotas dinÃ¢micas â€” MongoDB
    ============================================================ */
 
 type SlugDoc = { slug: string; updatedAt: Date };
@@ -115,7 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const conn = await connectDB();
 
-    // connectDB devolve null se MONGODB_URI não estiver definido
+    // connectDB devolve null se MONGODB_URI nÃ£o estiver definido
     if (!conn) return STATIC_ROUTES;
 
     const [serviceEntries, staffEntries] = await Promise.all([
@@ -125,8 +125,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [...STATIC_ROUTES, ...serviceEntries, ...staffEntries];
   } catch (error) {
-    // Fail-safe: nunca servir 500 a um bot — devolve o núcleo estático
-    console.error('[sitemap] Falha ao gerar entradas dinâmicas:', error);
+    // Fail-safe: nunca servir 500 a um bot â€” devolve o nÃºcleo estÃ¡tico
+    console.error('[sitemap] Falha ao gerar entradas dinÃ¢micas:', error);
     return STATIC_ROUTES;
   }
 }

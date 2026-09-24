@@ -1,25 +1,25 @@
-// 📄 src/lib/server-actions/staff.ts
+// ðŸ“„ src/lib/server-actions/staff.ts
 'use server';
 
 /**
- * Chi Sublime — Server Actions: Equipa
+ * Chi Sublime â€” Server Actions: Equipa
  * ============================================================
  *
- * CRUD da equipa + editores dedicados de horário semanal
- * (workingHours) e de férias (vacations), que alimentam o cálculo
+ * CRUD da equipa + editores dedicados de horÃ¡rio semanal
+ * (workingHours) e de fÃ©rias (vacations), que alimentam o cÃ¡lculo
  * de disponibilidade.
  *
- * O slug é gerado na action (mesma razão que services.ts: o
- * pre('save') corre depois da validação e o slug é required).
- * "delete" é HARD (remove o documento) com salvaguardas:
+ * O slug Ã© gerado na action (mesma razÃ£o que services.ts: o
+ * pre('save') corre depois da validaÃ§Ã£o e o slug Ã© required).
+ * "delete" Ã© HARD (remove o documento) com salvaguardas:
  *   - bloqueia se existirem reservas futuras ativas (pending/
- *     confirmed/in-progress) — têm de ser canceladas/reatribuídas;
- *   - limpa referências vivas (Service.staffIds e
+ *     confirmed/in-progress) â€” tÃªm de ser canceladas/reatribuÃ­das;
+ *   - limpa referÃªncias vivas (Service.staffIds e
  *     Client.preferredStaffId);
- *   - reservas/transações históricas mantêm o ObjectId órfão —
- *     os formatters já tratam populate null ("staff: null").
+ *   - reservas/transaÃ§Ãµes histÃ³ricas mantÃªm o ObjectId Ã³rfÃ£o â€”
+ *     os formatters jÃ¡ tratam populate null ("staff: null").
  * Para afastar temporariamente um membro, usar o toggle
- * "Membro ativo" no formulário de edição (soft via update).
+ * "Membro ativo" no formulÃ¡rio de ediÃ§Ã£o (soft via update).
  */
 
 import mongoose from 'mongoose';
@@ -143,7 +143,7 @@ function toListItem(doc: any): StaffListItem {
     specialties: doc.specialties ?? [],
     order: doc.order ?? 0,
     active: doc.active !== false,
-    // Documentos antigos não têm o campo → visíveis por defeito
+    // Documentos antigos nÃ£o tÃªm o campo â†’ visÃ­veis por defeito
     showOnWebsite: doc.showOnWebsite !== false,
   };
 }
@@ -169,17 +169,17 @@ function toDetail(doc: any): StaffDetail {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================================
-// REVALIDAÇÃO DO SITE PÚBLICO
+// REVALIDAÃ‡ÃƒO DO SITE PÃšBLICO
 // ============================================================
 
 /**
- * Nome, foto, função, ordem e visibilidade aparecem na homepage
+ * Nome, foto, funÃ§Ã£o, ordem e visibilidade aparecem na homepage
  * (TeamPreview), no perfil /equipa/[slug] e no fluxo de reserva.
- * Se o slug mudou, o perfil antigo também é invalidado.
+ * Se o slug mudou, o perfil antigo tambÃ©m Ã© invalidado.
  */
 function revalidatePublicTeam(slug: string, previousSlug?: string) {
   revalidatePath('/');
-  revalidatePath('/reservar');
+  revalidatePath('/marcacoes');
   revalidatePath(`/equipa/${slug}`);
   if (previousSlug && previousSlug !== slug) revalidatePath(`/equipa/${previousSlug}`);
 }
@@ -190,11 +190,11 @@ function revalidatePublicTeam(slug: string, previousSlug?: string) {
 
 export async function createStaffAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = createStaffSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'Dados inválidos. Verifica os campos.', fieldErrors(parsed.error));
+    return fail('validation', 'Dados invÃ¡lidos. Verifica os campos.', fieldErrors(parsed.error));
   }
 
   await connectDB();
@@ -238,7 +238,7 @@ export async function createStaffAction(input: unknown): Promise<ActionResult<{ 
     revalidatePublicTeam(staff.slug);
     return ok({ id: String(staff._id) });
   } catch (err) {
-    if (isDuplicateKey(err)) return fail('duplicate', 'Já existe um membro com esse slug');
+    if (isDuplicateKey(err)) return fail('duplicate', 'JÃ¡ existe um membro com esse slug');
     console.error('[createStaffAction]', err);
     return fail('server', 'Erro ao criar membro da equipa');
   }
@@ -250,18 +250,18 @@ export async function createStaffAction(input: unknown): Promise<ActionResult<{ 
 
 export async function updateStaffAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = updateStaffSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'Dados inválidos. Verifica os campos.', fieldErrors(parsed.error));
+    return fail('validation', 'Dados invÃ¡lidos. Verifica os campos.', fieldErrors(parsed.error));
   }
 
   await connectDB();
 
   const { id, ...data } = parsed.data;
   const staff = await Staff.findById(id);
-  if (!staff) return fail('not_found', 'Membro não encontrado');
+  if (!staff) return fail('not_found', 'Membro nÃ£o encontrado');
 
   const previousSlug = staff.slug;
 
@@ -284,8 +284,8 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
   try {
     await staff.save();
   } catch (err) {
-    if (isDuplicateKey(err)) return fail('duplicate', 'Já existe um membro com esse slug');
-    if (err instanceof Error && /Horário|Break|férias/i.test(err.message)) {
+    if (isDuplicateKey(err)) return fail('duplicate', 'JÃ¡ existe um membro com esse slug');
+    if (err instanceof Error && /HorÃ¡rio|Break|fÃ©rias/i.test(err.message)) {
       return fail('validation', err.message);
     }
     console.error('[updateStaffAction]', err);
@@ -312,23 +312,23 @@ export async function updateStaffAction(input: unknown): Promise<ActionResult<{ 
 }
 
 // ============================================================
-// DELETE (hard — remove o documento)
+// DELETE (hard â€” remove o documento)
 // ============================================================
 
 export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = staffIdSchema.safeParse(input);
-  if (!parsed.success) return fail('validation', 'ID inválido.');
+  if (!parsed.success) return fail('validation', 'ID invÃ¡lido.');
 
   await connectDB();
 
   const staff = await Staff.findById(parsed.data.id);
-  if (!staff) return fail('not_found', 'Membro não encontrado');
+  if (!staff) return fail('not_found', 'Membro nÃ£o encontrado');
 
-  // Salvaguarda: não eliminar com reservas futuras ativas —
-  // ficariam na agenda sem profissional atribuído.
+  // Salvaguarda: nÃ£o eliminar com reservas futuras ativas â€”
+  // ficariam na agenda sem profissional atribuÃ­do.
   const futureBookings = await Booking.countDocuments({
     staffId: staff._id,
     status: { $in: SLOT_BLOCKING_STATUSES },
@@ -338,7 +338,7 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
     return fail(
       'conflict',
       `${staff.name} tem ${futureBookings} reserva(s) futura(s) ativa(s). ` +
-        'Cancela ou reatribui essas reservas antes de eliminar, ou desativa o membro na edição do perfil.',
+        'Cancela ou reatribui essas reservas antes de eliminar, ou desativa o membro na ediÃ§Ã£o do perfil.',
     );
   }
 
@@ -346,7 +346,7 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
   const staffId = staff._id;
 
   try {
-    // Limpar referências vivas antes de remover o documento.
+    // Limpar referÃªncias vivas antes de remover o documento.
     await Promise.all([
       Service.updateMany({ staffIds: staffId }, { $pull: { staffIds: staffId } }),
       Client.updateMany({ preferredStaffId: staffId }, { $unset: { preferredStaffId: 1 } }),
@@ -373,7 +373,7 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
 
   revalidatePath('/admin/equipa');
   revalidatePath('/');
-  revalidatePath('/reservar');
+  revalidatePath('/marcacoes');
   revalidatePath(`/equipa/${staff.slug}`);
   return ok(undefined);
 }
@@ -384,15 +384,15 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
 
 export async function getStaffAction(input: unknown): Promise<ActionResult<StaffDetail>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = staffIdSchema.safeParse(input);
-  if (!parsed.success) return fail('validation', 'ID inválido.');
+  if (!parsed.success) return fail('validation', 'ID invÃ¡lido.');
 
   await connectDB();
 
   const staff = await Staff.findById(parsed.data.id).lean();
-  if (!staff) return fail('not_found', 'Membro não encontrado');
+  if (!staff) return fail('not_found', 'Membro nÃ£o encontrado');
 
   return ok(toDetail(staff));
 }
@@ -401,10 +401,10 @@ export async function listStaffAction(
   input: unknown,
 ): Promise<ActionResult<Paginated<StaffListItem>>> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = listStaffSchema.safeParse(input ?? {});
-  if (!parsed.success) return fail('validation', 'Filtros inválidos.', fieldErrors(parsed.error));
+  if (!parsed.success) return fail('validation', 'Filtros invÃ¡lidos.', fieldErrors(parsed.error));
 
   await connectDB();
 
@@ -443,17 +443,17 @@ export async function listStaffAction(
 
 export async function setWorkingHoursAction(input: unknown): Promise<ActionResult> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = setWorkingHoursSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'Horário inválido.', fieldErrors(parsed.error));
+    return fail('validation', 'HorÃ¡rio invÃ¡lido.', fieldErrors(parsed.error));
   }
 
   await connectDB();
 
   const staff = await Staff.findById(parsed.data.id);
-  if (!staff) return fail('not_found', 'Membro não encontrado');
+  if (!staff) return fail('not_found', 'Membro nÃ£o encontrado');
 
   staff.set('workingHours', parsed.data.workingHours);
 
@@ -461,7 +461,7 @@ export async function setWorkingHoursAction(input: unknown): Promise<ActionResul
     await staff.save();
   } catch (err) {
     if (err instanceof Error) return fail('validation', err.message);
-    return fail('server', 'Erro ao gravar horário');
+    return fail('server', 'Erro ao gravar horÃ¡rio');
   }
 
   await logAudit({
@@ -473,7 +473,7 @@ export async function setWorkingHoursAction(input: unknown): Promise<ActionResul
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Horário atualizado: ${staff.name}`,
+    message: `HorÃ¡rio atualizado: ${staff.name}`,
     severity: 'info',
   });
 
@@ -484,17 +484,17 @@ export async function setWorkingHoursAction(input: unknown): Promise<ActionResul
 
 export async function setVacationsAction(input: unknown): Promise<ActionResult> {
   const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
+  if (!admin) return fail('unauthorized', 'NÃ£o autorizado');
 
   const parsed = setVacationsSchema.safeParse(input);
   if (!parsed.success) {
-    return fail('validation', 'Férias inválidas.', fieldErrors(parsed.error));
+    return fail('validation', 'FÃ©rias invÃ¡lidas.', fieldErrors(parsed.error));
   }
 
   await connectDB();
 
   const staff = await Staff.findById(parsed.data.id);
-  if (!staff) return fail('not_found', 'Membro não encontrado');
+  if (!staff) return fail('not_found', 'Membro nÃ£o encontrado');
 
   staff.set('vacations', parsed.data.vacations);
 
@@ -502,7 +502,7 @@ export async function setVacationsAction(input: unknown): Promise<ActionResult> 
     await staff.save();
   } catch (err) {
     if (err instanceof Error) return fail('validation', err.message);
-    return fail('server', 'Erro ao gravar férias');
+    return fail('server', 'Erro ao gravar fÃ©rias');
   }
 
   await logAudit({
@@ -514,7 +514,7 @@ export async function setVacationsAction(input: unknown): Promise<ActionResult> 
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Férias atualizadas: ${staff.name} (${parsed.data.vacations.length} período(s))`,
+    message: `FÃ©rias atualizadas: ${staff.name} (${parsed.data.vacations.length} perÃ­odo(s))`,
     severity: 'info',
   });
 

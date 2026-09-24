@@ -23,6 +23,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  /**
+   * Redirects 301 (permanent) — o funil de marcações passou de
+   * /reservar para /marcacoes. Links antigos (emails de confirmação,
+   * Google, Instagram bio, favoritos) continuam a funcionar e o
+   * Google transfere a autoridade para o novo URL.
+   *
+   * /book e /booking são atalhos curtos (estilo Noona) para usar em
+   * bios e QR codes: chisublime.pt/book → /marcacoes.
+   */
+  async redirects() {
+    return [
+      { source: '/reservar', destination: '/marcacoes', permanent: true },
+      { source: '/reservar/:path*', destination: '/marcacoes/:path*', permanent: true },
+      { source: '/book', destination: '/marcacoes', permanent: true },
+      { source: '/booking', destination: '/marcacoes', permanent: true },
+      { source: '/marcacao', destination: '/marcacoes', permanent: true },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

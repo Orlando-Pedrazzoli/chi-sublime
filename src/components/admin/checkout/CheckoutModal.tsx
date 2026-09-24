@@ -17,7 +17,13 @@
  * STYLE — bug Tailwind v4 + Next 16. Breakpoint desktop via
  * matchMedia (inline styles não suportam media queries).
  *
- * Lógica de negócio 100% inalterada.
+ * Cobrança a partir de uma reserva (prop `prefill`):
+ * - O carrinho abre já com os serviços, cliente e profissional da
+ *   reserva; a venda é criada com `bookingId` e a reserva fica
+ *   ligada (Booking.transactionId) e marcada como concluída.
+ *
+ * IVA: o total mostrado segue a política fiscal real (regime de
+ * isenção art. 53.º → 0%), igual ao que o servidor grava.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -32,6 +38,7 @@ import { cleanNIF, isValidNIF } from '@/lib/utils/nif';
 import { listServicesAction } from '@/lib/server-actions/services';
 import { listIncomeCategoriesAction, createIncomeAction } from '@/lib/server-actions/transactions';
 import { listStaffAction } from '@/lib/server-actions/staff';
+import { getVatPolicyAction } from '@/lib/server-actions/settings';
 import { issueInvoiceAction, retryInvoiceAction } from '@/lib/invoicing/issueInvoiceAction';
 import type { ServiceListItem } from '@/types/service';
 import type { FinanceCategoryItem } from '@/types/transaction';
@@ -80,13 +87,24 @@ function MiniLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Dados de uma reserva para abrir o POS já preenchido. */
+export type CheckoutPrefill = {
+  bookingId: string;
+  bookingNumber: string;
+  client?: { id: string; name: string } | null;
+  staffId?: string | null;
+  services: Array<{ serviceId: string; name: string; price: number }>;
+};
+
 export type CheckoutModalProps = {
   open: boolean;
   onClose: () => void;
   onCompleted: () => void;
+  /** Reserva a cobrar (opcional). Sem prefill = venda de balcão livre. */
+  prefill?: CheckoutPrefill | null;
 };
 
-export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps) {
+export function CheckoutModal({ open, onClose, onCompleted, prefill }: CheckoutModalProps) {
   const toast = useToast();
   const isDesktop = useIsDesktop();
 
@@ -104,6 +122,7 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
   const [invoiceClient, setInvoiceClient] = useState<SelectedClient | null>(null);
   const [nif, setNif] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [vatExempt, setVatExempt] = useState(false);
 
   // Carregar dados + reset ao abrir
   useEffect(() => {
@@ -112,28 +131,55 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
     setLines([]);
     setTip('');
     setPaymentMethod('cash');
-    setStaffId('');
+    setStaffId(prefill?.staffId ?? '');
     setInvoiceEnabled(false);
-    setInvoiceClient(null);
+    setInvoiceClient(prefill?.client ? { id: prefill.client.id, name: prefill.client.name } : null);
     setNif('');
     setLoading(true);
     /* eslint-enable react-hooks/set-state-in-effect */
     (async () => {
-      const [svc, cats, team] = await Promise.all([
+      const [svc, cats, team, vat] = await Promise.all([
         listServicesAction({ pageSize: 100, active: true }),
         listIncomeCategoriesAction(),
         listStaffAction({ pageSize: 100, active: true }),
+        getVatPolicyAction(),
       ]);
-      if (svc.success) setServices(svc.data.items);
+      const items = svc.success ? svc.data.items : [];
+      setServices(items);
       if (cats.success) {
         setCategories(cats.data);
         const def = cats.data.find((c) => c.isDefault) ?? cats.data[0];
         setIncomeCategoryId(def?.id ?? '');
       }
       if (team.success) setStaff(team.data.items);
+      if (vat.success) setVatExempt(vat.data.exempt);
+
+      // Carrinho inicial a partir da reserva. O preço é o que foi
+      // reservado (snapshot), não o preço atual do catálogo — o cliente
+      // paga o que lhe foi prometido. A taxa de IVA vem do catálogo.
+      if (prefill) {
+        const seeded: CartLine[] = [];
+        for (const bs of prefill.services) {
+          const catalog = items.find((s) => s.id === bs.serviceId);
+          const existing = seeded.find((l) => l.serviceId === bs.serviceId);
+          if (existing) {
+            existing.quantity = Math.min(99, existing.quantity + 1);
+            continue;
+          }
+          seeded.push({
+            serviceId: bs.serviceId,
+            name: bs.name,
+            price: bs.price,
+            quantity: 1,
+            discount: 0,
+            vatRate: catalog?.vatRate ?? 23,
+          });
+        }
+        setLines(seeded);
+      }
       setLoading(false);
     })();
-  }, [open]);
+  }, [open, prefill]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, ServiceListItem[]>();
@@ -145,7 +191,7 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
     return Array.from(map.entries());
   }, [services]);
 
-  const vatRate = lines[0]?.vatRate ?? 23;
+  const vatRate = vatExempt ? 0 : (lines[0]?.vatRate ?? 23);
   const net = useMemo(() => lines.reduce((sum, l) => sum + lineNet(l), 0), [lines]);
   const vat = Math.round((net * vatRate) / 100);
   const tipCents = eurosToCents(parseEuros(tip));
@@ -186,6 +232,7 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
 
     const res = await createIncomeAction({
       incomeCategoryId,
+      bookingId: prefill?.bookingId,
       clientId: invoiceClient?.id || undefined,
       staffId: staffId || undefined,
       services: lines.map((l) => ({
@@ -237,10 +284,21 @@ export function CheckoutModal({ open, onClose, onCompleted }: CheckoutModalProps
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Nova venda" size="xl" dismissable={!submitting}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={prefill ? `Cobrar reserva ${prefill.bookingNumber}` : 'Nova venda'}
+      size="xl"
+      dismissable={!submitting}
+    >
       {loading ? (
         <div
-          style={{ height: '256px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            height: '256px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <Spinner />
         </div>

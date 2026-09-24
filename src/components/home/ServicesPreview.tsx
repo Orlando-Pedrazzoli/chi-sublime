@@ -1,21 +1,21 @@
-// 📄 src/components/home/ServicesPreview.tsx
+// ðŸ“„ src/components/home/ServicesPreview.tsx
 /**
- * Chi Sublime — ServicesPreview ("A Carta")
+ * Chi Sublime â€” ServicesPreview ("A Carta")
  * ============================================================
  *
- * Elemento assinatura do site: os serviços como uma carta
- * editorial — linhas horizontais em vez de cards.
+ * Elemento assinatura do site: os serviÃ§os como uma carta
+ * editorial â€” linhas horizontais em vez de cards.
  *
  * Desktop: nome da categoria em serif display; a imagem da
- * categoria revela-se à direita no hover (CSS puro, sem JS).
- * Mobile: thumbnail sempre visível à esquerda da linha.
+ * categoria revela-se Ã  direita no hover (CSS puro, sem JS).
+ * Mobile: thumbnail sempre visÃ­vel Ã  esquerda da linha.
  *
  * Sobre fundo verde profundo, mantendo o contraste da home.
  *
  * i18n:
  * - UI via getTranslations('home.services')
  * - Nome da categoria (DB) via localizedField() com fallback PT
- * - Descrições por slug nos JSONs (t.has → fallback genérico)
+ * - DescriÃ§Ãµes por slug nos JSONs (t.has â†’ fallback genÃ©rico)
  * - Contador com plural ICU: "{count, plural, one {...} other {...}}"
  */
 
@@ -74,7 +74,7 @@ export async function ServicesPreview() {
     getCategoriesWithCount(locale),
   ]);
 
-  /** Descrição por slug com fallback genérico (slugs novos na DB não partem o site) */
+  /** DescriÃ§Ã£o por slug com fallback genÃ©rico (slugs novos na DB nÃ£o partem o site) */
   const description = (slug: string) =>
     t.has(`descriptions.${slug}`) ? t(`descriptions.${slug}`) : t('descriptions.fallback');
 
@@ -92,7 +92,7 @@ export async function ServicesPreview() {
           </Reveal>
         </div>
 
-        {/* A carta — linhas editoriais */}
+        {/* A carta â€” linhas editoriais */}
         <div className="border-chi-cream/15 border-t">
           {categories.map((cat, i) => (
             <Reveal key={cat.slug} delay={i * 0.06} as="div">
@@ -100,12 +100,12 @@ export async function ServicesPreview() {
                 href={`/servicos/${cat.slug}`}
                 className="group border-chi-cream/15 relative grid grid-cols-[64px_1fr_auto] items-center gap-5 border-b py-6 transition-colors duration-500 md:grid-cols-[1fr_minmax(0,420px)_auto] md:gap-10 md:overflow-hidden md:py-10"
               >
-                {/* Thumbnail — sempre visível no mobile; em desktop LARGO
-                    (lg+) revela-se no hover, ancorada no espaço vazio entre
-                    o título e a descrição. Fica ATRÁS do texto (z-0) e com
+                {/* Thumbnail â€” sempre visÃ­vel no mobile; em desktop LARGO
+                    (lg+) revela-se no hover, ancorada no espaÃ§o vazio entre
+                    o tÃ­tulo e a descriÃ§Ã£o. Fica ATRÃS do texto (z-0) e com
                     pointer-events desligados: mesmo que encoste, nunca tapa
-                    uma letra nem rouba o hover. Em tablets (md–lg) não há
-                    espaço vazio, por isso não aparece de todo. */}
+                    uma letra nem rouba o hover. Em tablets (mdâ€“lg) nÃ£o hÃ¡
+                    espaÃ§o vazio, por isso nÃ£o aparece de todo. */}
                 <div className="pointer-events-none relative z-0 aspect-square w-16 overflow-hidden md:hidden lg:absolute lg:inset-y-3 lg:left-[25%] lg:block lg:aspect-auto lg:w-40 lg:opacity-0 lg:transition-opacity lg:duration-500 lg:group-hover:opacity-100 xl:left-[30%] xl:w-44">
                   <Image
                     src={cat.image}
@@ -127,31 +127,31 @@ export async function ServicesPreview() {
                   </span>
                 </div>
 
-                {/* Descrição — só a partir de md */}
+                {/* DescriÃ§Ã£o â€” sÃ³ a partir de md */}
                 <p className="text-chi-cream/60 relative z-10 hidden text-sm leading-[1.75] md:block">
                   {description(cat.slug)}
                 </p>
 
-                {/* Ação: desktop — label revelado no hover;
-                    mobile — seta discreta (affordance de toque) */}
+                {/* AÃ§Ã£o: desktop â€” label revelado no hover;
+                    mobile â€” seta discreta (affordance de toque) */}
                 <span className="hidden items-center gap-2 md:inline-flex">
                   <span className="text-chi-gold -translate-x-2 text-[10px] tracking-[0.25em] uppercase opacity-0 transition-all duration-500 group-hover:translate-x-0 group-hover:opacity-100">
-                    {t('viewServices')} →
+                    {t('viewServices')} â†’
                   </span>
                 </span>
                 <span className="text-chi-cream/50 text-xl md:hidden" aria-hidden>
-                  →
+                  â†’
                 </span>
               </Link>
             </Reveal>
           ))}
         </div>
 
-        {/* CTA de rodapé da secção */}
+        {/* CTA de rodapÃ© da secÃ§Ã£o */}
         <Reveal delay={0.1}>
           <div className="mt-16 flex justify-center md:mt-20">
             <Link
-              href="/reservar"
+              href="/marcacoes"
               className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
               style={{ color: '#1F3D2E' }}
             >

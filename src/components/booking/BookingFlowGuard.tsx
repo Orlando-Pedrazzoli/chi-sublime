@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * Chi Sublime — Booking Flow Guard
+ * Chi Sublime â€” Booking Flow Guard
  * ============================================================
  *
  * Componente que protege rotas do flow de reserva.
- * Se o utilizador chegar a /reservar/horario sem ter passado pelo
- * Step 1 (sessionStorage vazio), redireciona para /reservar.
+ * Se o utilizador chegar a /marcacoes/horario sem ter passado pelo
+ * Step 1 (sessionStorage vazio), redireciona para /marcacoes.
  *
  * Comportamento:
  *  - Aguarda hidratacao
@@ -38,13 +38,13 @@ export function BookingFlowGuard({ fallback, children, requireStep }: Props) {
 
     // Step "time" requires services selected
     if (requireStep === 'time' && selectedServices.length === 0) {
-      router.replace('/reservar');
+      router.replace('/marcacoes');
       return;
     }
 
     // Step "confirm" requires services + date + time
     if (requireStep === 'service' && (!date || !time || selectedServices.length === 0)) {
-      router.replace('/reservar');
+      router.replace('/marcacoes');
       return;
     }
   }, [isHydrated, requireStep, selectedServices, date, time, router]);

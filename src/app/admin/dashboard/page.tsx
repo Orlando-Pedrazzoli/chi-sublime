@@ -18,6 +18,11 @@
  * Auto-refresh a cada 2 min via <DashboardAutoRefresh />.
  * Nota: ocupação = minutos reservados ÷ janela salão ∩ staff
  * (sem descontar breaks — aproximação documentada).
+ *
+ * Janelas de tempo ("hoje", "esta semana", "este mês") calculadas
+ * em Europe/Lisbon via resolveRange — o servidor (Vercel) corre em
+ * UTC e `setHours(0,0,0,0)` dava meia-noite UTC (01:00 em Lisboa
+ * no verão), o que atirava vendas e reservas para o dia errado.
  */
 
 import type { Metadata } from 'next';
@@ -38,6 +43,9 @@ import { requireAdmin } from '@/lib/auth/permissions';
 import { connectDB } from '@/lib/db/connect';
 import { Booking, Client, Schedule, Staff, Transaction, type ISchedule } from '@/lib/models';
 import { getWeekDay, timeToMinutes } from '@/lib/utils/time-utils';
+import { resolveRange } from '@/lib/utils/dates';
+import { toZonedTime } from 'date-fns-tz';
+import { SALON_TIMEZONE } from '@/lib/constants/business';
 import { DashboardAutoRefresh } from '@/components/admin/dashboard/AutoRefresh';
 
 export const metadata: Metadata = {
@@ -76,18 +84,16 @@ async function getDashboardData() {
 
   const now = new Date();
 
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
+  // Janelas em Europe/Lisbon (instantes UTC prontos para o Mongo)
+  const today = resolveRange('today');
+  const todayStart = today.from;
+  const todayEnd = new Date(today.to.getTime() + 1); // exclusivo ($lt)
 
-  // Semana atual (Segunda 00:00) e semana anterior
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-  const prevWeekStart = new Date(weekStart);
-  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+  // Semana atual (Segunda 00:00 Lisboa) e semana anterior
+  const weekStart = resolveRange('this-week').from;
+  const prevWeekStart = resolveRange('last-week').from;
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = resolveRange('this-month').from;
   const h24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const h48Ago = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
@@ -260,9 +266,14 @@ async function getDashboardData() {
     weekBookingsAgg.map((r: { _id: unknown; minutes: number }) => [String(r._id), r.minutes]),
   );
 
+  // Iterar os dias em "hora de parede" de Lisboa — getDay()/getWeekDay()
+  // num instante UTC davam o dia da semana errado à meia-noite.
+  const weekStartLocal = toZonedTime(weekStart, SALON_TIMEZONE);
+  const todayStartLocal = toZonedTime(todayStart, SALON_TIMEZONE);
+
   const occupancy: StaffOccupancy[] = activeStaff.map((staff) => {
     let available = 0;
-    for (let d = new Date(weekStart); d <= todayStart; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(weekStartLocal); d <= todayStartLocal; d.setDate(d.getDate() + 1)) {
       const regular = regularByWeekday.get(d.getDay());
       if (!regular?.open || !regular.start || !regular.end) continue;
       const cfg = staff.workingHours?.[getWeekDay(d)];
@@ -311,7 +322,7 @@ export default async function AdminDashboardPage() {
   const data = await getDashboardData();
 
   const firstName = user.name.split(/\s+/)[0];
-  const greeting = getGreeting(new Date().getHours());
+  const greeting = getGreeting(toZonedTime(new Date(), SALON_TIMEZONE).getHours());
   const weekDelta =
     data.revenuePrevWeek > 0
       ? Math.round(((data.revenueWeek - data.revenuePrevWeek) / data.revenuePrevWeek) * 100)

@@ -39,17 +39,17 @@ export default async function ClientDashboardPage() {
 
       <section>
         <h2 className="mb-4 text-xs tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
-          A tua experiência
+          A tua experiÃªncia
         </h2>
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Próximas" value={totalUpcoming.toString()} />
-          <StatCard label="Concluídas" value={totalCompleted.toString()} />
+          <StatCard label="PrÃ³ximas" value={totalUpcoming.toString()} />
+          <StatCard label="ConcluÃ­das" value={totalCompleted.toString()} />
         </div>
       </section>
 
       <section>
         <h2 className="mb-4 text-xs tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
-          Acessos rápidos
+          Acessos rÃ¡pidos
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <QuickLink
@@ -57,7 +57,7 @@ export default async function ClientDashboardPage() {
             label="Ver todas as reservas"
             icon={<Calendar size={16} />}
           />
-          <QuickLink href="/reservar" label="Nova reserva" icon={<Plus size={16} />} primary />
+          <QuickLink href="/marcacoes" label="Nova reserva" icon={<Plus size={16} />} primary />
           <QuickLink href="/conta/perfil" label="Editar perfil" icon={<UserIcon size={16} />} />
         </div>
       </section>
@@ -83,7 +83,7 @@ function NextBookingCard({ booking }: { booking: BookingForClient }) {
     >
       <div className="p-6 sm:p-8">
         <p className="mb-2 text-[10px] tracking-[0.3em] uppercase" style={{ color: '#D4AF6E' }}>
-          Próxima reserva
+          PrÃ³xima reserva
         </p>
         <h2
           className="mb-1 font-serif text-3xl capitalize sm:text-4xl"
@@ -92,8 +92,8 @@ function NextBookingCard({ booking }: { booking: BookingForClient }) {
           {dateFormat.format(new Date(booking.startTime))}
         </h2>
         <p className="mb-6 font-mono text-sm" style={{ color: 'rgba(250,247,242,0.7)' }}>
-          às {timeFormat.format(new Date(booking.startTime))}
-          {booking.staff && ` · com ${booking.staff.name}`}
+          Ã s {timeFormat.format(new Date(booking.startTime))}
+          {booking.staff && ` Â· com ${booking.staff.name}`}
         </p>
 
         <div className="mb-6 h-px" style={{ background: 'rgba(212,175,110,0.3)' }} />
@@ -107,7 +107,7 @@ function NextBookingCard({ booking }: { booking: BookingForClient }) {
             >
               <span>{s.name}</span>
               <span className="font-mono text-xs" style={{ color: 'rgba(250,247,242,0.6)' }}>
-                {s.duration}min · {(s.price / 100).toFixed(2)} €
+                {s.duration}min Â· {(s.price / 100).toFixed(2)} â‚¬
               </span>
             </li>
           ))}
@@ -140,10 +140,10 @@ function NoUpcomingCard() {
         Sem reservas agendadas
       </h2>
       <p className="mb-5 text-sm" style={{ color: '#5A5A5A' }}>
-        Marca a tua próxima visita ao Chi Sublime.
+        Marca a tua prÃ³xima visita ao Chi Sublime.
       </p>
       <Link
-        href="/reservar"
+        href="/marcacoes"
         className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
         style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
       >

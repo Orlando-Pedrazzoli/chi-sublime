@@ -42,7 +42,9 @@ export type AdminBookingForList = {
     name: string;
     photo?: string;
   } | null;
-  services: Array<{ name: string; price: number; duration: number }>;
+  services: Array<{ serviceId: string; name: string; price: number; duration: number }>;
+  /** Preenchido quando a reserva já foi cobrada (venda ligada). */
+  transactionId?: string;
 };
 
 export type DayBookingsResult =
@@ -166,10 +168,12 @@ function formatBooking(doc: any): AdminBookingForList {
         }
       : null,
     services: (doc.services ?? []).map((s: any) => ({
+      serviceId: s.serviceId ? String(s.serviceId) : '',
       name: s.name,
       price: s.price,
       duration: s.duration,
     })),
+    transactionId: doc.transactionId ? String(doc.transactionId) : undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

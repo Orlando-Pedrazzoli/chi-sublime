@@ -1,13 +1,13 @@
-// 📄 src/components/layout/NavLinks.tsx
+// ðŸ“„ src/components/layout/NavLinks.tsx
 /**
- * Chi Sublime — NavLinks (Client)
+ * Chi Sublime â€” NavLinks (Client)
  * ============================================================
  *
- * Lógica intocada (sessão, dropdowns, scroll, mobile).
+ * LÃ³gica intocada (sessÃ£o, dropdowns, scroll, mobile).
  *
- * ⚠️ FIX (bug Tailwind v4 + Next 16): as classes de cor
- * `text-chi-cream` no menu MOBILE estavam a ser ignoradas →
- * links pretos ilegíveis sobre fundo verde. Todas as cores do
+ * âš ï¸ FIX (bug Tailwind v4 + Next 16): as classes de cor
+ * `text-chi-cream` no menu MOBILE estavam a ser ignoradas â†’
+ * links pretos ilegÃ­veis sobre fundo verde. Todas as cores do
  * menu mobile passaram para INLINE STYLE, tal como padding e
  * border-radius (8px) dos CTAs MARCAR (desktop + mobile).
  */
@@ -40,7 +40,7 @@ type NavLinksProps = {
 };
 
 type NavItem = {
-  /** chave em messages/{locale}.json → nav.* */
+  /** chave em messages/{locale}.json â†’ nav.* */
   labelKey: 'home' | 'services' | 'team' | 'gallery' | 'contact';
   anchor: string;
   hasDropdown?: boolean;
@@ -54,7 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: 'contact', anchor: '#contact' },
 ];
 
-/* Tokens críticos (inline — bug Tailwind v4 + Next 16) */
+/* Tokens crÃ­ticos (inline â€” bug Tailwind v4 + Next 16) */
 const CREAM = '#FAF7F2';
 const GOLD = '#D4AF6E';
 const GREEN_DEEP = '#1F3D2E';
@@ -103,8 +103,8 @@ export function NavLinks({ categories, session }: NavLinksProps) {
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
-          {/* Logo — logo_new.png contém a marca completa
-              (lótus + CHI + Sublime); sem texto ao lado */}
+          {/* Logo â€” logo_new.png contÃ©m a marca completa
+              (lÃ³tus + CHI + Sublime); sem texto ao lado */}
           <Link href="/" className="flex items-center transition hover:opacity-80">
             <Image
               src="/images/logo_new.png"
@@ -169,7 +169,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                                 {cat.title}
                               </span>
                               <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                                →
+                                â†’
                               </span>
                             </Link>
                           </li>
@@ -181,7 +181,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                           className="hover:text-chi-gold block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-colors duration-300"
                           style={{ color: GOLD }}
                         >
-                          Ver todos os serviços
+                          Ver todos os serviÃ§os
                         </Link>
                       </div>
                     </div>
@@ -196,7 +196,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             {/* Toggle de idioma PT | EN */}
             <LangSwitcher variant="desktop" scrolled={scrolled} />
 
-            {/* Estado: NÃO LOGADO */}
+            {/* Estado: NÃƒO LOGADO */}
             {!session && (
               <Link
                 href="/entrar"
@@ -273,7 +273,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                         className="text-[10px] tracking-[0.22em] uppercase"
                         style={{ color: '#B8924A' }}
                       >
-                        Sessão iniciada
+                        SessÃ£o iniciada
                       </p>
                       <p className="mt-0.5 truncate font-serif text-base" style={{ color: CREAM }}>
                         {session.name}
@@ -292,7 +292,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                             {t('myAccount')}
                           </span>
                           <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                            →
+                            â†’
                           </span>
                         </Link>
                       </li>
@@ -306,7 +306,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                             {t('myBookings')}
                           </span>
                           <span className="text-chi-gold opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                            →
+                            â†’
                           </span>
                         </Link>
                       </li>
@@ -331,9 +331,9 @@ export function NavLinks({ categories, session }: NavLinksProps) {
               </div>
             )}
 
-            {/* CTA Marcar — padding/radius/cores inline (à prova do bug) */}
+            {/* CTA Marcar â€” padding/radius/cores inline (Ã  prova do bug) */}
             <Link
-              href="/reservar"
+              href="/marcacoes"
               className="text-xs font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
               style={{
                 backgroundColor: GOLD,
@@ -368,7 +368,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
         </div>
       </nav>
 
-      {/* Mobile menu — TODAS as cores inline (links estavam pretos) */}
+      {/* Mobile menu â€” TODAS as cores inline (links estavam pretos) */}
       <div
         className={cn(
           'fixed inset-0 z-40 transition-all duration-500 lg:hidden',
@@ -453,9 +453,9 @@ export function NavLinks({ categories, session }: NavLinksProps) {
             </>
           )}
 
-          {/* CTA Marcar mobile — padding/radius/cores inline */}
+          {/* CTA Marcar mobile â€” padding/radius/cores inline */}
           <Link
-            href="/reservar"
+            href="/marcacoes"
             onClick={() => setMobileOpen(false)}
             className="mt-6 text-sm font-semibold tracking-[0.22em] uppercase transition-opacity duration-300 hover:opacity-90"
             style={{
