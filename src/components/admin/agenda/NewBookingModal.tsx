@@ -41,6 +41,8 @@ type NewBookingModalProps = {
   /** Prefill vindo do clique num slot vazio da agenda */
   prefillTime?: string;
   prefillStaffId?: string;
+  /** Origem pré-selecionada (o board da dashboard abre já em "walk-in") */
+  prefillSource?: Source;
   onClose: () => void;
   onCreated: () => void;
 };
@@ -64,6 +66,7 @@ export function NewBookingModal({
   defaultDate,
   prefillTime,
   prefillStaffId,
+  prefillSource,
   onClose,
   onCreated,
 }: NewBookingModalProps) {
@@ -83,7 +86,7 @@ export function NewBookingModal({
   const [staffId, setStaffId] = useState(prefillStaffId ?? staff[0]?.id ?? '');
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState(prefillTime ?? SALON_DEFAULT_START);
-  const [source, setSource] = useState<Source>('phone');
+  const [source, setSource] = useState<Source>(prefillSource ?? 'phone');
   const [notes, setNotes] = useState('');
   const [force, setForce] = useState(false);
 

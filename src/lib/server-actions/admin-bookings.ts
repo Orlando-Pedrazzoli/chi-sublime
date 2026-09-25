@@ -16,6 +16,8 @@ import {
 import { auth } from '@/lib/auth';
 import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
 import { BOOKING_RULES } from '@/lib/constants/business';
+import { canTransition, BOOKING_STATUS_VISUAL } from '@/lib/constants/booking-status';
+import { resolveRange } from '@/lib/utils/dates';
 
 // ============================================================
 // TIPOS
@@ -45,7 +47,18 @@ export type AdminBookingForList = {
   services: Array<{ serviceId: string; name: string; price: number; duration: number }>;
   /** Preenchido quando a reserva já foi cobrada (venda ligada). */
   transactionId?: string;
+  /** Hora real de início do atendimento (status → in-progress). */
+  startedAt?: Date;
 };
+
+export type TodayBoardResult =
+  | {
+      success: true;
+      date: string;
+      bookings: AdminBookingForList[];
+      staff: Array<{ id: string; name: string; photo?: string }>;
+    }
+  | { success: false; error: string };
 
 export type DayBookingsResult =
   | { success: true; bookings: AdminBookingForList[]; date: string }
@@ -159,7 +172,9 @@ function formatBooking(doc: any): AdminBookingForList {
           phone: client.phone,
           email: client.email,
         }
-      : { id: '', name: 'Cliente removido', phone: '' },
+      : doc.guestInfo
+        ? { id: '', name: doc.guestInfo.name, phone: doc.guestInfo.phone, email: doc.guestInfo.email }
+        : { id: '', name: 'Cliente removido', phone: '' },
     staff: staff
       ? {
           id: String(staff._id),
@@ -174,9 +189,63 @@ function formatBooking(doc: any): AdminBookingForList {
       duration: s.duration,
     })),
     transactionId: doc.transactionId ? String(doc.transactionId) : undefined,
+    startedAt: doc.startedAt ?? undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ============================================================
+// GET TODAY BOARD (dashboard — posto de trabalho do balcão)
+// ============================================================
+
+/**
+ * Reservas de HOJE (em Europe/Lisbon) para o board de atendimento da
+ * dashboard, mais a lista de profissionais ativas (uma coluna cada).
+ * Exclui canceladas — não são trabalho para ninguém no balcão.
+ */
+export async function getTodayBoardAction(): Promise<TodayBoardResult> {
+  const admin = await requireAdminSession();
+  if (!admin) return { success: false, error: 'Não autorizado' };
+
+  await connectDB();
+
+  try {
+    const today = resolveRange('today');
+
+    const [bookings, staff] = await Promise.all([
+      Booking.find({
+        startTime: { $gte: today.from, $lte: today.to },
+        status: { $ne: 'cancelled' },
+      })
+        .sort({ startTime: 1 })
+        .populate('clientId', 'name phone email')
+        .populate('staffId', 'name photo')
+        .lean(),
+      Staff.find({ active: true }).sort({ order: 1 }).lean(),
+    ]);
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    // YYYY-MM-DD em hora de Lisboa (toISOString daria o dia anterior
+    // no verão: meia-noite em Lisboa = 23:00 UTC)
+    const date = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Lisbon',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    return {
+      success: true,
+      date,
+      bookings: bookings.map(formatBooking),
+      staff: staff.map((s: any) => ({ id: String(s._id), name: s.name, photo: s.photo })),
+    };
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+  } catch (err) {
+    console.error('[getTodayBoardAction]', err);
+    return { success: false, error: 'Erro ao carregar o board de hoje' };
+  }
+}
 
 // ============================================================
 // GET BY DAY
@@ -316,6 +385,17 @@ export async function updateBookingStatusAction(input: UpdateStatusInput): Promi
   if (!booking) return { success: false, error: 'Reserva não encontrada' };
 
   const oldStatus = booking.status;
+
+  // Máquina de estados no servidor: com várias profissionais no mesmo
+  // ecrã, dois cliques cruzados não podem fazer completed → in-progress.
+  if (oldStatus === input.newStatus) return { success: true };
+  if (!canTransition(oldStatus, input.newStatus)) {
+    return {
+      success: false,
+      error: `A reserva já está "${BOOKING_STATUS_VISUAL[oldStatus].label}" — atualize o ecrã.`,
+    };
+  }
+
   booking.status = input.newStatus;
 
   if (input.newStatus === 'cancelled') {

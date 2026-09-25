@@ -7,15 +7,18 @@
  * de prioridade no scroll (best practices Zenoti/SalonIQ/Meevo:
  * dashboard diário conciso, poucos KPIs, cada card leva à ação):
  *
- *  1. HOJE — próxima cliente, contadores do dia, agenda compacta,
- *     ações rápidas. Substitui o "toque no bolso" do Noona em
- *     conjunto com o email de nova reserva.
+ *  1. HOJE — BOARD DE ATENDIMENTO (uma coluna por profissional:
+ *     Iniciar → Terminar & Cobrar sem sair da dashboard — o salão
+ *     tem um único computador partilhado por toda a equipa),
+ *     contadores do dia e ações rápidas.
  *  2. ATENÇÃO — novas reservas online (24h) e cancelamentos (48h).
  *  3. NEGÓCIO — receita da semana vs anterior, ocupação por
  *     profissional (benchmark saudável 80-85%), top serviços,
  *     novas clientes e % reservas online no mês.
  *
- * Auto-refresh a cada 2 min via <DashboardAutoRefresh />.
+ * Auto-refresh via <DashboardAutoRefresh />: 2 min em repouso, 30 s
+ * enquanto houver atendimentos em curso (o board é o único ecrã que
+ * a equipa olha durante o dia).
  * Nota: ocupação = minutos reservados ÷ janela salão ∩ staff
  * (sem descontar breaks — aproximação documentada).
  *
@@ -47,6 +50,11 @@ import { resolveRange } from '@/lib/utils/dates';
 import { toZonedTime } from 'date-fns-tz';
 import { SALON_TIMEZONE } from '@/lib/constants/business';
 import { DashboardAutoRefresh } from '@/components/admin/dashboard/AutoRefresh';
+import { TodayBoard } from '@/components/admin/dashboard/TodayBoard';
+import {
+  getAdminBookingMetaAction,
+  getTodayBoardAction,
+} from '@/lib/server-actions/admin-bookings';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -58,15 +66,6 @@ export const dynamic = 'force-dynamic';
 // ============================================================
 // DATA
 // ============================================================
-
-type TodayBooking = {
-  id: string;
-  time: string;
-  clientName: string;
-  services: string;
-  staffName: string;
-  status: string;
-};
 
 type AttentionItem = {
   id: string;
@@ -97,11 +96,6 @@ async function getDashboardData() {
   const h24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const h48Ago = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-  const timeFmt = new Intl.DateTimeFormat('pt-PT', {
-    timeZone: 'Europe/Lisbon',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
   const dayTimeFmt = new Intl.DateTimeFormat('pt-PT', {
     timeZone: 'Europe/Lisbon',
     day: '2-digit',
@@ -111,7 +105,7 @@ async function getDashboardData() {
   });
 
   const [
-    todayBookingsRaw,
+    todayBookingsCount,
     revenueTodayAgg,
     revenueWeekAgg,
     revenuePrevWeekAgg,
@@ -126,14 +120,10 @@ async function getDashboardData() {
     regularSchedules,
     weekBookingsAgg,
   ] = await Promise.all([
-    Booking.find({
+    Booking.countDocuments({
       startTime: { $gte: todayStart, $lt: todayEnd },
       status: { $nin: ['cancelled'] },
-    })
-      .sort({ startTime: 1 })
-      .populate('clientId', 'name')
-      .populate('staffId', 'name')
-      .lean(),
+    }),
 
     Transaction.aggregate([
       {
@@ -219,27 +209,6 @@ async function getDashboardData() {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const clientName = (b: any) => (b.clientId as any)?.name ?? b.guestInfo?.name ?? 'Cliente';
 
-  const todayBookings: TodayBooking[] = todayBookingsRaw.map((b: any) => ({
-    id: String(b._id),
-    time: timeFmt.format(new Date(b.startTime)),
-    clientName: clientName(b),
-    services: b.services.map((s: any) => s.name).join(', '),
-    staffName: (b.staffId as any)?.name ?? '—',
-    status: b.status,
-  }));
-
-  const nextBooking =
-    todayBookingsRaw
-      .filter(
-        (b: any) => new Date(b.startTime) > now && ['pending', 'confirmed'].includes(b.status),
-      )
-      .map((b: any) => ({
-        time: timeFmt.format(new Date(b.startTime)),
-        clientName: clientName(b),
-        services: b.services.map((s: any) => s.name).join(', '),
-        staffName: (b.staffId as any)?.name ?? '—',
-      }))[0] ?? null;
-
   const recentOnline: AttentionItem[] = recentOnlineRaw.map((b: any) => ({
     id: String(b._id),
     title: clientName(b),
@@ -297,8 +266,7 @@ async function getDashboardData() {
     monthSourceAgg.find((r: { _id: string }) => r._id === 'website')?.count ?? 0;
 
   return {
-    todayBookings,
-    nextBooking,
+    todayBookingsCount,
     revenueToday: revenueTodayAgg[0]?.total ?? 0,
     revenueWeek: revenueWeekAgg[0]?.total ?? 0,
     revenuePrevWeek: revenuePrevWeekAgg[0]?.total ?? 0,
@@ -319,7 +287,18 @@ async function getDashboardData() {
 
 export default async function AdminDashboardPage() {
   const user = await requireAdmin();
-  const data = await getDashboardData();
+  const [data, board, meta] = await Promise.all([
+    getDashboardData(),
+    getTodayBoardAction(),
+    getAdminBookingMetaAction(),
+  ]);
+
+  const boardBookings = board.success ? board.bookings : [];
+  const boardStaff = board.success ? board.staff : meta.staff;
+  const today = board.success
+    ? board.date
+    : new Intl.DateTimeFormat('en-CA', { timeZone: SALON_TIMEZONE }).format(new Date());
+  const hasLive = boardBookings.some((b) => b.status === 'in-progress');
 
   const firstName = user.name.split(/\s+/)[0];
   const greeting = getGreeting(toZonedTime(new Date(), SALON_TIMEZONE).getHours());
@@ -330,51 +309,30 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl pb-20">
-      <DashboardAutoRefresh seconds={120} />
+      <DashboardAutoRefresh seconds={hasLive ? 30 : 120} />
 
       {/* ============ ZONA 1 — HOJE ============ */}
 
       {/* Saudação compacta */}
-      <p className="mb-6 text-sm" style={{ color: '#5A5A5A' }}>
+      <p className="mb-4 text-sm" style={{ color: '#5A5A5A' }}>
         {greeting}, <strong style={{ color: '#1F3D2E' }}>{firstName}</strong> ·{' '}
-        {data.todayBookings.length} {data.todayBookings.length === 1 ? 'reserva' : 'reservas'} hoje
+        {data.todayBookingsCount} {data.todayBookingsCount === 1 ? 'reserva' : 'reservas'} hoje
       </p>
 
-      {/* Próxima cliente */}
-      {data.nextBooking ? (
-        <Link
-          href="/admin/reservas"
-          className="mb-4 block rounded-lg border p-5 transition-shadow hover:shadow-md"
-          style={{
-            backgroundColor: '#1F3D2E',
-            borderColor: 'rgba(212,175,110,0.4)',
-            backgroundImage:
-              'radial-gradient(circle at top right, rgba(212,175,110,0.15) 0%, transparent 50%)',
-          }}
-        >
-          <p className="text-[10px] tracking-[0.25em] uppercase" style={{ color: '#D4AF6E' }}>
-            A seguir
-          </p>
-          <div className="mt-2 flex items-baseline justify-between gap-4">
-            <div className="min-w-0">
-              <p className="truncate font-serif text-2xl" style={{ color: '#FAF7F2' }}>
-                {data.nextBooking.clientName}
-              </p>
-              <p className="mt-1 truncate text-sm" style={{ color: 'rgba(250,247,242,0.7)' }}>
-                {data.nextBooking.services} · {data.nextBooking.staffName}
-              </p>
-            </div>
-            <span className="shrink-0 font-serif text-3xl" style={{ color: '#D4AF6E' }}>
-              {data.nextBooking.time}
-            </span>
-          </div>
-        </Link>
+      {/* Board de atendimento — o posto de trabalho do balcão */}
+      {board.success ? (
+        <TodayBoard
+          bookings={boardBookings}
+          staff={boardStaff}
+          services={meta.services}
+          today={today}
+        />
       ) : (
         <div
-          className="mb-4 rounded-lg border border-dashed p-5 text-sm"
-          style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#5A5A5A' }}
+          className="mb-8 rounded-lg border p-5 text-sm"
+          style={{ borderColor: 'rgba(178,60,60,0.35)', color: '#B23C3C' }}
         >
-          Sem mais clientes agendadas para hoje.
+          {board.error}
         </div>
       )}
 
@@ -382,7 +340,7 @@ export default async function AdminDashboardPage() {
       <section className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
           label="Reservas hoje"
-          value={String(data.todayBookings.length)}
+          value={String(data.todayBookingsCount)}
           icon={<Calendar size={18} />}
           href="/admin/reservas"
         />
@@ -418,41 +376,6 @@ export default async function AdminDashboardPage() {
         <QuickAction href="/admin/receitas" icon={<ShoppingBag size={16} />} label="POS" />
         <QuickAction href="/admin/caixa" icon={<Wallet size={16} />} label="Caixa" />
       </section>
-
-      {/* Agenda compacta de hoje */}
-      <Panel title="Agenda de hoje" href="/admin/reservas" linkLabel="Ver agenda">
-        {data.todayBookings.length === 0 ? (
-          <EmptyRow text="Sem reservas para hoje." />
-        ) : (
-          <ul className="divide-y" style={{ borderColor: 'rgba(31,61,46,0.06)' }}>
-            {data.todayBookings.slice(0, 8).map((b) => (
-              <li key={b.id} className="flex items-center gap-4 py-3">
-                <span
-                  className="w-12 shrink-0 font-mono text-sm font-medium"
-                  style={{ color: '#1F3D2E' }}
-                >
-                  {b.time}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium" style={{ color: '#1A1A1A' }}>
-                    {b.clientName}
-                  </p>
-                  <p className="truncate text-xs" style={{ color: '#5A5A5A' }}>
-                    {b.services}
-                  </p>
-                </div>
-                <span
-                  className="hidden shrink-0 text-[10px] tracking-[0.15em] uppercase sm:block"
-                  style={{ color: '#B8924A' }}
-                >
-                  {b.staffName}
-                </span>
-                <StatusDot status={b.status} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
 
       {/* ============ ZONA 2 — ATENÇÃO ============ */}
 
@@ -739,24 +662,6 @@ function AttentionList({ items, accent }: { items: AttentionItem[]; accent: stri
         );
       })}
     </ul>
-  );
-}
-
-function StatusDot({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    pending: '#C4861E',
-    confirmed: '#2D7A55',
-    'in-progress': '#2C5F8A',
-    completed: '#9A9A9A',
-    'no-show': '#B23C3C',
-  };
-  return (
-    <span
-      className="h-2 w-2 shrink-0 rounded-full"
-      style={{ backgroundColor: colors[status] ?? '#9A9A9A' }}
-      title={status}
-      aria-label={status}
-    />
   );
 }
 

@@ -1,3 +1,4 @@
+// 📄 src/lib/constants/booking-status.ts
 /**
  * Chi Sublime — Estados e origens de reserva (apresentação)
  * ============================================================
@@ -67,7 +68,7 @@ export const BOOKING_STATUS_VISUAL: Record<BookingStatus, StatusVisual> = {
  * Evita saltos inválidos como cancelled → confirmed sem revalidação.
  */
 export const BOOKING_STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  pending: ['confirmed', 'cancelled', 'no-show'],
+  pending: ['confirmed', 'in-progress', 'cancelled', 'no-show'],
   confirmed: ['in-progress', 'completed', 'cancelled', 'no-show'],
   'in-progress': ['completed', 'cancelled'],
   completed: [],

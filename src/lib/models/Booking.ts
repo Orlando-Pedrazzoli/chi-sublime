@@ -1,3 +1,4 @@
+// 📄 src/lib/models/Booking.ts
 import mongoose, { Schema, model, models, type Model } from 'mongoose';
 import { BOOKING_RULES } from '@/lib/constants/business';
 
@@ -81,6 +82,8 @@ export interface IBooking {
   cancellationReason?: string;
   cancelledBy?: 'client' | 'staff' | 'system';
   cancelledAt?: Date;
+  /** Instante real em que o atendimento começou (status → in-progress). Alimenta o cronómetro do board da dashboard. */
+  startedAt?: Date;
   transactionId?: mongoose.Types.ObjectId;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -223,6 +226,8 @@ const bookingSchema = new Schema<IBooking>(
     },
     cancelledAt: { type: Date },
 
+    startedAt: { type: Date },
+
     transactionId: {
       type: Schema.Types.ObjectId,
       ref: 'Transaction',
@@ -319,6 +324,11 @@ bookingSchema.pre('validate', function () {
   // Ao mudar para cancelled, preencher cancelledAt
   if (this.isModified('status') && this.status === 'cancelled' && !this.cancelledAt) {
     this.cancelledAt = new Date();
+  }
+
+  // Ao entrar em atendimento, registar a hora real de início (uma vez)
+  if (this.isModified('status') && this.status === 'in-progress' && !this.startedAt) {
+    this.startedAt = new Date();
   }
 
   // blocksSlot: só reservas ativas ocupam a agenda (suporta índice único parcial)
