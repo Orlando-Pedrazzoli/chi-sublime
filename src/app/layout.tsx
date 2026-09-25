@@ -6,6 +6,7 @@ import { SessionProvider } from '@/components/auth/SessionProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
 import { CookieBanner } from '@/components/layout/CookieBanner';
+import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -157,6 +158,8 @@ export default async function RootLayout({
             <ToastProvider>{children}</ToastProvider>
             {/* Banner RGPD — client component, só renderiza sem consentimento */}
             <CookieBanner />
+            {/* Botão flutuante WhatsApp — só páginas públicas, aparece após consentimento */}
+            <WhatsAppFab />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>

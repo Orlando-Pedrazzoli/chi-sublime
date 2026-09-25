@@ -303,6 +303,10 @@
     "passwordTooShort": "A palavra-passe deve ter pelo menos 8 caracteres",
     "passwordsDontMatch": "As palavras-passe não coincidem"
   },
+  "whatsapp": {
+    "label": "Falar por WhatsApp",
+    "message": "Olá Chi Sublime! Gostaria de mais informações."
+  },
   "cookies": {
     "title": "Este site utiliza cookies",
     "description": "Usamos cookies para melhorar a sua experiência. Pode aceitar todos ou personalizar as suas preferências.",

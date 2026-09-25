@@ -303,6 +303,10 @@
     "passwordTooShort": "Password must be at least 8 characters",
     "passwordsDontMatch": "Passwords don't match"
   },
+  "whatsapp": {
+    "label": "Chat on WhatsApp",
+    "message": "Hello Chi Sublime! I would like more information."
+  },
   "cookies": {
     "title": "This site uses cookies",
     "description": "We use cookies to improve your experience. You can accept all or customize your preferences.",
