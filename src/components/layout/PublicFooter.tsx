@@ -11,7 +11,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Início', href: '#home' },
@@ -205,14 +204,6 @@ export function PublicFooter() {
               className="text-chi-gold-deep hover:text-chi-green-deep transition-colors"
             >
               Pedrazzoli Digital
-            </Link>
-            <Link
-              href="/admin/login"
-              aria-label="Painel"
-              title="Painel"
-              className="text-chi-gold-deep/50 hover:text-chi-green-deep ml-1 inline-flex items-center transition-colors"
-            >
-              <Lock size={12} strokeWidth={1.5} />
             </Link>
           </span>
         </div>
