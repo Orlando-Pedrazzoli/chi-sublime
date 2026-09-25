@@ -71,10 +71,19 @@ export function AdminSidebar({ user, isMobileOpen, onMobileClose }: AdminSidebar
         />
       )}
 
+      {/*
+        Mobile: quando fechada fica fora do ecrã (translate -100%) E
+        `invisible`, para não contar como conteúdo fora do viewport
+        (o que em iOS Safari podia gerar scroll lateral). A transição
+        inclui `visibility` para a animação de fechar continuar a
+        ver-se — visibility só muda no fim da transição.
+      */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col transition-transform duration-300 lg:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col transition-[transform,visibility] duration-300 lg:visible lg:translate-x-0',
+          isMobileOpen
+            ? 'visible translate-x-0'
+            : 'invisible -translate-x-full lg:visible lg:translate-x-0',
         )}
         style={{ backgroundColor: '#1F3D2E' }}
       >

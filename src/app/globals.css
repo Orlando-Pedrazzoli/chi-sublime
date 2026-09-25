@@ -98,10 +98,25 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* Bloqueio do scroll horizontal da página (mobile).
+     Sem isto, qualquer elemento 1px mais largo que o viewport (ou um
+     painel off-canvas com transform) deixa o ecrã "abanar" para os
+     lados ao fazer scroll vertical no telemóvel.
+     `clip` (iOS 16+, Chrome 90+) NÃO cria scroll container, por isso
+     não parte o `position: sticky` da topbar admin; `hidden` fica
+     como fallback para browsers antigos (a 2.ª declaração só ganha
+     quando é suportada). Aplicado em html E body — no iOS Safari só
+     no body é ignorado. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.6;
