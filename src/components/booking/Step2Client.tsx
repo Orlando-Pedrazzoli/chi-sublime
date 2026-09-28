@@ -61,13 +61,6 @@ const CTA_DISABLED: React.CSSProperties = {
   borderRadius: '8px',
 };
 
-const CTA_CONFIRM: React.CSSProperties = {
-  backgroundColor: '#1F3D2E',
-  color: '#FAF7F2',
-  padding: '14px 24px',
-  borderRadius: '8px',
-};
-
 type FetchState = {
   status: 'idle' | 'loading' | 'loaded' | 'closed' | 'error';
   slots?: SlotData[];
@@ -429,16 +422,9 @@ export function Step2Client({ staffOptions, serviceEligibility }: Props) {
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] hover:opacity-95"
-                style={CTA_CONFIRM}
-              >
-                {t('confirmSlot')}
-                <span>→</span>
-              </button>
-              <p className="mt-2.5 text-center text-xs italic" style={{ color: '#8A8A8A' }}>
+              {/* Sem botão aqui: o único CTA é o "Continuar" da barra
+                  abaixo — dois botões iguais empilhados confundiam. */}
+              <p className="mt-2.5 text-xs italic" style={{ color: '#8A8A8A' }}>
                 {t('changeHint')}
               </p>
             </div>
