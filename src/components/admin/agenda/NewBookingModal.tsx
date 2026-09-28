@@ -29,7 +29,7 @@
  * Padrão do projeto: padding/cores críticas em inline style.
  */
 
-import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Phone, Globe, User as UserIcon, Plus, AlertTriangle, Info } from 'lucide-react';
 import {
   createManualBookingAction,
@@ -155,7 +155,11 @@ export function NewBookingModal({
   onClose,
   onCreated,
 }: NewBookingModalProps) {
-  const [isPending, startTransition] = useTransition();
+  // Estado de submissão simples (não useTransition): a server action faz
+  // revalidatePath e o pai navega a seguir — meter tudo dentro de uma
+  // transition adiava o fecho do modal até o router assentar e a página
+  // ficava "presa" em loading.
+  const [isPending, setIsPending] = useState(false);
   const minDate = todayISO();
 
   // Cliente
@@ -425,7 +429,8 @@ export function NewBookingModal({
       (clientMode === 'new' && newClientName.trim() && newClientPhone.trim());
     if (!isClientValid) return setError('Cliente em falta — escolhe um existente ou cria novo.');
 
-    startTransition(async () => {
+    setIsPending(true);
+    void (async () => {
       const result = await createManualBookingAction({
         clientId: clientMode === 'search' ? selectedClient!.id : undefined,
         newClient:
@@ -449,8 +454,12 @@ export function NewBookingModal({
       if (result.success) {
         onCreated(result.data);
       } else {
+        setIsPending(false);
         setError(result.error.message);
       }
+    })().catch(() => {
+      setIsPending(false);
+      setError('Erro ao criar a marcação. Tenta novamente.');
     });
   }
 

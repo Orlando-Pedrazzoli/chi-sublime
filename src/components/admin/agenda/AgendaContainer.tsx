@@ -141,12 +141,17 @@ export function AgendaContainer({
   function closeNewBooking() {
     setNewBookingOpen(false);
     setNewBookingPrefill(null);
-    // Limpar ?new=1 — senão um F5 reabria o modal
-    if (searchParams.get('new')) {
+    // Limpar ?new=1 — senão um F5 reabria o modal.
+    // history.replaceState (e não router.replace): é só cosmética de URL,
+    // não precisa de round-trip ao servidor, e evita empilhar navegações
+    // do App Router em cima do refresh que a server action já disparou
+    // (revalidatePath) — essa sobreposição deixava o router pendente e
+    // a página "presa" em loading.
+    if (typeof window !== 'undefined' && searchParams.get('new')) {
       const params = new URLSearchParams(searchParams);
       params.delete('new');
       const qs = params.toString();
-      router.replace(`/admin/marcacoes${qs ? `?${qs}` : ''}`);
+      window.history.replaceState(null, '', `/admin/marcacoes${qs ? `?${qs}` : ''}`);
     }
   }
 
@@ -168,12 +173,17 @@ export function AgendaContainer({
       `Marcação ${created.bookingNumber} criada — ${created.clientName} com ${created.staffName}, ${createdTime}.`,
     );
     // Mostrar o dia da marcação criada (vista de dia) em vez de ficar
-    // no dia/vista onde o funcionário estava
-    if (createdDate !== date || view !== 'day') {
-      navigateToDate(createdDate, 'day');
-    } else {
-      handleRefresh();
-    }
+    // no dia/vista onde o funcionário estava. Adiado para o próximo tick:
+    // este callback corre DENTRO da transition do modal (que ainda está a
+    // fechar) — navegar aí deixava o App Router num estado pendente.
+    const goToCreated = createdDate !== date || view !== 'day';
+    window.setTimeout(() => {
+      if (goToCreated) {
+        navigateToDate(createdDate, 'day');
+      } else {
+        handleRefresh();
+      }
+    }, 0);
   }
 
   return (
