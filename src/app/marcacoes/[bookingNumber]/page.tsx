@@ -1,9 +1,9 @@
 // 📄 src/app/marcacoes/[bookingNumber]/page.tsx
 /**
- * Chi Sublime — Reservar [bookingNumber] (Pagina de sucesso)
+ * Chi Sublime — Marcar [bookingNumber] (Pagina de sucesso)
  * ============================================================
  *
- * Server Component publico que mostra os detalhes da reserva
+ * Server Component publico que mostra os detalhes da marcação
  * apos criacao bem-sucedida.
  *
  * Identificada pelo bookingNumber na URL (ex: /marcacoes/CHI-2026-0042).
@@ -11,10 +11,10 @@
  * Seguranca (RGPD):
  *  - O bookingNumber é SEQUENCIAL (CHI-2026-0001, 0002…) e portanto
  *    adivinhável. Antes a página era pública e mostrava nome, email
- *    completo, serviços e data de qualquer reserva.
- *  - Agora só o cliente dono da reserva (sessão) ou um admin a veem.
+ *    completo, serviços e data de qualquer marcação.
+ *  - Agora só o cliente dono da marcação (sessão) ou um admin a veem.
  *    Sem sessão → login com regresso a esta página. Sessão de outra
- *    pessoa → 404 (não revela que a reserva existe).
+ *    pessoa → 404 (não revela que a marcação existe).
  *  - noindex: nunca deve aparecer em motores de busca.
  */
 
@@ -31,7 +31,7 @@ import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 
 export const metadata: Metadata = {
   title: 'A sua marcação | Chi Sublime',
-  description: 'Detalhes da sua reserva no Chi Sublime.',
+  description: 'Detalhes da sua marcação no Chi Sublime.',
   robots: { index: false, follow: false },
 };
 
@@ -110,7 +110,7 @@ export default async function BookingSuccessPage({ params }: Props) {
     notFound();
   }
 
-  // Se reserva foi cancelada, mostrar uma mensagem diferente
+  // Se marcação foi cancelada, mostrar uma mensagem diferente
   if (booking.status === 'cancelled') {
     return (
       <>
@@ -118,17 +118,17 @@ export default async function BookingSuccessPage({ params }: Props) {
         <main className="bg-chi-cream flex min-h-screen flex-col items-center justify-center pt-32 pb-20">
           <div className="max-w-md px-6 text-center">
             <h1 className="text-chi-charcoal mb-4 font-serif text-3xl md:text-4xl">
-              Reserva cancelada
+              Marcação cancelada
             </h1>
             <p className="text-chi-charcoal-soft mb-8">
-              A reserva <span className="font-mono">{bookingNumber}</span> foi cancelada.
+              A marcação <span className="font-mono">{bookingNumber}</span> foi cancelada.
             </p>
             <Link
               href="/marcacoes"
               className="bg-chi-green-deep inline-block px-8 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase"
               style={{ color: '#FAF7F2' }}
             >
-              Fazer nova reserva
+              Fazer nova marcação
             </Link>
           </div>
         </main>

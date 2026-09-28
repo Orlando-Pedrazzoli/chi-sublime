@@ -54,15 +54,15 @@ export default async function NotificacoesPage() {
   }> = [
     {
       icon: Mail,
-      title: 'Confirmação de reserva',
-      trigger: 'Enviada ao cliente assim que a reserva é criada (online ou no balcão).',
+      title: 'Confirmação de marcação',
+      trigger: 'Enviada ao cliente assim que a marcação é criada (online ou no balcão).',
       to: 'Email do cliente',
       status: resendConfigured ? 'ok' : 'off',
     },
     {
       icon: BellRing,
-      title: 'Alerta de nova reserva',
-      trigger: 'Enviado ao salão a cada reserva online nova.',
+      title: 'Alerta de nova marcação',
+      trigger: 'Enviado ao salão a cada marcação online nova.',
       to: salonEmail,
       status: resendConfigured && salonEmail !== '—' ? 'ok' : 'off',
     },
@@ -70,14 +70,14 @@ export default async function NotificacoesPage() {
       icon: BellRing,
       title: 'Lembrete de véspera',
       trigger:
-        'Enviado ao cliente uma vez por dia para reservas nas 36 horas seguintes (tarefa automática ~09h UTC).',
+        'Enviado ao cliente uma vez por dia para marcações nas 36 horas seguintes (tarefa automática ~09h UTC).',
       to: 'Email do cliente',
       status: resendConfigured && cronConfigured ? 'ok' : 'off',
     },
     {
       icon: CalendarX2,
       title: 'Aviso de cancelamento',
-      trigger: 'Enviado ao cliente quando a reserva é cancelada — por ele ou pelo salão.',
+      trigger: 'Enviado ao cliente quando a marcação é cancelada — por ele ou pelo salão.',
       to: 'Email do cliente',
       status: resendConfigured ? 'ok' : 'off',
     },

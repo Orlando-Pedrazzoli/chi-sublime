@@ -61,7 +61,7 @@ export interface IStaff {
   commissionRate?: number;
   order: number;
   active: boolean;
-  /** Aparece na homepage e tem página pública /equipa/[slug]. Não afeta reservas. */
+  /** Aparece na homepage e tem página pública /equipa/[slug]. Não afeta marcações. */
   showOnWebsite: boolean;
   createdAt: Date;
   updatedAt: Date;

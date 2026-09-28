@@ -11,21 +11,21 @@
  *     Iniciar → Terminar & Cobrar sem sair da dashboard — o salão
  *     tem um único computador partilhado por toda a equipa),
  *     contadores do dia e ações rápidas.
- *  2. ATENÇÃO — novas reservas online (24h) e cancelamentos (48h).
+ *  2. ATENÇÃO — novas marcações online (24h) e cancelamentos (48h).
  *  3. NEGÓCIO — receita da semana vs anterior, ocupação por
  *     profissional (benchmark saudável 80-85%), top serviços,
- *     novas clientes e % reservas online no mês.
+ *     novas clientes e % marcações online no mês.
  *
  * Auto-refresh via <DashboardAutoRefresh />: 2 min em repouso, 30 s
  * enquanto houver atendimentos em curso (o board é o único ecrã que
  * a equipa olha durante o dia).
- * Nota: ocupação = minutos reservados ÷ janela salão ∩ staff
+ * Nota: ocupação = minutos marcados ÷ janela salão ∩ staff
  * (sem descontar breaks — aproximação documentada).
  *
  * Janelas de tempo ("hoje", "esta semana", "este mês") calculadas
  * em Europe/Lisbon via resolveRange — o servidor (Vercel) corre em
  * UTC e `setHours(0,0,0,0)` dava meia-noite UTC (01:00 em Lisboa
- * no verão), o que atirava vendas e reservas para o dia errado.
+ * no verão), o que atirava vendas e marcações para o dia errado.
  */
 
 import type { Metadata } from 'next';
@@ -72,7 +72,7 @@ type AttentionItem = {
   title: string;
   subtitle: string;
   when: string;
-  /** Data (YYYY-MM-DD) da reserva — deep-link para a agenda do dia */
+  /** Data (YYYY-MM-DD) da marcação — deep-link para a agenda do dia */
   date?: string;
 };
 
@@ -226,7 +226,7 @@ async function getDashboardData() {
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  // Ocupação por staff (semana até hoje): reservado ÷ janela salão ∩ staff
+  // Ocupação por staff (semana até hoje): marcado ÷ janela salão ∩ staff
   const regularByWeekday = new Map<number, ISchedule>();
   for (const s of regularSchedules) {
     if (s.dayOfWeek !== undefined && s.dayOfWeek !== null) regularByWeekday.set(s.dayOfWeek, s);
@@ -316,7 +316,7 @@ export default async function AdminDashboardPage() {
       {/* Saudação compacta */}
       <p className="mb-4 text-sm" style={{ color: '#5A5A5A' }}>
         {greeting}, <strong style={{ color: '#1F3D2E' }}>{firstName}</strong> ·{' '}
-        {data.todayBookingsCount} {data.todayBookingsCount === 1 ? 'reserva' : 'reservas'} hoje
+        {data.todayBookingsCount} {data.todayBookingsCount === 1 ? 'marcação' : 'marcações'} hoje
       </p>
 
       {/* Board de atendimento — o posto de trabalho do balcão */}
@@ -325,6 +325,7 @@ export default async function AdminDashboardPage() {
           bookings={boardBookings}
           staff={boardStaff}
           services={meta.services}
+          categories={meta.categories}
           today={today}
         />
       ) : (
@@ -339,10 +340,10 @@ export default async function AdminDashboardPage() {
       {/* KPIs do dia */}
       <section className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
-          label="Reservas hoje"
+          label="Marcações hoje"
           value={String(data.todayBookingsCount)}
           icon={<Calendar size={18} />}
-          href="/admin/reservas"
+          href="/admin/marcacoes"
         />
         <KpiCard
           label="Receita hoje"
@@ -354,23 +355,23 @@ export default async function AdminDashboardPage() {
           label="Cancel. / faltas hoje"
           value={String(data.cancelledToday)}
           icon={<XCircle size={18} />}
-          href="/admin/reservas"
+          href="/admin/marcacoes"
           alert={data.cancelledToday > 0}
         />
         <KpiCard
           label="Online (24h)"
           value={String(data.recentOnline.length)}
           icon={<Globe size={18} />}
-          href="/admin/reservas"
+          href="/admin/marcacoes"
         />
       </section>
 
       {/* Ações rápidas */}
       <section className="mb-8 grid grid-cols-3 gap-3">
         <QuickAction
-          href="/admin/reservas?new=1"
+          href="/admin/marcacoes?new=1"
           icon={<CalendarPlus size={16} />}
-          label="Nova reserva"
+          label="Nova marcação"
           primary
         />
         <QuickAction href="/admin/receitas" icon={<ShoppingBag size={16} />} label="POS" />
@@ -383,14 +384,14 @@ export default async function AdminDashboardPage() {
         Precisa de atenção
       </h3>
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Panel title="Novas reservas online · 24h" href="/admin/reservas" linkLabel="Agenda">
+        <Panel title="Novas marcações online · 24h" href="/admin/marcacoes" linkLabel="Agenda">
           {data.recentOnline.length === 0 ? (
-            <EmptyRow text="Sem reservas online nas últimas 24h." />
+            <EmptyRow text="Sem marcações online nas últimas 24h." />
           ) : (
             <AttentionList items={data.recentOnline} accent="#2D7A55" />
           )}
         </Panel>
-        <Panel title="Cancelamentos · 48h" href="/admin/reservas" linkLabel="Agenda">
+        <Panel title="Cancelamentos · 48h" href="/admin/marcacoes" linkLabel="Agenda">
           {data.recentCancellations.length === 0 ? (
             <EmptyRow text="Sem cancelamentos recentes. 🙌" />
           ) : (
@@ -433,7 +434,7 @@ export default async function AdminDashboardPage() {
           <div className="mt-1 text-xs" style={{ color: '#5A5A5A' }}>
             <span className="inline-flex items-center gap-1.5">
               <Globe size={13} style={{ color: '#D4AF6E' }} />
-              {data.onlineShare}% das reservas do mês são online
+              {data.onlineShare}% das marcações do mês são online
             </span>
           </div>
           <Link
@@ -641,12 +642,12 @@ function AttentionList({ items, accent }: { items: AttentionItem[]; accent: stri
           </>
         );
 
-        // Com data → linha clicável que abre a agenda no dia da reserva
+        // Com data → linha clicável que abre a agenda no dia da marcação
         if (item.date) {
           return (
             <li key={item.id}>
               <Link
-                href={`/admin/reservas?date=${item.date}&view=day`}
+                href={`/admin/marcacoes?date=${item.date}&view=day`}
                 className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-[rgba(212,175,110,0.08)]"
               >
                 {inner}

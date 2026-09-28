@@ -5,7 +5,7 @@
  *
  * Estrutura de 4 colunas mantida; refinamentos:
  *  - Marca sem itálico (coerente com navbar)
- *  - "Reservar Online" agora aponta para /marcacoes (era #contact)
+ *  - "Marcar Online" agora aponta para /marcacoes (era #contact)
  *  - Socials quadrados de cantos retos (linguagem do site)
  */
 
@@ -153,7 +153,7 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Coluna 3 — Reservas */}
+          {/* Coluna 3 — Marcações */}
           <div>
             <h6 className="text-chi-green-deep mb-6 text-xs font-semibold tracking-[0.25em] uppercase">
               Marcações
@@ -194,7 +194,7 @@ export function PublicFooter() {
 
         {/* Footer bottom */}
         <div className="border-chi-charcoal/10 text-chi-charcoal-light flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:justify-between">
-          <span>© {currentYear} Chi Sublime · Todos os direitos reservados</span>
+          <span>© {currentYear} Chi Sublime · Todos os direitos marcados</span>
           <span className="flex items-center gap-2">
             Desenvolvido por{' '}
             <Link

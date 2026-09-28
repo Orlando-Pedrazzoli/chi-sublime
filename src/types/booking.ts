@@ -1,8 +1,8 @@
 // 📄 src/types/booking.ts
 /**
- * Chi Sublime — Tipos de domínio: Reservas
+ * Chi Sublime — Tipos de domínio: Marcações
  * ============================================================
- * Re-export dos DTOs de reservas (admin + área de cliente).
+ * Re-export dos DTOs de marcações (admin + área de cliente).
  * Evita os *Result unions específicos das actions para não colidir.
  */
 export type {

@@ -167,7 +167,7 @@ function DayColumn({
       <div className="flex flex-col gap-1 p-2" style={{ minHeight: 200 }}>
         {bookings.length === 0 ? (
           <p className="py-4 text-center text-[10px]" style={{ color: '#5A5A5A' }}>
-            Sem reservas
+            Sem marcações
           </p>
         ) : (
           bookings.map((b) => (
@@ -184,7 +184,7 @@ function DayColumn({
             color: '#5A5A5A',
           }}
         >
-          {bookings.length} {bookings.length === 1 ? 'reserva' : 'reservas'}
+          {bookings.length} {bookings.length === 1 ? 'marcação' : 'marcações'}
         </div>
       )}
     </div>

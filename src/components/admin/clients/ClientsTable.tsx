@@ -352,8 +352,8 @@ export function ClientsTable() {
         }
       >
         <p className="text-chi-charcoal-soft text-sm">
-          O cliente deixa de aparecer nas listas, mas o histórico (reservas e transações) mantém-se.
-          Podes reativá-lo depois.
+          O cliente deixa de aparecer nas listas, mas o histórico (marcações e transações)
+          mantém-se. Podes reativá-lo depois.
         </p>
       </Modal>
     </div>

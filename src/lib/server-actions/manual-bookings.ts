@@ -2,12 +2,12 @@
 'use server';
 
 /**
- * Chi Sublime — Server Actions: Reservas manuais (admin)
+ * Chi Sublime — Server Actions: Marcações manuais (admin)
  * ============================================================
  *
  * Implementa os 3 stubs documentados em bookings.ts:
  *  - createManualBookingAction  (telefone, walk-in, Instagram,
- *    e recriação das reservas futuras na migração do Noona)
+ *    e recriação das marcações futuras na migração do Noona)
  *  - adminCancelBookingAction   (sem janela de 24h)
  *  - updateBookingStatusAction  (confirmar / iniciar / concluir / falta)
  *
@@ -19,7 +19,7 @@
  *    real de disponibilidade (mesma verificação do site público).
  *  - force=true: salta horário do salão/staff e grelha de 30min
  *    (walk-in às 18:50, encaixe especial), MAS a sobreposição
- *    com reservas existentes é SEMPRE verificada + protegida
+ *    com marcações existentes é SEMPRE verificada + protegida
  *    pelo índice único anti-double-booking (E11000).
  */
 
@@ -43,6 +43,7 @@ import {
   getAvailableSlots,
   validateDate,
   calculateTotalDuration,
+  canStaffPerformAllServices,
 } from '@/lib/booking/availability';
 import { combineDateAndTime, minutesToTime, timeToMinutes } from '@/lib/utils/time-utils';
 import { ok, fail, type ActionResult } from '@/types/common';
@@ -85,7 +86,7 @@ function parseDateString(isoDate: string): Date {
 }
 
 function revalidateBookingViews() {
-  revalidatePath('/admin/reservas');
+  revalidatePath('/admin/marcacoes');
   revalidatePath('/admin/dashboard');
 }
 
@@ -120,7 +121,7 @@ export async function createManualBookingAction(
   const data = parsed.data;
   const dateObj = parseDateString(data.date);
 
-  // Nunca criar reservas em dias passados, mesmo com force
+  // Nunca criar marcações em dias passados, mesmo com force
   const dateError = validateDate(dateObj);
   if (dateError && dateError.code === 'no-past') {
     return fail('validation', dateError.message);
@@ -142,6 +143,22 @@ export async function createManualBookingAction(
   const orderedServices = data.serviceIds.map(
     (sid) => services.find((s) => String(s._id) === sid)!,
   );
+
+  // Competência NUNCA é saltável — o `force` só relaxa o horário.
+  // (Antes, com force=true, criava-se uma manicure com um cabeleireiro.)
+  if (!canStaffPerformAllServices(staff, orderedServices)) {
+    const missing = orderedServices
+      .filter(
+        (svc) =>
+          svc.staffIds?.length > 0 && !svc.staffIds.some((id) => String(id) === data.staffId),
+      )
+      .map((svc) => `«${svc.name.pt}»`)
+      .join(', ');
+    return fail(
+      'validation',
+      `${staff.name} não realiza ${missing}. Escolhe outro profissional para esta marcação.`,
+    );
+  }
 
   const totalDuration = calculateTotalDuration(orderedServices);
   const startTime = combineDateAndTime(dateObj, data.time);
@@ -176,14 +193,14 @@ export async function createManualBookingAction(
     if (!slotExists) {
       return fail(
         'validation',
-        'Este horário não está disponível para este profissional. ' +
-          'Usa "Forçar encaixe" para agendar fora do horário normal.',
+        `${staff.name} não tem este horário livre neste dia. ` +
+          'Escolhe um dos horários disponíveis ou usa "Forçar encaixe" para agendar fora do horário normal.',
       );
     }
   }
 
   // ----------------------------------------------------------
-  // Sobreposição com reservas existentes — SEMPRE verificada
+  // Sobreposição com marcações existentes — SEMPRE verificada
   // ----------------------------------------------------------
 
   const overlap = await Booking.findOne({
@@ -201,7 +218,7 @@ export async function createManualBookingAction(
   if (overlap) {
     return fail(
       'conflict',
-      `Sobrepõe a reserva ${overlap.bookingNumber} deste profissional. Escolhe outro horário.`,
+      `Sobrepõe a marcação ${overlap.bookingNumber} deste profissional. Escolhe outro horário.`,
     );
   }
 
@@ -238,7 +255,7 @@ export async function createManualBookingAction(
   if (!clientDoc) return fail('validation', 'Cliente em falta');
 
   // ----------------------------------------------------------
-  // Criar a reserva
+  // Criar a marcação
   // ----------------------------------------------------------
 
   const serviceItems = orderedServices.map((s) => ({
@@ -278,7 +295,7 @@ export async function createManualBookingAction(
       userName: admin.name,
       userEmail: admin.email,
       userRole: 'admin',
-      message: `Reserva manual (${data.source}): ${serviceItems.map((s) => s.name).join(', ')} com ${staff.name}${data.force ? ' [encaixe forçado]' : ''}`,
+      message: `Marcação manual (${data.source}): ${serviceItems.map((s) => s.name).join(', ')} com ${staff.name}${data.force ? ' [encaixe forçado]' : ''}`,
       severity: 'info',
       metadata: {
         bookingNumber,
@@ -288,7 +305,7 @@ export async function createManualBookingAction(
       },
     });
 
-    // Confirmação ao cliente (se tiver email e a reserva for futura).
+    // Confirmação ao cliente (se tiver email e a marcação for futura).
     // notifySalon: false — foi o próprio salão a criar. Nunca lança.
     if (clientDoc.email && startTime > new Date()) {
       await notifyBookingCreated({
@@ -326,7 +343,7 @@ export async function createManualBookingAction(
       return fail('conflict', 'Este horário acabou de ser ocupado. Escolhe outro.');
     }
     console.error('[createManualBookingAction]', err);
-    return fail('server', 'Erro ao criar a reserva. Tenta novamente.');
+    return fail('server', 'Erro ao criar a marcação. Tenta novamente.');
   }
 }
 
@@ -348,13 +365,13 @@ export async function adminCancelBookingAction(
   await connectDB();
 
   const booking = await Booking.findById(parsed.data.id);
-  if (!booking) return fail('not_found', 'Reserva não encontrada');
+  if (!booking) return fail('not_found', 'Marcação não encontrada');
 
   if (booking.status === 'cancelled') {
-    return fail('validation', 'A reserva já está cancelada');
+    return fail('validation', 'A marcação já está cancelada');
   }
   if (booking.status === 'completed') {
-    return fail('validation', 'Não é possível cancelar uma reserva concluída');
+    return fail('validation', 'Não é possível cancelar uma marcação concluída');
   }
 
   const previousStatus = booking.status;
@@ -373,7 +390,7 @@ export async function adminCancelBookingAction(
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Reserva ${booking.bookingNumber} cancelada pelo salão`,
+    message: `Marcação ${booking.bookingNumber} cancelada pelo salão`,
     severity: 'warning',
     metadata: { reason: parsed.data.reason },
   });
@@ -411,7 +428,7 @@ export async function updateBookingStatusAction(
   await connectDB();
 
   const booking = await Booking.findById(parsed.data.id);
-  if (!booking) return fail('not_found', 'Reserva não encontrada');
+  if (!booking) return fail('not_found', 'Marcação não encontrada');
 
   const allowed = ALLOWED_TRANSITIONS[booking.status] ?? [];
   if (!allowed.includes(parsed.data.status)) {
@@ -434,7 +451,7 @@ export async function updateBookingStatusAction(
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Reserva ${booking.bookingNumber}: ${previous} → ${parsed.data.status}`,
+    message: `Marcação ${booking.bookingNumber}: ${previous} → ${parsed.data.status}`,
     severity: parsed.data.status === 'no-show' ? 'warning' : 'info',
   });
 

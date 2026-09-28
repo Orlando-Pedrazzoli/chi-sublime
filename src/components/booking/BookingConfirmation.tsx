@@ -5,9 +5,9 @@
  * Chi Sublime — Booking Confirmation
  * ============================================================
  *
- * Página de sucesso da reserva.
+ * Página de sucesso da marcação.
  *
- *  - status 'confirmed' → "Reserva confirmada" + adicionar ao calendário
+ *  - status 'confirmed' → "Marcação confirmada" + adicionar ao calendário
  *    (Google Calendar e ficheiro .ics para Apple/Outlook).
  *  - status 'pending'   → "Pedido recebido" (só com aprovação manual).
  *
@@ -160,7 +160,7 @@ export function BookingConfirmation({
       {/* Mensagem */}
       <header className="mb-10 text-center">
         <span className="text-chi-gold-deep mb-4 block font-serif text-xs tracking-[0.32em] uppercase italic">
-          {pending ? '— Pedido recebido —' : '— Reserva confirmada —'}
+          {pending ? '— Pedido recebido —' : '— Marcação confirmada —'}
         </span>
         <h1 className="text-chi-charcoal mb-4 font-serif text-4xl leading-[1.05] font-light tracking-tight md:text-5xl lg:text-6xl">
           Obrigada, <span className="text-chi-green-deep italic">{firstName}</span>.
@@ -168,14 +168,14 @@ export function BookingConfirmation({
         <p className="text-chi-charcoal-soft mx-auto max-w-md text-base leading-[1.85] md:text-lg">
           {pending
             ? 'Guardámos este horário para si. Vai receber um email assim que o salão confirmar.'
-            : 'A sua reserva está confirmada. Estamos à sua espera.'}
+            : 'A sua marcação está confirmada. Estamos à sua espera.'}
         </p>
       </header>
 
       {/* Card de detalhes */}
       <div className="border-chi-gold/30 bg-chi-cream shadow-medium mb-8 overflow-hidden rounded-lg border">
         <div className="border-chi-border bg-chi-sand/40 border-b px-6 py-4 md:px-8">
-          <span className={LABEL}>Número de reserva</span>
+          <span className={LABEL}>Número de marcação</span>
           <p className="text-chi-green-deep font-mono text-xl font-medium tracking-wide md:text-2xl">
             {bookingNumber}
           </p>
@@ -280,11 +280,11 @@ export function BookingConfirmation({
       {/* CTAs */}
       <div className="flex flex-col-reverse justify-center gap-3 sm:flex-row sm:gap-4">
         <Link
-          href="/conta/reservas"
+          href="/conta/marcacoes"
           className="text-chi-charcoal-soft border-chi-border hover:bg-chi-sand/40 hover:text-chi-charcoal inline-flex items-center justify-center rounded-md border text-xs font-medium tracking-[0.22em] uppercase transition-colors"
           style={{ padding: '14px 32px' }}
         >
-          As minhas reservas
+          As minhas marcações
         </Link>
         <Link
           href="/"

@@ -206,7 +206,7 @@ export default async function EquipaPerfilPage({ params }: { params: Params }) {
 
             {groups.length === 0 ? (
               <p className="text-chi-charcoal-soft font-serif italic">
-                Serviços em atualização — reserve online para ver a disponibilidade.
+                Serviços em atualização — marque online para ver a disponibilidade.
               </p>
             ) : (
               <div className="space-y-12">

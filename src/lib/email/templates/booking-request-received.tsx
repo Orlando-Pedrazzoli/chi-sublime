@@ -4,7 +4,7 @@
  * ============================================================
  *
  * Só usado com BOOKING_POLICY.approvalMode = 'manual'. Deixa claro
- * que o horário está reservado mas ainda falta a confirmação do
+ * que o horário está marcado mas ainda falta a confirmação do
  * salão — a confirmação real chega noutro email.
  */
 

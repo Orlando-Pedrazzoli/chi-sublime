@@ -29,7 +29,7 @@ export const SALON_TIMEZONE = 'Europe/Lisbon';
  *
  * ⚠️ ÚNICO SÍTIO ONDE O HORÁRIO SE ALTERA NO CÓDIGO.
  *
- * ⚠️ Alterar aqui NÃO altera a base de dados. O motor de reservas
+ * ⚠️ Alterar aqui NÃO altera a base de dados. O motor de marcações
  * (schedule-resolver) lê a coleção `Schedule` e o availability.ts
  * cruza-a com `Staff.workingHours`. Depois de mudar isto, correr:
  *     npx tsx scripts/fix-salon-hours.ts
@@ -180,10 +180,10 @@ export function salonHoursBounds(): { earliestHour: number; latestHour: number }
 export const BOOKING_RULES = {
   /** Intervalo da grelha de slots mostrada ao cliente (min) */
   slotIntervalMinutes: 30,
-  /** Antecedência mínima para reservar (horas) */
+  /** Antecedência mínima para marcar (horas) */
   minAdvanceHours: 1,
   /**
-   * Antecedência máxima para o CLIENTE reservar online (dias).
+   * Antecedência máxima para o CLIENTE marcar online (dias).
    *
    * 90 dias é o habitual num salão: clientes fiéis marcam o corte
    * seguinte à saída, e casamentos/eventos planeiam-se com meses.
@@ -191,16 +191,16 @@ export const BOOKING_RULES = {
    * marcar para qualquer data a pedido do cliente.
    */
   maxAdvanceDays: 90,
-  /** Buffer aplicado após cada reserva por defeito (min) */
+  /** Buffer aplicado após cada marcação por defeito (min) */
   defaultBufferMinutes: 5,
   /** Janela mínima para o cliente cancelar/reagendar sozinho (horas) */
   cancellationWindowHours: 24,
   /**
-   * Janela da vista "Próximas" no /admin/reservas (dias).
+   * Janela da vista "Próximas" no /admin/marcacoes (dias).
    *
    * ⚠️ INVARIANTE: upcomingViewDays >= maxAdvanceDays.
    * Se for menor, o cliente consegue marcar para uma data que o
-   * salão não vê na lista — a reserva existe mas fica invisível.
+   * salão não vê na lista — a marcação existe mas fica invisível.
    * Foi assim que uma marcação legítima passou despercebida.
    */
   upcomingViewDays: 90,
@@ -214,7 +214,7 @@ export const BOOKING_POLICY = {
   allowClientReschedule: true,
   allowWaitlist: true,
   /**
-   * 'auto' (recomendado): reserva online nasce confirmada — padrão Fresha/Booksy/Treatwell.
+   * 'auto' (recomendado): marcação online nasce confirmada — padrão Fresha/Booksy/Treatwell.
    * 'manual': nasce pendente e o salão confirma na agenda. Ver src/lib/booking/policy.ts.
    */
   approvalMode: 'auto' as 'auto' | 'manual',

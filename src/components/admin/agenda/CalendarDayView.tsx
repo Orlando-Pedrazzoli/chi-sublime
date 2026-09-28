@@ -42,7 +42,7 @@ type CalendarDayViewProps = {
 
 /**
  * Grelha horária derivada de SALON_HOURS + 1h de folga no fim,
- * para uma reserva que termine à hora de fecho continuar visível.
+ * para uma marcação que termine à hora de fecho continuar visível.
  * Nunca hardcoded: se o horário do salão mudar, a agenda acompanha.
  */
 const { earliestHour, latestHour } = salonHoursBounds();
@@ -78,10 +78,10 @@ export function CalendarDayView({
       >
         <Clock size={48} strokeWidth={1} className="mx-auto mb-4" style={{ color: '#D4AF6E' }} />
         <h3 className="mb-2 font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-          Sem reservas neste dia
+          Sem marcações neste dia
         </h3>
         <p className="text-sm" style={{ color: '#5A5A5A' }}>
-          Usa o botão Nova reserva para criar uma reserva manualmente.
+          Usa o botão Nova marcação para criar uma marcação manualmente.
         </p>
       </div>
     );
@@ -159,7 +159,7 @@ export function CalendarDayView({
         {(bookingsByStaff.get('unassigned')?.length ?? 0) > 0 && (
           <div className="border-t p-4" style={{ borderColor: 'rgba(31,61,46,0.08)' }}>
             <p className="mb-2 text-xs tracking-[0.22em] uppercase" style={{ color: '#B23C3C' }}>
-              Reservas sem profissional
+              Marcações sem profissional
             </p>
             <div className="space-y-2">
               {bookingsByStaff.get('unassigned')?.map((b) => (

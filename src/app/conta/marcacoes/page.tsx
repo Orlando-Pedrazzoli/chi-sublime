@@ -1,4 +1,4 @@
-// 📄 src/app/conta/reservas/page.tsx
+// 📄 src/app/conta/marcacoes/page.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
@@ -29,7 +29,7 @@ export default async function ClientBookingsPage({ searchParams }: Props) {
           color: '#B23C3C',
         }}
       >
-        Erro ao carregar reservas: {result.error}
+        Erro ao carregar marcações: {result.error}
       </div>
     );
   }
@@ -39,10 +39,10 @@ export default async function ClientBookingsPage({ searchParams }: Props) {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="mb-1 font-serif text-3xl" style={{ color: '#1A1A1A' }}>
-            As minhas reservas
+            As minhas marcações
           </h2>
           <p className="text-sm" style={{ color: '#5A5A5A' }}>
-            Vê e gere todas as tuas reservas no Chi Sublime.
+            Vê e gere todas as tuas marcações no Chi Sublime.
           </p>
         </div>
         <Link
@@ -51,7 +51,7 @@ export default async function ClientBookingsPage({ searchParams }: Props) {
           style={{ backgroundColor: '#1F3D2E', color: '#FAF7F2' }}
         >
           <Plus size={14} strokeWidth={1.5} />
-          Nova reserva
+          Nova marcação
         </Link>
       </div>
 

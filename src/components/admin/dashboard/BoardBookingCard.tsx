@@ -5,7 +5,7 @@
  * Chi Sublime — BoardBookingCard (dashboard · board de atendimento)
  * ============================================================
  *
- * Um cartão = uma reserva de hoje, com UM botão principal que é
+ * Um cartão = uma marcação de hoje, com UM botão principal que é
  * sempre a próxima ação do ciclo de atendimento:
  *
  *   pending/confirmed  →  [Iniciar]            (1 toque, sem modal)
@@ -31,7 +31,7 @@ type BoardBookingCardProps = {
   booking: AdminBookingForList;
   /** Instante "agora" partilhado pelo board (tick de 30s) para os cronómetros */
   now: number;
-  /** true enquanto uma ação desta reserva está a ser gravada */
+  /** true enquanto uma ação desta marcação está a ser gravada */
   busy: boolean;
   /** Mostrar o nome da profissional (só na coluna "Sem profissional") */
   showStaff?: boolean;
@@ -218,7 +218,7 @@ export function BoardBookingCard({
             <button
               type="button"
               disabled={busy}
-              title="Confirmar reserva (envia email à cliente)"
+              title="Confirmar marcação (envia email à cliente)"
               onClick={() => onAction('confirm', booking)}
               className="inline-flex items-center justify-center rounded-md border transition-colors hover:bg-gray-50 disabled:opacity-50"
               style={{ borderColor: 'rgba(92,138,47,0.4)', color: '#5C8A2F', ...BTN, padding: '10px 12px' }}

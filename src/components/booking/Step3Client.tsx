@@ -4,7 +4,7 @@
  * Chi Sublime — Step 3 Client (Form de confirmação)
  *
  * REQUER LOGIN. Se não autenticado, mostra gate de login/registo.
- * Se admin, bloqueia (admin não faz reservas pessoais).
+ * Se admin, bloqueia (admin não faz marcações pessoais).
  */
 
 import { useState } from 'react';
@@ -106,7 +106,7 @@ export function Step3Client() {
     setErrors({});
 
     if (!date || !time || !staffId) {
-      setSubmitError('Falta informação da reserva. Volte ao passo anterior.');
+      setSubmitError('Falta informação da marcação. Volte ao passo anterior.');
       return;
     }
 
@@ -185,13 +185,13 @@ export function Step3Client() {
         // chega o ?nova=.
         markLeavingFlow();
 
-        // Hard navigation para a área de cliente: /conta/reservas
+        // Hard navigation para a área de cliente: /conta/marcacoes
         // lê ?nova=, abre o BookingSuccessModal ("Obrigada pela sua
-        // marcação…") e destaca a nova reserva na lista.
+        // marcação…") e destaca a nova marcação na lista.
         // A página /marcacoes/[n] continua a existir para o email.
         navigating = true;
         window.location.assign(
-          `/conta/reservas?nova=${encodeURIComponent(result.booking.bookingNumber)}`,
+          `/conta/marcacoes?nova=${encodeURIComponent(result.booking.bookingNumber)}`,
         );
         // Mantém o botão em "A confirmar…" até a página descarregar
         return;
@@ -211,7 +211,7 @@ export function Step3Client() {
       }
     } catch (err) {
       console.error('Submit failed:', err);
-      setSubmitError('Erro ao processar reserva. Tente novamente.');
+      setSubmitError('Erro ao processar marcação. Tente novamente.');
     } finally {
       if (!navigating) setIsSubmitting(false);
     }
@@ -219,7 +219,7 @@ export function Step3Client() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
-      {/* Sessão activa — confirmação visual de quem está a reservar */}
+      {/* Sessão activa — confirmação visual de quem está a marcar */}
       <SessionBanner name={session.user.name} email={session.user.email} />
 
       <div>
@@ -471,13 +471,13 @@ export function Step3Client() {
               A processar...
             </>
           ) : (
-            <>Confirmar Reserva →</>
+            <>Confirmar Marcação →</>
           )}
         </button>
       </div>
 
       <p className="text-chi-charcoal-light text-center text-xs italic">
-        Os teus dados são tratados com confidencialidade e usados apenas para gerir a tua reserva.
+        Os teus dados são tratados com confidencialidade e usados apenas para gerir a tua marcação.
       </p>
     </form>
   );
@@ -508,8 +508,8 @@ function AuthGate() {
         </p>
         <h3 className="text-chi-charcoal mb-3 font-serif text-3xl">Falta apenas um passo</h3>
         <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
-          Para confirmar a tua reserva, entra na tua conta ou cria uma agora. Vai demorar menos de
-          um minuto e poderás gerir todas as tuas reservas num só lugar.
+          Para confirmar a tua marcação, entra na tua conta ou cria uma agora. Vai demorar menos de
+          um minuto e poderás gerir todas as tuas marcações num só lugar.
         </p>
       </div>
 
@@ -554,7 +554,7 @@ function AuthGate() {
           color: '#5A5A5A',
         }}
       >
-        Os teus dados de reserva ficam guardados durante este processo.
+        Os teus dados de marcação ficam guardados durante este processo.
       </div>
     </div>
   );
@@ -565,8 +565,8 @@ function AdminBlockedState() {
     <div className="space-y-4 py-12 text-center">
       <h3 className="text-chi-charcoal font-serif text-2xl">Conta administrativa</h3>
       <p className="text-chi-charcoal-soft mx-auto max-w-md text-sm">
-        Estás autenticado como administrador. As reservas online destinam-se a clientes. Para criar
-        uma reserva no balcão, usa o módulo de Receitas / Caixa no painel administrativo.
+        Estás autenticado como administrador. As marcações online destinam-se a clientes. Para criar
+        uma marcação no balcão, usa o módulo de Receitas / Caixa no painel administrativo.
       </p>
       <Link
         href="/admin/dashboard"
@@ -596,7 +596,7 @@ function SessionBanner({ name, email }: { name: string; email: string }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
-          A reservar como
+          A marcar como
         </p>
         <p className="truncate text-sm font-medium" style={{ color: '#1F3D2E' }}>
           {name} <span className="text-chi-charcoal-light font-normal">· {email}</span>

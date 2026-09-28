@@ -101,7 +101,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const title = `${data.category.name} em Cascais`;
   const description =
     data.category.description ??
-    `Serviços de ${data.category.name.toLowerCase()} no Chi Sublime — Hair Style & Beauty, Quinta da Bicuda, Cascais. Preços e reserva online.`;
+    `Serviços de ${data.category.name.toLowerCase()} no Chi Sublime — Hair Style & Beauty, Quinta da Bicuda, Cascais. Preços e marcação online.`;
 
   return {
     title,

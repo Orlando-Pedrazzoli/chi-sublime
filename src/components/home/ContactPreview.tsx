@@ -4,7 +4,7 @@
  * ============================================================
  *
  * Fecho da homepage: bloco em verde profundo com o convite
- * final à reserva + informação prática em três colunas
+ * final à marcação + informação prática em três colunas
  * (morada, contacto, horário).
  *
  * i18n: getTranslations('home.contact'). NOMES dos dias nos JSONs

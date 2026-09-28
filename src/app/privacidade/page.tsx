@@ -4,7 +4,7 @@
  * ============================================================
  *
  * Redigida com base nos dados que o sistema REALMENTE recolhe
- * (conta, reservas, faturação Moloni, emails Resend, Cloudinary).
+ * (conta, marcações, faturação Moloni, emails Resend, Cloudinary).
  *
  * ⚠️ TODO antes do deploy: confirmar com o Jean Pierre a
  * denominação legal e o NIF do responsável pelo tratamento
@@ -44,7 +44,7 @@ export default function PrivacidadePage() {
               nunca em texto legível).
             </>,
             <>
-              <strong>Dados de reserva:</strong> serviços escolhidos, data, hora, profissional,
+              <strong>Dados de marcação:</strong> serviços escolhidos, data, hora, profissional,
               telefone de contacto e notas que decida partilhar (ex.: alergias).
             </>,
             <>
@@ -66,7 +66,7 @@ export default function PrivacidadePage() {
       <LegalSection title="Para que usamos os dados">
         <LegalList
           items={[
-            'Gerir as suas reservas: confirmação, lembretes, alterações e cancelamentos (execução de contrato).',
+            'Gerir as suas marcações: confirmação, lembretes, alterações e cancelamentos (execução de contrato).',
             'Emitir faturas quando solicitadas (obrigação legal — comunicação à Autoridade Tributária através de software certificado).',
             'Manter o seu histórico de cliente para um serviço mais personalizado (interesse legítimo).',
             'Enviar comunicações promocionais apenas se tiver dado consentimento expresso — que pode retirar a qualquer momento.',
@@ -82,7 +82,7 @@ export default function PrivacidadePage() {
         <LegalList
           items={[
             'Alojamento e infraestrutura do site (Vercel) e base de dados (MongoDB Atlas).',
-            'Envio de emails transacionais — confirmações e lembretes de reserva (Resend).',
+            'Envio de emails transacionais — confirmações e lembretes de marcação (Resend).',
             'Software de faturação certificado (Moloni), quando é emitida fatura.',
             'Alojamento de imagens do site (Cloudinary).',
           ]}
@@ -96,7 +96,7 @@ export default function PrivacidadePage() {
       <LegalSection title="Por quanto tempo guardamos">
         <LegalList
           items={[
-            'Dados de conta e histórico de reservas: enquanto a conta estiver ativa, ou até pedir a sua eliminação.',
+            'Dados de conta e histórico de marcações: enquanto a conta estiver ativa, ou até pedir a sua eliminação.',
             'Documentos de faturação: 10 anos (obrigação fiscal em Portugal).',
             'Consentimento de marketing: até ser retirado.',
           ]}

@@ -247,7 +247,7 @@ export function SalonHoursEditor({ initial }: SalonHoursEditorProps) {
         <p className="text-chi-charcoal-soft mt-1.5 pl-6 text-xs leading-relaxed">
           Recomendado. Atualiza o horário de cada profissional para coincidir com o do salão (as
           pausas individuais que couberem no novo horário são mantidas). Se desligar, os horários
-          novos do salão <strong>não ficam reserváveis</strong> até ajustar cada profissional
+          novos do salão <strong>não ficam marcáveis</strong> até ajustar cada profissional
           manualmente em Equipa.
         </p>
       </div>

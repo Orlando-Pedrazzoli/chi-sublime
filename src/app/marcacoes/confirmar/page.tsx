@@ -1,6 +1,6 @@
 // 📄 src/app/marcacoes/confirmar/page.tsx
 /**
- * Chi Sublime — Reservar (Step 3: Confirmar)
+ * Chi Sublime — Marcar (Step 3: Confirmar)
  * ============================================================
  *
  * Server Component. Renderiza o form de confirmacao protegido
@@ -21,7 +21,7 @@ import { Step3Client } from '@/components/booking/Step3Client';
 
 export const metadata: Metadata = {
   title: 'Confirmar Marcação | Chi Sublime',
-  description: 'Os seus dados para finalizar a reserva no Chi Sublime.',
+  description: 'Os seus dados para finalizar a marcação no Chi Sublime.',
 };
 
 export default function MarcacoesConfirmarPage() {
@@ -35,14 +35,14 @@ export default function MarcacoesConfirmarPage() {
           <header className="mb-6 md:mb-10">
             <div className="flex items-baseline justify-between gap-4">
               <h1 className="text-chi-charcoal font-serif text-2xl md:text-4xl">
-                Confirmar reserva
+                Confirmar marcação
               </h1>
               <span className="text-chi-charcoal-light hidden shrink-0 text-xs tracking-[0.15em] uppercase sm:block">
                 Passo 3 de 3
               </span>
             </div>
             <p className="text-chi-charcoal-soft mt-2 hidden max-w-xl text-sm leading-[1.7] md:block">
-              Só faltam os seus dados. Confirme o resumo e termine a reserva.
+              Só faltam os seus dados. Confirme o resumo e termine a marcação.
             </p>
           </header>
 

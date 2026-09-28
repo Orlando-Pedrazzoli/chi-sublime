@@ -19,7 +19,7 @@ import { clearBookingFlowStorage } from '@/hooks/useBookingFlow';
 type Props = {
   bookings: BookingForClient[];
   /**
-   * bookingNumber acabado de criar (vem de /conta/reservas?nova=CHI-…).
+   * bookingNumber acabado de criar (vem de /conta/marcacoes?nova=CHI-…).
    * Abre o modal de sucesso e destaca o cartão correspondente.
    */
   newBookingNumber?: string | null;
@@ -35,7 +35,7 @@ export function MyBookings({
 }: Props) {
   const [bookings, setBookings] = useState(initialBookings);
 
-  // Modal de sucesso: só abre se a reserva do ?nova= existir na lista
+  // Modal de sucesso: só abre se a marcação do ?nova= existir na lista
   const newBooking = newBookingNumber
     ? (initialBookings.find((b) => b.bookingNumber === newBookingNumber) ?? null)
     : null;
@@ -43,7 +43,7 @@ export function MyBookings({
   const [highlighted, setHighlighted] = useState<string | null>(newBooking?.bookingNumber ?? null);
   const highlightRef = useRef<HTMLElement | null>(null);
 
-  // Chegámos aqui com ?nova= → a reserva foi criada: limpar o carrinho
+  // Chegámos aqui com ?nova= → a marcação foi criada: limpar o carrinho
   // do funil (não é limpo no Step3Client para não acordar o guard)
   useEffect(() => {
     if (newBookingNumber) clearBookingFlowStorage();
@@ -92,10 +92,10 @@ export function MyBookings({
       >
         <Calendar size={48} strokeWidth={1} className="mx-auto mb-4" style={{ color: '#D4AF6E' }} />
         <h3 className="mb-2 font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-          Sem reservas ainda
+          Sem marcações ainda
         </h3>
         <p className="mb-6 text-sm" style={{ color: '#5A5A5A' }}>
-          Marca a tua primeira reserva e começa a tua experiência Chi Sublime.
+          Marca a tua primeira marcação e começa a tua experiência Chi Sublime.
         </p>
         <Link
           href="/marcacoes"
@@ -136,10 +136,10 @@ export function MyBookings({
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-            Próximas reservas
+            Próximas marcações
           </h2>
           <span className="text-xs tracking-[0.18em] uppercase" style={{ color: '#5A5A5A' }}>
-            {future.length} {future.length === 1 ? 'reserva' : 'reservas'}
+            {future.length} {future.length === 1 ? 'marcação' : 'marcações'}
           </span>
         </div>
 
@@ -152,7 +152,7 @@ export function MyBookings({
               color: '#5A5A5A',
             }}
           >
-            Não tens reservas futuras agendadas.{' '}
+            Não tens marcações futuras agendadas.{' '}
             <Link
               href="/marcacoes"
               className="font-medium underline-offset-2 hover:underline"
@@ -187,7 +187,7 @@ export function MyBookings({
               Histórico
             </h2>
             <span className="text-xs tracking-[0.18em] uppercase" style={{ color: '#5A5A5A' }}>
-              {past.length} {past.length === 1 ? 'reserva' : 'reservas'}
+              {past.length} {past.length === 1 ? 'marcação' : 'marcações'}
             </span>
           </div>
 
@@ -209,7 +209,7 @@ export function MyBookings({
 type BookingCardProps = {
   booking: BookingForClient;
   isPast?: boolean;
-  /** Reserva acabada de criar — borda dourada + selo "Nova" */
+  /** Marcação acabada de criar — borda dourada + selo "Nova" */
   isNew?: boolean;
   ref?: React.Ref<HTMLElement>;
   isPending?: boolean;
@@ -262,7 +262,7 @@ function BookingCard({
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
-              Reserva
+              Marcação
               {isNew && (
                 <span
                   className="rounded-full text-[9px] font-semibold tracking-[0.18em]"
@@ -340,7 +340,7 @@ function BookingCard({
               style={{ borderColor: 'rgba(178,60,60,0.3)', color: '#B23C3C' }}
             >
               <Trash2 size={14} strokeWidth={1.5} />
-              Cancelar reserva
+              Cancelar marcação
             </button>
           </div>
         )}
@@ -373,11 +373,11 @@ function BookingCard({
             }}
           >
             <p className="mb-3 text-sm font-medium" style={{ color: '#B23C3C' }}>
-              Tens a certeza que queres cancelar esta reserva?
+              Tens a certeza que queres cancelar esta marcação?
             </p>
             <p className="mb-4 text-xs" style={{ color: '#5A5A5A' }}>
               Esta acção não pode ser desfeita. Se quiseres remarcar, terás de fazer uma nova
-              reserva.
+              marcação.
             </p>
             <div className="flex gap-2">
               <button
@@ -396,7 +396,7 @@ function BookingCard({
                 className="rounded-md border px-4 py-2 text-xs tracking-wide transition-colors hover:bg-white disabled:opacity-50"
                 style={{ borderColor: 'rgba(31,61,46,0.2)', color: '#1A1A1A' }}
               >
-                Manter reserva
+                Manter marcação
               </button>
             </div>
           </div>

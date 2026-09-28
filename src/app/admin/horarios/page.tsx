@@ -97,8 +97,8 @@ export default async function AdminHorariosPage() {
       <header>
         <h1 className="text-chi-charcoal font-serif text-2xl md:text-3xl">Horários do salão</h1>
         <p className="text-chi-charcoal-soft mt-2 max-w-2xl text-sm leading-relaxed">
-          O que definir aqui reflete imediatamente no site de reservas: dias encerrados ficam opacos
-          no calendário do cliente e sem horários disponíveis. A disponibilidade de cada
+          O que definir aqui reflete imediatamente no site de marcações: dias encerrados ficam
+          opacos no calendário do cliente e sem horários disponíveis. A disponibilidade de cada
           profissional é sempre a interseção deste horário com o horário individual dele (gerido em
           Equipa).
         </p>

@@ -8,7 +8,7 @@ import { useToastContext } from '@/components/ui/Toast';
  *
  * @example
  * const toast = useToast();
- * toast.success('Reserva criada');
+ * toast.success('Marcação criada');
  * toast.error('Não foi possível guardar');
  */
 export function useToast() {

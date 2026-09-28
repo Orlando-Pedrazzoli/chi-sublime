@@ -4,10 +4,10 @@
  * Chi Sublime — BookingDetailModal (agenda admin)
  * ============================================================
  *
- * Detalhe de uma reserva com as ações de estado e, a partir de
+ * Detalhe de uma marcação com as ações de estado e, a partir de
  * agora, a COBRANÇA: o botão "Cobrar" abre o POS (CheckoutModal)
- * já preenchido com os serviços, cliente e profissional da reserva.
- * A venda fica ligada à reserva (Booking.transactionId) e a reserva
+ * já preenchido com os serviços, cliente e profissional da marcação.
+ * A venda fica ligada à marcação (Booking.transactionId) e a marcação
  * passa a "Concluída" — é assim que a receita chega ao dashboard.
  */
 
@@ -75,7 +75,7 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
   const [error, setError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  // A reserva pode ser cobrada quando está viva e ainda não tem venda.
+  // A marcação pode ser cobrada quando está viva e ainda não tem venda.
   const isCharged = Boolean(booking.transactionId);
   const canCharge = !isCharged && booking.status !== 'cancelled' && booking.status !== 'no-show';
 
@@ -292,7 +292,7 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                 }}
               >
                 <p className="mb-2 text-sm font-medium" style={{ color: '#B23C3C' }}>
-                  Cancelar esta reserva?
+                  Cancelar esta marcação?
                 </p>
                 <textarea
                   value={cancelReason}
@@ -376,7 +376,7 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                     style={{ backgroundColor: '#5C8A2F', color: '#FAF7F2', ...ACTION_BTN }}
                   >
                     <CheckCircle2 size={14} strokeWidth={1.5} />
-                    Confirmar reserva
+                    Confirmar marcação
                   </button>
                 ) : null}
 
@@ -427,7 +427,7 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                   style={{ borderColor: 'rgba(178,60,60,0.3)', color: '#B23C3C', ...ACTION_BTN }}
                 >
                   <Trash2 size={14} strokeWidth={1.5} />
-                  Cancelar reserva
+                  Cancelar marcação
                 </button>
               </div>
             ) : null}

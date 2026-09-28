@@ -22,7 +22,7 @@ export default async function ClientDashboardPage() {
           color: '#B23C3C',
         }}
       >
-        Erro ao carregar reservas: {result.error}
+        Erro ao carregar marcações: {result.error}
       </div>
     );
   }
@@ -53,11 +53,11 @@ export default async function ClientDashboardPage() {
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <QuickLink
-            href="/conta/reservas"
-            label="Ver todas as reservas"
+            href="/conta/marcacoes"
+            label="Ver todas as marcações"
             icon={<Calendar size={16} />}
           />
-          <QuickLink href="/marcacoes" label="Nova reserva" icon={<Plus size={16} />} primary />
+          <QuickLink href="/marcacoes" label="Nova marcação" icon={<Plus size={16} />} primary />
           <QuickLink href="/conta/perfil" label="Editar perfil" icon={<UserIcon size={16} />} />
         </div>
       </section>
@@ -83,7 +83,7 @@ function NextBookingCard({ booking }: { booking: BookingForClient }) {
     >
       <div className="p-6 sm:p-8">
         <p className="mb-2 text-[10px] tracking-[0.3em] uppercase" style={{ color: '#D4AF6E' }}>
-          Próxima reserva
+          Próxima marcação
         </p>
         <h2
           className="mb-1 font-serif text-3xl capitalize sm:text-4xl"
@@ -114,7 +114,7 @@ function NextBookingCard({ booking }: { booking: BookingForClient }) {
         </ul>
 
         <Link
-          href="/conta/reservas"
+          href="/conta/marcacoes"
           className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-[1px]"
           style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
         >
@@ -137,7 +137,7 @@ function NoUpcomingCard() {
     >
       <Calendar size={40} strokeWidth={1} className="mx-auto mb-3" style={{ color: '#D4AF6E' }} />
       <h2 className="mb-2 font-serif text-2xl" style={{ color: '#1A1A1A' }}>
-        Sem reservas agendadas
+        Sem marcações agendadas
       </h2>
       <p className="mb-5 text-sm" style={{ color: '#5A5A5A' }}>
         Marca a tua próxima visita ao Chi Sublime.

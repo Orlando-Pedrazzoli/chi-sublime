@@ -1,6 +1,6 @@
 // 📄 src/lib/email/booking-notifications.ts
 /**
- * Chi Sublime — Notificações de reserva (orquestração)
+ * Chi Sublime — Notificações de marcação (orquestração)
  * ============================================================
  *
  * Ponto único chamado pelas server actions. Formata datas
@@ -13,7 +13,7 @@
  *  cancelada          → CLIENTE: cancelada | pedido não confirmado
  *                       SALÃO: alerta, quando foi a cliente a cancelar
  *
- * Nunca lança — uma falha de email não pode falhar a reserva. Chamar
+ * Nunca lança — uma falha de email não pode falhar a marcação. Chamar
  * com `await` (em serverless um fire-and-forget pode morrer com a
  * lambda antes de o Resend responder).
  */
@@ -63,7 +63,7 @@ async function settle(jobs: Array<{ label: string; job: Promise<SendEmailResult>
 }
 
 // ------------------------------------------------------------
-// Reserva criada
+// Marcação criada
 // ------------------------------------------------------------
 
 export type BookingCreatedNotification = {
@@ -75,14 +75,14 @@ export type BookingCreatedNotification = {
   staffName: string;
   totalPrice: number; // cêntimos
   source: string;
-  /** Estado com que a reserva nasceu. Default: 'confirmed' */
+  /** Estado com que a marcação nasceu. Default: 'confirmed' */
   status?: 'pending' | 'confirmed';
   client: {
     name: string;
     email?: string;
     phone?: string;
   };
-  /** false em reservas criadas pelo admin — o salão já sabe. Default: true */
+  /** false em marcações criadas pelo admin — o salão já sabe. Default: true */
   notifySalon?: boolean;
 };
 
@@ -95,7 +95,7 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
 
   const jobs: Array<{ label: string; job: Promise<SendEmailResult> }> = [];
 
-  // Cliente (reservas por telefone podem não ter email)
+  // Cliente (marcações por telefone podem não ter email)
   if (params.client.email) {
     const base = {
       to: params.client.email,
@@ -121,7 +121,7 @@ export async function notifyBookingCreated(params: BookingCreatedNotification): 
     );
   }
 
-  // Salão — o "toque no bolso" a cada reserva nova
+  // Salão — o "toque no bolso" a cada marcação nova
   if (params.notifySalon !== false) {
     jobs.push({
       label: 'alerta nova marcação (salão)',
@@ -180,7 +180,7 @@ export async function notifyBookingConfirmed(params: BookingConfirmedNotificatio
 }
 
 // ------------------------------------------------------------
-// Reserva cancelada
+// Marcação cancelada
 // ------------------------------------------------------------
 
 export type BookingCancelledNotification = {

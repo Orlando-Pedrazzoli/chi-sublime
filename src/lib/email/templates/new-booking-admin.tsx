@@ -23,7 +23,7 @@ export interface NewBookingAdminEmailProps {
   total: string;
   source: string;
   agendaUrl: string;
-  /** Modo manual: a reserva está 'pending' e precisa de ser confirmada */
+  /** Modo manual: a marcação está 'pending' e precisa de ser confirmada */
   pendingApproval?: boolean;
 }
 

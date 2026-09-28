@@ -4,11 +4,11 @@
  * ============================================================
  *
  * Wrapper 'use server' da disponibilidade mensal, consumido
- * pelo CalendarPicker (client) no Step 2 do fluxo de reservas.
+ * pelo CalendarPicker (client) no Step 2 do fluxo de marcações.
  *
  * Separado de bookings.ts de propósito: este endpoint é chamado
  * a cada navegação de mês no calendário e não partilha nada com
- * o ciclo de vida de criação/cancelamento de reservas.
+ * o ciclo de vida de criação/cancelamento de marcações.
  */
 
 'use server';

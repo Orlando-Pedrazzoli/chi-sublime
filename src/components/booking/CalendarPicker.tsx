@@ -8,7 +8,7 @@
  * Calendario mensal 100% ORIENTADO PELOS DADOS DO ADMIN, via
  * getMonthAvailabilityAction (horario do salao, feriados,
  * excecoes, horario semanal e ferias de cada profissional,
- * reservas existentes).
+ * marcações existentes).
  *
  * MUDANCA vs versao anterior: os fins de semana deixaram de
  * estar bloqueados hardcoded — se o admin abrir o salao ao
@@ -51,7 +51,7 @@ const MONTH_NAMES = [
 
 const STATE_TOOLTIP: Record<string, string> = {
   past: 'Data passada',
-  'out-of-range': 'Fora do período de reserva',
+  'out-of-range': 'Fora do período de marcação',
   closed: 'Salão encerrado',
   'staff-off': 'Profissional indisponível',
   full: 'Sem horários livres',

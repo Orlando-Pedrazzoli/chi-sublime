@@ -4,7 +4,7 @@
  * ============================================================
  *
  * PÁGINA CRÍTICA: é o link que o cliente aceita obrigatoriamente
- * no Step 3 da reserva (checkbox). Os valores refletem
+ * no Step 3 da marcação (checkbox). Os valores refletem
  * BOOKING_RULES (janela de 24h) — se a regra mudar em
  * constants/business.ts, atualizar este texto.
  */
@@ -16,16 +16,16 @@ import { LegalPage, LegalSection, LegalList, P } from '@/components/legal/LegalP
 export const metadata: Metadata = {
   title: 'Política de Cancelamento',
   description:
-    'Política de cancelamento e reagendamento de reservas do Chi Sublime — Hair Style & Beauty, Cascais.',
+    'Política de cancelamento e reagendamento de marcações do Chi Sublime — Hair Style & Beauty, Cascais.',
   alternates: { canonical: '/cancelamento' },
 };
 
 export default function CancelamentoPage() {
   return (
-    <LegalPage eyebrow="Reservas" title="Política de Cancelamento" updated="julho de 2026">
+    <LegalPage eyebrow="Marcações" title="Política de Cancelamento" updated="julho de 2026">
       <LegalSection title="Cancelamento gratuito até 24 horas antes">
         <P>
-          Pode cancelar ou reagendar a sua reserva sem qualquer custo até{' '}
+          Pode cancelar ou reagendar a sua marcação sem qualquer custo até{' '}
           <strong>24 horas antes</strong> da hora marcada. Dentro desse prazo, faz tudo sozinho(a)
           na sua conta, sem necessidade de contacto.
         </P>
@@ -36,14 +36,14 @@ export default function CancelamentoPage() {
           items={[
             <>
               <strong>Online:</strong> entre na sua conta em{' '}
-              <Link href="/conta/reservas" className="text-chi-gold-deep underline">
-                As minhas reservas
+              <Link href="/conta/marcacoes" className="text-chi-gold-deep underline">
+                As minhas marcações
               </Link>{' '}
               e escolha cancelar ou reagendar.
             </>,
             <>
               <strong>Por telefone ou WhatsApp:</strong> +351 932 932 691 — indique o número da
-              reserva (ex.: CS-2026-0001).
+              marcação (ex.: CS-2026-0001).
             </>,
           ]}
         />
@@ -57,14 +57,14 @@ export default function CancelamentoPage() {
         </P>
         <P>
           Pedimos esta antecedência porque um horário cancelado à última hora dificilmente volta a
-          ser preenchido, e representa tempo reservado em exclusivo para si pela nossa equipa.
+          ser preenchido, e representa tempo marcado em exclusivo para si pela nossa equipa.
         </P>
       </LegalSection>
 
       <LegalSection title="Não comparência (no-show)">
         <P>
           Se não comparecer sem aviso, a falta fica registada. Faltas repetidas podem levar a que
-          futuras reservas exijam confirmação prévia por telefone ou o pagamento de um sinal.
+          futuras marcações exijam confirmação prévia por telefone ou o pagamento de um sinal.
         </P>
       </LegalSection>
 

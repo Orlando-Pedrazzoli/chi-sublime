@@ -266,7 +266,7 @@ export function StaffForm({ open, onClose, staff, onSaved }: StaffFormProps) {
             label="Mostrar no site (homepage e perfil público)"
           />
           <p className="text-chi-charcoal-light text-xs">
-            Desmarcar esconde o profissional do site sem afetar a agenda nem as reservas.
+            Desmarcar esconde o profissional do site sem afetar a agenda nem as marcações.
           </p>
         </div>
       </form>

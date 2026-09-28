@@ -1,9 +1,9 @@
 // 📄 src/lib/validation/manual-booking.ts
 /**
- * Chi Sublime — Validação: Reservas manuais (admin)
+ * Chi Sublime — Validação: Marcações manuais (admin)
  * ============================================================
  *
- * Schemas do fluxo de reserva criada pelo admin (telefone,
+ * Schemas do fluxo de marcação criada pelo admin (telefone,
  * walk-in, Instagram, migração do Noona). Sem imports de
  * modelos Mongoose (regra do projeto).
  */
@@ -15,12 +15,12 @@ const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (AAAA-MM-
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:MM)');
 
 // ------------------------------------------------------------
-// Criar reserva manual
+// Criar marcação manual
 // ------------------------------------------------------------
 
 export const manualBookingNewClientSchema = z.object({
   name: z.string().trim().min(2, 'Nome demasiado curto').max(120),
-  /** Obrigatório: é o contacto mínimo de uma reserva por telefone/balcão */
+  /** Obrigatório: é o contacto mínimo de uma marcação por telefone/balcão */
   phone: z.string().trim().min(6, 'Telefone inválido').max(30),
   email: z.string().trim().toLowerCase().email('Email inválido').max(255).optional(),
 });
@@ -46,7 +46,7 @@ export const createManualBookingSchema = z
     /**
      * force=true salta a validação de horário (salão/staff/grelha)
      * para encaixes fora do padrão. NUNCA salta a deteção de
-     * sobreposição com reservas existentes.
+     * sobreposição com marcações existentes.
      */
     force: z.boolean().default(false),
   })

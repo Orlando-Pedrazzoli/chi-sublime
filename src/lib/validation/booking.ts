@@ -3,7 +3,7 @@
  * Chi Sublime — Booking Validation Schemas (Zod)
  * ============================================================
  *
- * Validacao rigorosa de inputs do sistema de reservas.
+ * Validacao rigorosa de inputs do sistema de marcações.
  *
  * Defesa em profundidade: mesmo que o frontend seja hackeado,
  * a database NUNCA recebe dados invalidos.
@@ -157,11 +157,11 @@ export const fiscalDataSchema = z.object({
  */
 export const createBookingSchema = z
   .object({
-    // Dados da reserva
+    // Dados da marcação
     serviceIds: z
       .array(objectIdSchema)
       .min(1, 'Tem de escolher pelo menos 1 serviço')
-      .max(5, 'Máximo 5 serviços por reserva'),
+      .max(5, 'Máximo 5 serviços por marcação'),
 
     staffId: z.union([objectIdSchema, z.literal('any')]),
 
@@ -191,7 +191,7 @@ export const createBookingSchema = z
     // Honeypot — bots tipicamente preenchem todos os campos
     website: z.string().max(0, 'Detetado tráfego automático').optional().default(''),
 
-    /** Source da reserva (para analytics) */
+    /** Source da marcação (para analytics) */
     source: z.enum(['website', 'phone', 'walk-in', 'instagram', 'admin']).default('website'),
   })
   .refine(
@@ -214,7 +214,7 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
  * Input para cancelar booking.
  */
 export const cancelBookingSchema = z.object({
-  bookingNumber: z.string().regex(/^CHI-\d{4}-\d{4,}$/, 'Número de reserva inválido'),
+  bookingNumber: z.string().regex(/^CHI-\d{4}-\d{4,}$/, 'Número de marcação inválido'),
   cancellationToken: z.string().min(20, 'Token inválido'),
   reason: z.string().trim().max(500).optional(),
 });

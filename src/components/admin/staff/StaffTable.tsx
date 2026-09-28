@@ -301,8 +301,8 @@ export function StaffTable() {
       >
         <p className="text-chi-charcoal-soft text-sm">
           Esta ação é <strong>permanente</strong>: o membro é removido da equipa, das marcações e
-          dos serviços associados. Reservas passadas mantêm-se no histórico, sem profissional
-          atribuído. Se existirem reservas futuras ativas, a eliminação é bloqueada. Para um
+          dos serviços associados. Marcações passadas mantêm-se no histórico, sem profissional
+          atribuído. Se existirem marcações futuras ativas, a eliminação é bloqueada. Para um
           afastamento temporário, usa antes o toggle «Membro ativo» na edição do perfil.
         </p>
       </Modal>

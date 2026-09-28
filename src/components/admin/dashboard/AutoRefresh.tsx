@@ -7,7 +7,7 @@
  *
  * Refresca os dados do dashboard (router.refresh) a cada N
  * segundos, para o Jean deixar o painel aberto no telemóvel/
- * tablet do balcão e ver reservas novas a chegar sem F5.
+ * tablet do balcão e ver marcações novas a chegar sem F5.
  *
  * Pausa quando o separador está oculto (poupa bateria e
  * queries) e refresca imediatamente ao voltar a ficar visível.

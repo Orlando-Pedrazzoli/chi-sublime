@@ -30,7 +30,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/reservas', label: 'Reservas', icon: Calendar },
+  { href: '/admin/marcacoes', label: 'Marcações', icon: Calendar },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/receitas', label: 'Receitas', icon: TrendingUp },
   { href: '/admin/despesas', label: 'Despesas', icon: TrendingDown },

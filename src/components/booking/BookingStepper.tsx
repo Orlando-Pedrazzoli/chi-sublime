@@ -5,7 +5,7 @@
  * Chi Sublime — Booking Stepper
  * ============================================================
  *
- * Indicador visual dos 3 passos do fluxo de reserva.
+ * Indicador visual dos 3 passos do fluxo de marcação.
  *
  * MUDANCAS (auditoria):
  *  - Mais compacto no mobile (circulos 36px vs 40px, menos

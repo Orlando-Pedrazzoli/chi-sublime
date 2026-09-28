@@ -46,7 +46,7 @@ export default function CookiesPage() {
         />
         <P>
           Usamos ainda <strong>sessionStorage</strong> (armazenamento local do navegador, não é um
-          cookie) para guardar temporariamente a sua seleção durante o processo de reserva — é
+          cookie) para guardar temporariamente a sua seleção durante o processo de marcação — é
           apagado ao fechar o navegador e nunca sai do seu dispositivo.
         </P>
       </LegalSection>
@@ -64,7 +64,7 @@ export default function CookiesPage() {
       <LegalSection title="Gerir cookies no navegador">
         <P>
           Pode bloquear ou apagar cookies nas definições do seu navegador. Note que, sem os cookies
-          de sessão, não é possível iniciar sessão nem concluir reservas com conta.
+          de sessão, não é possível iniciar sessão nem concluir marcações com conta.
         </P>
       </LegalSection>
     </LegalPage>

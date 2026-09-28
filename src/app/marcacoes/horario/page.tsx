@@ -1,6 +1,6 @@
 // 📄 src/app/marcacoes/horario/page.tsx
 /**
- * Chi Sublime — Reservar (Step 2: Horario + Staff)
+ * Chi Sublime — Marcar (Step 2: Horario + Staff)
  * ============================================================
  *
  * Server Component. Busca staff ativos da DB e passa ao

@@ -5,7 +5,7 @@
  *
  * Linguagem editorial: conteúdo ancorado em baixo à esquerda,
  * tipografia display gigante, uma única palavra em itálico
- * dourado — reservada exclusivamente a este momento.
+ * dourado — marcada exclusivamente a este momento.
  *
  * i18n: Server Component com getTranslations('home.hero').
  * O título usa t.rich() — as tags <em> e <br> vivem na

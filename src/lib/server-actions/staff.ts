@@ -12,11 +12,11 @@
  * O slug é gerado na action (mesma razão que services.ts: o
  * pre('save') corre depois da validação e o slug é required).
  * "delete" é HARD (remove o documento) com salvaguardas:
- *   - bloqueia se existirem reservas futuras ativas (pending/
+ *   - bloqueia se existirem marcações futuras ativas (pending/
  *     confirmed/in-progress) — têm de ser canceladas/reatribuídas;
  *   - limpa referências vivas (Service.staffIds e
  *     Client.preferredStaffId);
- *   - reservas/transações históricas mantêm o ObjectId órfão —
+ *   - marcações/transações históricas mantêm o ObjectId órfão —
  *     os formatters já tratam populate null ("staff: null").
  * Para afastar temporariamente um membro, usar o toggle
  * "Membro ativo" no formulário de edição (soft via update).
@@ -174,7 +174,7 @@ function toDetail(doc: any): StaffDetail {
 
 /**
  * Nome, foto, função, ordem e visibilidade aparecem na homepage
- * (TeamPreview), no perfil /equipa/[slug] e no fluxo de reserva.
+ * (TeamPreview), no perfil /equipa/[slug] e no fluxo de marcação.
  * Se o slug mudou, o perfil antigo também é invalidado.
  */
 function revalidatePublicTeam(slug: string, previousSlug?: string) {
@@ -327,7 +327,7 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
   const staff = await Staff.findById(parsed.data.id);
   if (!staff) return fail('not_found', 'Membro não encontrado');
 
-  // Salvaguarda: não eliminar com reservas futuras ativas —
+  // Salvaguarda: não eliminar com marcações futuras ativas —
   // ficariam na agenda sem profissional atribuído.
   const futureBookings = await Booking.countDocuments({
     staffId: staff._id,
@@ -337,8 +337,8 @@ export async function deleteStaffAction(input: unknown): Promise<ActionResult> {
   if (futureBookings > 0) {
     return fail(
       'conflict',
-      `${staff.name} tem ${futureBookings} reserva(s) futura(s) ativa(s). ` +
-        'Cancela ou reatribui essas reservas antes de eliminar, ou desativa o membro na edição do perfil.',
+      `${staff.name} tem ${futureBookings} marcação(s) futura(s) ativa(s). ` +
+        'Cancela ou reatribui essas marcações antes de eliminar, ou desativa o membro na edição do perfil.',
     );
   }
 

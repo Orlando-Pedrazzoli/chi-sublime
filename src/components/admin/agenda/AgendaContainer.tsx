@@ -9,12 +9,21 @@
  * "Sprint 5C parte 2") — clicar num slot vazio da vista de dia
  * abre o NewBookingModal ja com a hora e o profissional
  * preenchidos.
+ *
+ * REVISÃO (set. 2026):
+ *  - Fechar o modal limpa o `?new=1` do URL (um F5 reabria-o).
+ *  - Ao criar uma marcação, a agenda navega para o dia da marcação
+ *    (vista de dia) e mostra um toast com cliente/profissional/hora
+ *    — o funcionário vê o que acabou de criar.
+ *  - Categorias do modal vêm da BD (meta.categories).
  */
 
 import { useState, useTransition, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useToast } from '@/hooks/useToast';
+import type { ManualBookingCreated } from '@/lib/server-actions/manual-bookings';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
 import { BookingDetailModal } from './BookingDetailModal';
@@ -25,6 +34,7 @@ import {
   getBookingsByWeekAction,
   getUpcomingBookingsAction,
   type AdminBookingForList,
+  type AdminBookingMeta,
 } from '@/lib/server-actions/admin-bookings';
 
 type AgendaContainerProps = {
@@ -32,13 +42,8 @@ type AgendaContainerProps = {
   initialView: 'day' | 'week' | 'list';
   initialBookings: AdminBookingForList[];
   staff: Array<{ id: string; name: string; photo?: string }>;
-  services: Array<{
-    id: string;
-    name: string;
-    price: number;
-    duration: number;
-    categorySlug?: string;
-  }>;
+  services: AdminBookingMeta['services'];
+  categories: AdminBookingMeta['categories'];
   openNewModalInitially?: boolean;
 };
 
@@ -53,9 +58,11 @@ export function AgendaContainer({
   initialBookings,
   staff,
   services,
+  categories,
   openNewModalInitially = false,
 }: AgendaContainerProps) {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
@@ -88,7 +95,7 @@ export function AgendaContainer({
     params.set('date', newDate);
     params.set('view', v);
     params.delete('new');
-    router.replace(`/admin/reservas?${params.toString()}`);
+    router.replace(`/admin/marcacoes?${params.toString()}`);
 
     startTransition(async () => {
       await refresh(newDate, v);
@@ -134,11 +141,39 @@ export function AgendaContainer({
   function closeNewBooking() {
     setNewBookingOpen(false);
     setNewBookingPrefill(null);
+    // Limpar ?new=1 — senão um F5 reabria o modal
+    if (searchParams.get('new')) {
+      const params = new URLSearchParams(searchParams);
+      params.delete('new');
+      const qs = params.toString();
+      router.replace(`/admin/marcacoes${qs ? `?${qs}` : ''}`);
+    }
   }
 
-  function handleNewBookingCreated() {
+  function handleNewBookingCreated(created: ManualBookingCreated) {
     closeNewBooking();
-    handleRefresh();
+    const createdDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Lisbon',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(created.startTime));
+    const createdTime = new Intl.DateTimeFormat('pt-PT', {
+      timeZone: 'Europe/Lisbon',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date(created.startTime));
+    toast.success(
+      `Marcação ${created.bookingNumber} criada — ${created.clientName} com ${created.staffName}, ${createdTime}.`,
+    );
+    // Mostrar o dia da marcação criada (vista de dia) em vez de ficar
+    // no dia/vista onde o funcionário estava
+    if (createdDate !== date || view !== 'day') {
+      navigateToDate(createdDate, 'day');
+    } else {
+      handleRefresh();
+    }
   }
 
   return (
@@ -210,7 +245,7 @@ export function AgendaContainer({
           </button>
         </div>
 
-        {/* View toggle + Nova reserva */}
+        {/* View toggle + Nova marcação */}
         <div className="flex items-center gap-3">
           <div
             className="flex overflow-hidden border"
@@ -279,13 +314,13 @@ export function AgendaContainer({
             }}
           >
             <Plus size={14} strokeWidth={2} />
-            <span className="hidden sm:inline">Nova reserva</span>
+            <span className="hidden sm:inline">Nova marcação</span>
             <span className="sm:hidden">Nova</span>
           </button>
         </div>
       </div>
 
-      {/* Hint: dia sem reservas → atalho para a lista de próximas */}
+      {/* Hint: dia sem marcações → atalho para a lista de próximas */}
       {view === 'day' && bookings.length === 0 && (
         <div
           className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3"
@@ -295,7 +330,7 @@ export function AgendaContainer({
           }}
         >
           <p className="text-sm" style={{ color: '#5A4A2A' }}>
-            Sem reservas neste dia — vê o que está agendado para os próximos dias.
+            Sem marcações neste dia — vê o que está agendado para os próximos dias.
           </p>
           <button
             type="button"
@@ -309,7 +344,7 @@ export function AgendaContainer({
               color: '#1F3D2E',
             }}
           >
-            Ver próximas reservas
+            Ver próximas marcações
           </button>
         </div>
       )}
@@ -350,6 +385,7 @@ export function AgendaContainer({
         <NewBookingModal
           staff={staff}
           services={services}
+          categories={categories}
           defaultDate={date}
           prefillTime={newBookingPrefill?.time}
           prefillStaffId={newBookingPrefill?.staffId}

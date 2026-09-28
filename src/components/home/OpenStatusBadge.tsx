@@ -165,7 +165,7 @@ export function OpenStatusBadge() {
     : '';
 
   return (
-    /* Altura reservada sempre — o badge aparece sem empurrar o layout */
+    /* Altura marcada sempre — o badge aparece sem empurrar o layout */
     <div className="mb-6 h-[34px]">
       {status && (
         <Link

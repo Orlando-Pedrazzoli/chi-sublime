@@ -1,6 +1,6 @@
 // 📄 src/app/marcacoes/page.tsx
 /**
- * Chi Sublime — Reservar (Step 1: Escolher Servico)
+ * Chi Sublime — Marcar (Step 1: Escolher Servico)
  * ============================================================
  *
  * Server Component. Busca categorias e servicos da DB e

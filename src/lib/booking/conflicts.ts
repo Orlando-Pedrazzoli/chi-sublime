@@ -3,7 +3,7 @@
  * ============================================================
  *
  * Funcoes para detectar conflitos:
- *  - Slot vs reservas existentes
+ *  - Slot vs marcações existentes
  *  - Slot vs breaks (almoco, etc.)
  *  - Slot vs limite de horario
  *
@@ -40,9 +40,9 @@ export function slotConflictsWithBreaks(
 
 /**
  * Verifica se um slot [slotStartDate, slotEndDate] sobrepoe a alguma
- * reserva existente.
+ * marcação existente.
  *
- * Considera o `bufferAfter` da reserva existente — ou seja, reserva
+ * Considera o `bufferAfter` da marcação existente — ou seja, marcação
  * de 10:00-11:00 com buffer 15min ocupa efetivamente 10:00-11:15.
  */
 export function slotConflictsWithBookings(
@@ -61,14 +61,14 @@ export function slotConflictsWithBookings(
 }
 
 /**
- * Tipo de reserva existente (input para conflict detection).
+ * Tipo de marcação existente (input para conflict detection).
  * Apenas os campos que precisamos.
  */
 export type ExistingBooking = {
   id: string;
   startTime: Date;
   endTime: Date;
-  /** Buffer apos a reserva (minutos) — staff precisa de tempo para preparar proxima */
+  /** Buffer apos a marcação (minutos) — staff precisa de tempo para preparar proxima */
   bufferAfter: number;
 };
 

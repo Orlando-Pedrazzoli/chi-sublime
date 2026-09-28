@@ -12,7 +12,7 @@ import { LegalPage, LegalSection, LegalList, P } from '@/components/legal/LegalP
 
 export const metadata: Metadata = {
   title: 'Termos e Condições',
-  description: 'Termos e condições de utilização do site e do serviço de reservas do Chi Sublime.',
+  description: 'Termos e condições de utilização do site e do serviço de marcações do Chi Sublime.',
   alternates: { canonical: '/termos' },
 };
 
@@ -21,11 +21,11 @@ export default function TermosPage() {
     <LegalPage eyebrow="Legal" title="Termos e Condições" updated="julho de 2026">
       <LegalSection title="1. Objeto">
         <P>
-          Estes termos regulam a utilização do site chisublime.pt e do respetivo serviço de reservas
-          online, operados por Chi Sublime — Hair Style &amp; Beauty, de{' '}
+          Estes termos regulam a utilização do site chisublime.pt e do respetivo serviço de
+          marcações online, operados por Chi Sublime — Hair Style &amp; Beauty, de{' '}
           <strong>Jean Barbosa da Silva</strong>, empresário em nome individual, NIF 295145870, Rua
           do Estorninho, Loja E, Quinta da Bicuda, 2750-686 Cascais. Ao criar conta ou efetuar uma
-          reserva, aceita estes termos.
+          marcação, aceita estes termos.
         </P>
       </LegalSection>
 
@@ -39,19 +39,19 @@ export default function TermosPage() {
         />
       </LegalSection>
 
-      <LegalSection title="3. Reservas">
+      <LegalSection title="3. Marcações">
         <LegalList
           items={[
-            'A reserva online é confirmada no momento da submissão, salvo indicação em contrário, e fica associada à sua conta.',
+            'A marcação online é confirmada no momento da submissão, salvo indicação em contrário, e fica associada à sua conta.',
             'Os horários mostrados refletem a disponibilidade real do salão e dos profissionais no momento da consulta.',
             <>
               Cancelamentos e reagendamentos regem-se pela{' '}
               <Link href="/cancelamento" className="text-chi-gold-deep underline">
                 Política de Cancelamento
               </Link>{' '}
-              (aceite obrigatoriamente em cada reserva).
+              (aceite obrigatoriamente em cada marcação).
             </>,
-            'O salão pode recusar ou cancelar reservas em casos de força maior, abuso do sistema ou incumprimento reiterado.',
+            'O salão pode recusar ou cancelar marcações em casos de força maior, abuso do sistema ou incumprimento reiterado.',
           ]}
         />
       </LegalSection>
@@ -59,9 +59,9 @@ export default function TermosPage() {
       <LegalSection title="4. Preços e pagamento">
         <LegalList
           items={[
-            'Os preços apresentados no site incluem IVA à taxa legal em vigor e podem ser atualizados a qualquer momento (sem efeito em reservas já efetuadas).',
+            'Os preços apresentados no site incluem IVA à taxa legal em vigor e podem ser atualizados a qualquer momento (sem efeito em marcações já efetuadas).',
             'O pagamento é efetuado no salão, após a prestação do serviço, pelos meios aí disponíveis.',
-            'Pode solicitar fatura com NIF no momento da reserva ou do pagamento.',
+            'Pode solicitar fatura com NIF no momento da marcação ou do pagamento.',
           ]}
         />
       </LegalSection>

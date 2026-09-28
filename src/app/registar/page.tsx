@@ -49,7 +49,7 @@ export default async function RegisterPage({
           </h1>
 
           <p className="mb-8 text-center text-sm" style={{ color: '#5A5A5A' }}>
-            Junta-te ao Chi Sublime para reservares e veres o teu histórico.
+            Junta-te ao Chi Sublime para marcares e veres o teu histórico.
           </p>
 
           {/* Decorative divider */}

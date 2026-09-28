@@ -124,7 +124,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
           </p>
         )}
         <p className="mt-1 text-xs italic" style={{ color: '#5A5A5A' }}>
-          Usado para contactos sobre as tuas reservas.
+          Usado para contactos sobre as tuas marcações.
         </p>
       </div>
 

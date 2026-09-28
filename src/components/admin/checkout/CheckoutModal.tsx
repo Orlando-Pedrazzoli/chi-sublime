@@ -17,9 +17,9 @@
  * STYLE — bug Tailwind v4 + Next 16. Breakpoint desktop via
  * matchMedia (inline styles não suportam media queries).
  *
- * Cobrança a partir de uma reserva (prop `prefill`):
+ * Cobrança a partir de uma marcação (prop `prefill`):
  * - O carrinho abre já com os serviços, cliente e profissional da
- *   reserva; a venda é criada com `bookingId` e a reserva fica
+ *   marcação; a venda é criada com `bookingId` e a marcação fica
  *   ligada (Booking.transactionId) e marcada como concluída.
  *
  * IVA: o total mostrado segue a política fiscal real (regime de
@@ -87,7 +87,7 @@ function MiniLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Dados de uma reserva para abrir o POS já preenchido. */
+/** Dados de uma marcação para abrir o POS já preenchido. */
 export type CheckoutPrefill = {
   bookingId: string;
   bookingNumber: string;
@@ -100,7 +100,7 @@ export type CheckoutModalProps = {
   open: boolean;
   onClose: () => void;
   onCompleted: () => void;
-  /** Reserva a cobrar (opcional). Sem prefill = venda de balcão livre. */
+  /** Marcação a cobrar (opcional). Sem prefill = venda de balcão livre. */
   prefill?: CheckoutPrefill | null;
 };
 
@@ -154,8 +154,8 @@ export function CheckoutModal({ open, onClose, onCompleted, prefill }: CheckoutM
       if (team.success) setStaff(team.data.items);
       if (vat.success) setVatExempt(vat.data.exempt);
 
-      // Carrinho inicial a partir da reserva. O preço é o que foi
-      // reservado (snapshot), não o preço atual do catálogo — o cliente
+      // Carrinho inicial a partir da marcação. O preço é o que foi
+      // marcado (snapshot), não o preço atual do catálogo — o cliente
       // paga o que lhe foi prometido. A taxa de IVA vem do catálogo.
       if (prefill) {
         const seeded: CartLine[] = [];
@@ -287,7 +287,7 @@ export function CheckoutModal({ open, onClose, onCompleted, prefill }: CheckoutM
     <Modal
       open={open}
       onClose={onClose}
-      title={prefill ? `Cobrar reserva ${prefill.bookingNumber}` : 'Nova venda'}
+      title={prefill ? `Cobrar marcação ${prefill.bookingNumber}` : 'Nova venda'}
       size="xl"
       dismissable={!submitting}
     >

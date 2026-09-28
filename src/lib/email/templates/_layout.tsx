@@ -170,7 +170,7 @@ export function Muted({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Tabela de detalhes (label → valor), usada nos emails de reserva/fatura. */
+/** Tabela de detalhes (label → valor), usada nos emails de marcação/fatura. */
 export function InfoTable({ rows }: { rows: Array<{ label: string; value: string }> }) {
   return (
     <Section

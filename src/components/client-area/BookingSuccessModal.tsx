@@ -5,14 +5,14 @@
  * Chi Sublime — Modal de sucesso da marcação (área de cliente)
  * ============================================================
  *
- * Abre quando o cliente chega a /conta/reservas?nova=CHI-2026-XXXX
+ * Abre quando o cliente chega a /conta/marcacoes?nova=CHI-2026-XXXX
  * logo após confirmar uma marcação no funil /marcacoes.
  *
  *  - "Obrigada, <nome>" + resumo curto (quando / com quem / total)
  *  - Aviso de que a confirmação foi enviada para o email
  *  - Adicionar ao calendário (Google / .ics) — só se já confirmada
  *  - Ao fechar: limpa o ?nova da URL e faz scroll até ao cartão
- *    da nova reserva (que fica destacado a dourado em MyBookings)
+ *    da nova marcação (que fica destacado a dourado em MyBookings)
  *
  * ⚠️ Tailwind v4 + Next 16: paddings/cores críticas em INLINE STYLE.
  */
@@ -73,12 +73,12 @@ export function BookingSuccessModal({ booking, clientFirstName, clientEmail, onC
     end,
     services: booking.services.map((s) => s.name).join(', '),
     staffName: booking.staff?.name ?? 'Chi Sublime',
-    url: `${typeof window !== 'undefined' ? window.location.origin : ''}/conta/reservas`,
+    url: `${typeof window !== 'undefined' ? window.location.origin : ''}/conta/marcacoes`,
   };
 
   const handleClose = useCallback(() => {
     // Remove o ?nova= sem recarregar — um refresh/back não reabre o modal
-    router.replace('/conta/reservas', { scroll: false });
+    router.replace('/conta/marcacoes', { scroll: false });
     onClose();
   }, [router, onClose]);
 

@@ -1,4 +1,4 @@
-// 📄 src/app/admin/reservas/page.tsx
+// 📄 src/app/admin/marcacoes/page.tsx
 import type { Metadata } from 'next';
 import { requireAdmin } from '@/lib/auth/permissions';
 import { AgendaContainer } from '@/components/admin/agenda/AgendaContainer';
@@ -10,7 +10,7 @@ import {
 } from '@/lib/server-actions/admin-bookings';
 
 export const metadata: Metadata = {
-  title: 'Reservas',
+  title: 'Marcações',
   robots: { index: false, follow: false },
 };
 
@@ -24,7 +24,7 @@ function todayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default async function AdminReservasPage({
+export default async function AdminMarcacoesPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
@@ -56,7 +56,7 @@ export default async function AdminReservasPage({
           color: '#B23C3C',
         }}
       >
-        Erro ao carregar reservas: {bookingsResult.error}
+        Erro ao carregar marcações: {bookingsResult.error}
       </div>
     );
   }
@@ -68,6 +68,7 @@ export default async function AdminReservasPage({
       initialBookings={bookingsResult.bookings}
       staff={meta.staff}
       services={meta.services}
+      categories={meta.categories}
       openNewModalInitially={openNewModal}
     />
   );

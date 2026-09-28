@@ -6,16 +6,16 @@
  * Calcula o ESTADO de cada dia de um mês para o CalendarPicker,
  * para que o calendário do cliente espelhe fielmente a gestão
  * feita no admin (horário do salão, feriados, exceções, horário
- * semanal e férias de cada profissional, reservas existentes).
+ * semanal e férias de cada profissional, marcações existentes).
  *
  * Estados devolvidos por dia:
  *  - 'past'         → dia já passou (cor própria na UI)
- *  - 'out-of-range' → além do horizonte de reserva (30 dias)
+ *  - 'out-of-range' → além do horizonte de marcação (30 dias)
  *  - 'closed'       → salão encerrado (dia de fecho, feriado ou exceção)
  *  - 'staff-off'    → salão aberto, mas o(s) profissional(is) não
  *                     trabalham nesse dia ou estão de férias
  *  - 'full'         → dia válido mas sem nenhum slot livre que caiba
- *  - 'available'    → tem pelo menos 1 slot reservável
+ *  - 'available'    → tem pelo menos 1 slot marcável
  *
  * PERFORMANCE: ao contrário de chamar getAvailableSlots 30x
  * (que faria ~150+ queries), este módulo carrega tudo em 4
@@ -97,7 +97,7 @@ export type MonthAvailabilityResult = {
   days: CalendarDay[];
   /** Hoje (ISO), para a UI marcar o contorno */
   todayISO: string;
-  /** Último dia reservável (ISO) — hoje + maxAdvanceDays */
+  /** Último dia marcável (ISO) — hoje + maxAdvanceDays */
   horizonISO: string;
   error?: { code: 'invalid-services' | 'invalid-staff'; message: string };
 };
@@ -223,7 +223,7 @@ export async function getMonthAvailability(
     }
   }
 
-  // Reservas ativas do mês inteiro dos staff qualificados (1 query)
+  // Marcações ativas do mês inteiro dos staff qualificados (1 query)
   const monthStart = combineDateAndTime(new Date(year, month - 1, 1, 12), '00:00');
   const monthEnd = combineDateAndTime(new Date(year, month - 1, daysInMonth, 12), '23:59');
   const candidateIds = qualifiedStaff.map((s) => String(s._id));
@@ -267,7 +267,7 @@ export async function getMonthAvailability(
       continue;
     }
 
-    // 2) Além do horizonte de reserva
+    // 2) Além do horizonte de marcação
     if (iso > horizonISO) {
       days.push({ date: iso, state: 'out-of-range' });
       continue;

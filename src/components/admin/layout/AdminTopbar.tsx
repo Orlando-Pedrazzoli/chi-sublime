@@ -16,7 +16,7 @@ type AdminTopbarProps = {
 
 const PAGE_TITLES: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
-  '/admin/reservas': 'Reservas',
+  '/admin/marcacoes': 'Marcações',
   '/admin/clientes': 'Clientes',
   '/admin/receitas': 'Receitas',
   '/admin/despesas': 'Despesas',
@@ -91,14 +91,14 @@ export function AdminTopbar({ user, onMobileMenuClick }: AdminTopbarProps) {
 
       {/* Right: acções */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Botão Nova Reserva */}
+        {/* Botão Nova Marcação */}
         <Link
-          href="/admin/reservas?new=1"
+          href="/admin/marcacoes?new=1"
           className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] sm:px-4 sm:py-2.5"
           style={{ backgroundColor: '#D4AF6E', color: '#1F3D2E' }}
         >
           <Plus size={14} strokeWidth={2} />
-          <span className="hidden sm:inline">Nova reserva</span>
+          <span className="hidden sm:inline">Nova marcação</span>
           <span className="sm:hidden">Nova</span>
         </Link>
 

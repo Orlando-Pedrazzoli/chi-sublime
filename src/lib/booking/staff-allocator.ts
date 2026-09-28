@@ -18,9 +18,9 @@ import { Booking } from '@/lib/models';
 import { combineDateAndTime, toISODate } from '@/lib/utils/time-utils';
 
 /**
- * Calcula a ocupacao (minutos totais reservados) de um staff num dia especifico.
+ * Calcula a ocupacao (minutos totais marcados) de um staff num dia especifico.
  *
- * Conta apenas reservas com status: pending, confirmed, in-progress.
+ * Conta apenas marcações com status: pending, confirmed, in-progress.
  * (Cancelled e no-show NAO contam.)
  *
  * @returns minutos totais ocupados

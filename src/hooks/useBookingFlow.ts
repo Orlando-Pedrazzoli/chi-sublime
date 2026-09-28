@@ -4,13 +4,13 @@
  * Chi Sublime — useBookingFlow Hook
  * ============================================================
  *
- * State management central do fluxo de reserva (3 passos).
+ * State management central do fluxo de marcação (3 passos).
  *
  * Decisoes:
  *  - Persiste em sessionStorage (sobrevive a F5 mas reset ao fechar browser)
  *  - State partilhado entre /marcacoes, /marcacoes/horario, /marcacoes/confirmar
  *  - Calcula totais (duracao + preco) automaticamente
- *  - Reset automatico quando reserva e concluida com sucesso
+ *  - Reset automatico quando marcação e concluida com sucesso
  *
  * Uso:
  *   const { selectedServiceIds, addService, totals, ... } = useBookingFlow();
@@ -107,7 +107,7 @@ let cachedState: BookingFlowState | null = null;
 
 /**
  * Flag "a sair do funil": ligada pelo Step3Client no instante em que a
- * reserva é criada e antes da hard navigation para /conta/reservas.
+ * marcação é criada e antes da hard navigation para /conta/marcacoes.
  * Enquanto estiver ligada, o BookingFlowGuard NÃO redireciona — evita a
  * corrida que no Safari iOS mandava o cliente de volta ao passo 1.
  * (Uma hard navigation reinicia o módulo, por isso volta a false sozinha.)
@@ -124,8 +124,8 @@ export function isLeavingFlow(): boolean {
 
 /**
  * Limpa o carrinho directamente no sessionStorage, sem passar pelo hook
- * e sem disparar eventos. Usado na página de destino (/conta/reservas)
- * depois de uma reserva criada — o funil já não está montado.
+ * e sem disparar eventos. Usado na página de destino (/conta/marcacoes)
+ * depois de uma marcação criada — o funil já não está montado.
  */
 export function clearBookingFlowStorage(): void {
   if (typeof window === 'undefined') return;
@@ -230,10 +230,10 @@ export function useBookingFlow() {
    *
    * `silent: true` — limpa o sessionStorage SEM disparar o evento
    * 'chi-booking-flow-change'. Usado imediatamente antes de uma hard
-   * navigation (window.location.href) após criar a reserva: se o
+   * navigation (window.location.href) após criar a marcação: se o
    * evento disparasse, o BookingFlowGuard reagia (selectedServices
    * vazio) e fazia router.replace('/marcacoes'), competindo com o
-   * redirect para /conta/reservas — o cliente voltava ao passo 1 em
+   * redirect para /conta/marcacoes — o cliente voltava ao passo 1 em
    * vez de ver o modal de confirmação.
    */
   const clearFlow = useCallback((options?: { silent?: boolean }) => {

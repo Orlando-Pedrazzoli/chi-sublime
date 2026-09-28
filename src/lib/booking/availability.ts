@@ -7,24 +7,24 @@
  *
  * Best practices implementadas (industria 2025-2026):
  *  - Skill-based filtering (so staff que pode prestar o servico)
- *  - Buffer time SEMPRE aplicado entre reservas
+ *  - Buffer time SEMPRE aplicado entre marcações
  *  - Slots de 30min (padrao da industria)
  *  - Esconde slots indisponiveis (em vez de greyed out)
  *  - Antecedencia minima 1h, maxima 30 dias
  *  - Multi-service contiguous booking com mesmo staff
  *  - Load balancing para "qualquer staff" (menor ocupacao)
  *  - Respeita: salao hours, holidays, exceptions, staff vacations,
- *    staff working hours, breaks, reservas existentes
+ *    staff working hours, breaks, marcações existentes
  *
  * CHANGELOG (auditoria):
  *  - FIX: validacao de passado agora e por DIA DE CALENDARIO em
  *    Lisboa (toISODate). Antes, uma janela de 24h permitia gerar
- *    slots (e criar reservas) para ontem.
+ *    slots (e criar marcações) para ontem.
  *  - FIX: ferias comparadas por dia de calendario INCLUSIVO.
  *    Antes, "to" gravado a meia-noite deixava o staff disponivel
  *    no ultimo dia de ferias.
  *  - PERF: alocacao "any" calcula a ocupacao UMA vez por staff,
- *    em memoria, a partir das reservas ja carregadas (antes:
+ *    em memoria, a partir das marcações ja carregadas (antes:
  *    1 query por staff POR SLOT — dezenas de queries por chamada).
  *  - Helpers exportados para reuso pelo modulo de disponibilidade
  *    mensal (month-availability.ts): generateSlotsForStaff,
@@ -72,7 +72,7 @@ const DEFAULT_BUFFER_MINUTES = BOOKING_RULES.defaultBufferMinutes;
 // ============================================================
 
 export type AvailabilityInput = {
-  /** Data da reserva (apenas dia e considerado) */
+  /** Data da marcação (apenas dia e considerado) */
   date: Date;
   /** IDs dos servicos pretendidos (1 ou mais) */
   serviceIds: string[];
@@ -128,7 +128,7 @@ export type AvailabilityError =
 // ============================================================
 
 /**
- * Calcula slots disponiveis para uma reserva.
+ * Calcula slots disponiveis para uma marcação.
  *
  * @example
  * const result = await getAvailableSlots({
@@ -254,7 +254,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
 
   const candidateStaffIds = candidates.map((s) => String(s._id));
 
-  // Buscar TODAS as reservas dos staff candidatos no dia (1 query)
+  // Buscar TODAS as marcações dos staff candidatos no dia (1 query)
   const dayStart = combineDateAndTime(date, '00:00');
   const dayEnd = combineDateAndTime(date, '23:59');
   const allBookingsToday = await Booking.find({
@@ -265,8 +265,8 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
     .select('_id staffId startTime endTime bufferAfter')
     .lean();
 
-  // Agrupar reservas por staffId. Usa o bufferAfter REAL gravado em cada
-  // reserva (não um valor fixo) — assim o buffer de limpeza configurado
+  // Agrupar marcações por staffId. Usa o bufferAfter REAL gravado em cada
+  // marcação (não um valor fixo) — assim o buffer de limpeza configurado
   // no serviço é respeitado na deteção de conflito.
   const bookingsByStaff = new Map<string, ExistingBooking[]>();
   for (const b of allBookingsToday) {
@@ -322,7 +322,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
   // ============================================================
   //
   // A ocupacao de cada staff no dia e CONSTANTE durante esta
-  // chamada, e as reservas ja estao carregadas (Passo 4).
+  // chamada, e as marcações ja estao carregadas (Passo 4).
   // Calculamos a ocupacao UMA vez por staff, sem queries extra,
   // e alocamos o menos ocupado (empate: ordem alfabetica) —
   // mesma politica do staff-allocator, custo zero.
@@ -386,7 +386,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
  * FIX auditoria: validacao por DIA DE CALENDARIO em Lisboa.
  * Antes: `date < now - 24h` deixava passar o dia de ontem
  * (a data chega ancorada as 12:00), e o Passo 5 so corta
- * horas passadas quando a data e HOJE — permitia reservar ontem.
+ * horas passadas quando a data e HOJE — permitia marcar ontem.
  */
 export function validateDate(date: Date): AvailabilityError | null {
   const todayISO = toISODate(new Date());
@@ -396,17 +396,17 @@ export function validateDate(date: Date): AvailabilityError | null {
   if (dateISO < todayISO) {
     return {
       code: 'no-past',
-      message: 'Nao e possivel reservar para datas passadas',
+      message: 'Nao e possivel marcar para datas passadas',
     };
   }
 
-  // Alem do horizonte de reserva?
+  // Alem do horizonte de marcação?
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS);
   if (dateISO > toISODate(maxDate)) {
     return {
       code: 'too-far',
-      message: `Reservas so podem ser feitas ate ${MAX_ADVANCE_DAYS} dias de antecedencia`,
+      message: `Marcações so podem ser feitas ate ${MAX_ADVANCE_DAYS} dias de antecedencia`,
     };
   }
 
@@ -418,7 +418,7 @@ export function calculateTotalDuration(services: IService[]): number {
   for (let i = 0; i < services.length; i++) {
     total += services[i].duration;
     // Aplica buffer apos cada servico EXCETO o ultimo
-    // (buffer no fim e desperdicio se a reserva acabou)
+    // (buffer no fim e desperdicio se a marcação acabou)
     if (i < services.length - 1) {
       total += services[i].bufferAfter ?? 0;
     }
@@ -499,7 +499,7 @@ export function generateSlotsForStaff(params: {
     const breakConflict = slotConflictsWithBreaks(slotStart, slotEnd, allBreaks);
 
     if (!breakConflict) {
-      // Verificar conflito com reservas existentes
+      // Verificar conflito com marcações existentes
       const slotStartDate = combineDateAndTime(date, minutesToTime(slotStart));
       const slotEndDate = combineDateAndTime(date, minutesToTime(slotEnd));
 

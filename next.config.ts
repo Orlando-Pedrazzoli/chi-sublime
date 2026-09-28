@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
       { source: '/book', destination: '/marcacoes', permanent: true },
       { source: '/booking', destination: '/marcacoes', permanent: true },
       { source: '/marcacao', destination: '/marcacoes', permanent: true },
+      // Admin: "Reservas" passou a "Marcações" (set. 2026)
+      { source: '/admin/reservas', destination: '/admin/marcacoes', permanent: true },
+      { source: '/admin/reservas/:path*', destination: '/admin/marcacoes/:path*', permanent: true },
+      // Área de cliente: links antigos nos emails já enviados continuam a funcionar
+      { source: '/conta/reservas', destination: '/conta/marcacoes', permanent: true },
+      { source: '/conta/reservas/:path*', destination: '/conta/marcacoes/:path*', permanent: true },
     ];
   },
 };

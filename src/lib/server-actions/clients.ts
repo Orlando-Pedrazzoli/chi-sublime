@@ -16,7 +16,7 @@
  * loyaltyPoints, lastVisit) NÃO são tocados aqui.
  *
  * "delete" é soft (active=false) — clientes são referenciados por
- * transações e reservas; nunca se apaga a fila.
+ * transações e marcações; nunca se apaga a fila.
  */
 
 import mongoose from 'mongoose';

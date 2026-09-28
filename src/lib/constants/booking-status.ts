@@ -1,6 +1,6 @@
 // 📄 src/lib/constants/booking-status.ts
 /**
- * Chi Sublime — Estados e origens de reserva (apresentação)
+ * Chi Sublime — Estados e origens de marcação (apresentação)
  * ============================================================
  *
  * Mapeia os valores técnicos do model (BookingStatus / BookingSource)

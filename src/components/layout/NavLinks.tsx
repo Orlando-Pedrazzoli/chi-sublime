@@ -298,7 +298,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       </li>
                       <li>
                         <Link
-                          href="/conta/reservas"
+                          href="/conta/marcacoes"
                           className="group flex items-center justify-between px-5 py-2.5 text-sm transition-colors duration-300"
                           style={{ color: CREAM }}
                         >
@@ -431,7 +431,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                 {t('greeting', { name: firstName })}
               </Link>
               <Link
-                href="/conta/reservas"
+                href="/conta/marcacoes"
                 onClick={() => setMobileOpen(false)}
                 className="hover:text-chi-gold text-sm tracking-[0.18em] uppercase transition-colors"
                 style={{ color: 'rgba(250,247,242,0.8)' }}

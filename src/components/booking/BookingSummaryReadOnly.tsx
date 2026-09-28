@@ -4,7 +4,7 @@
  * Chi Sublime — Booking Summary (Read-Only)
  * ============================================================
  *
- * Resumo da reserva sem possibilidade de editar (usado no Step 3).
+ * Resumo da marcação sem possibilidade de editar (usado no Step 3).
  * Mostra servicos, profissional, data/hora, total.
  *
  * Layout em card creme com bordas elegantes.
@@ -71,7 +71,7 @@ export function BookingSummaryReadOnly() {
 
   return (
     <div className="border-chi-border bg-chi-cream shadow-soft rounded-lg border p-6 md:p-7">
-      <h3 className="text-chi-charcoal mb-5 font-serif text-xl">Resumo da reserva</h3>
+      <h3 className="text-chi-charcoal mb-5 font-serif text-xl">Resumo da marcação</h3>
 
       <ul className="border-chi-border mb-5 space-y-3 border-b pb-5">
         {selectedServices.map((service) => (

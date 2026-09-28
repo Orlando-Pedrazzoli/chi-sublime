@@ -21,7 +21,7 @@
  *
  * Reembolso: marca a transação como `refunded` (sai das agregações
  * de caixa/relatórios, que só contam `completed`). Os campos
- * refundTransactionId/refundedTransactionId ficam reservados para o
+ * refundTransactionId/refundedTransactionId ficam marcados para o
  * fluxo de nota de crédito da faturação (Fase 3).
  */
 
@@ -247,21 +247,21 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
 
   if (netAmount <= 0) return fail('validation', 'O valor da receita tem de ser positivo');
 
-  // Venda a partir de uma reserva: garantir que a reserva existe, que
-  // ainda pode ser cobrada e que não foi cobrada antes (uma reserva ↔ uma
-  // venda). O status da reserva passa a 'completed' na mesma operação.
+  // Venda a partir de uma marcação: garantir que a marcação existe, que
+  // ainda pode ser cobrada e que não foi cobrada antes (uma marcação ↔ uma
+  // venda). O status da marcação passa a 'completed' na mesma operação.
   /* eslint-disable @typescript-eslint/no-explicit-any */
   let booking: any = null;
   if (data.bookingId) {
     booking = await Booking.findById(data.bookingId);
-    if (!booking) return fail('not_found', 'Reserva não encontrada');
+    if (!booking) return fail('not_found', 'Marcação não encontrada');
     if (booking.transactionId) {
-      return fail('already_charged', 'Esta reserva já foi cobrada');
+      return fail('already_charged', 'Esta marcação já foi cobrada');
     }
     if (booking.status === 'cancelled' || booking.status === 'no-show') {
       return fail(
         'invalid_status',
-        'Não é possível cobrar uma reserva cancelada ou sem comparência',
+        'Não é possível cobrar uma marcação cancelada ou sem comparência',
       );
     }
   }
@@ -297,7 +297,7 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
       createdBy: new mongoose.Types.ObjectId(admin.id),
     });
 
-    // Ligar a venda à reserva e fechá-la. Se isto falhar a venda já
+    // Ligar a venda à marcação e fechá-la. Se isto falhar a venda já
     // existe — registar no audit em vez de rebentar o checkout.
     if (booking) {
       try {
@@ -305,14 +305,14 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
         if (booking.status !== 'completed') booking.status = 'completed';
         await booking.save();
       } catch (linkErr) {
-        console.error('[createIncomeAction] falha a ligar reserva → venda', linkErr);
+        console.error('[createIncomeAction] falha a ligar marcação → venda', linkErr);
         await logAudit({
           action: 'update',
           resource: 'booking',
           resourceId: String(booking._id),
           resourceLabel: booking.bookingNumber,
           ...auditActor(admin),
-          message: `Venda ${transactionNumber} criada mas não ligada à reserva ${booking.bookingNumber}`,
+          message: `Venda ${transactionNumber} criada mas não ligada à marcação ${booking.bookingNumber}`,
           severity: 'critical',
           metadata: { transactionId: String(tx._id) },
         });
@@ -326,7 +326,7 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
       resourceLabel: transactionNumber,
       ...auditActor(admin),
       message: `Receita ${transactionNumber}: ${totalCents} cêntimos (${data.paymentMethod})${
-        booking ? ` · reserva ${booking.bookingNumber}` : ''
+        booking ? ` · marcação ${booking.bookingNumber}` : ''
       }`,
       severity: 'info',
       metadata: { total: totalCents, tip: data.tipAmount, bookingId: data.bookingId },
@@ -335,7 +335,7 @@ export async function createIncomeAction(input: unknown): Promise<ActionResult<{
     revalidatePath('/admin/receitas');
     revalidatePath('/admin/caixa');
     revalidatePath('/admin/dashboard');
-    if (booking) revalidatePath('/admin/reservas');
+    if (booking) revalidatePath('/admin/marcacoes');
     return ok({ id: String(tx._id) });
   } catch (err) {
     console.error('[createIncomeAction]', err);

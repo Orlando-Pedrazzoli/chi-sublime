@@ -10,7 +10,7 @@
  *   pending   → cancelled  : "não foi possível confirmar o teu pedido"
  *   confirmed → cancelled  : "marcação cancelada"
  *
- * Só envia para reservas futuras. Nunca lança.
+ * Só envia para marcações futuras. Nunca lança.
  */
 
 import { Client, Staff, type IBooking } from '@/lib/models';

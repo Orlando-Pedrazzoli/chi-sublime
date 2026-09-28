@@ -3,7 +3,7 @@
  * Chi Sublime — Agenda: vista "Próximas"
  * ============================================================
  *
- * Lista cronológica das reservas ativas nos próximos dias,
+ * Lista cronológica das marcações ativas nos próximos dias,
  * agrupada por dia ("Hoje", "Amanhã", ou data por extenso).
  * Cada linha abre o BookingDetailModal (via onBookingClick),
  * tal como acontece nas vistas Dia/Semana.
@@ -69,10 +69,10 @@ export function UpcomingListView({ bookings, onBookingClick }: UpcomingListViewP
       >
         <CalendarX2 size={32} strokeWidth={1.25} style={{ color: '#D4AF6E' }} />
         <p className="mt-4 font-serif text-lg" style={{ color: '#1A1A1A' }}>
-          Sem reservas nos próximos {BOOKING_RULES.upcomingViewDays} dias
+          Sem marcações nos próximos {BOOKING_RULES.upcomingViewDays} dias
         </p>
         <p className="mt-1 text-sm" style={{ color: '#5A5A5A' }}>
-          As novas reservas online e manuais aparecem aqui automaticamente.
+          As novas marcações online e manuais aparecem aqui automaticamente.
         </p>
       </div>
     );
@@ -103,7 +103,7 @@ export function UpcomingListView({ bookings, onBookingClick }: UpcomingListViewP
               {group.label}
             </h3>
             <span className="text-xs" style={{ color: '#5A5A5A' }}>
-              {group.items.length} {group.items.length === 1 ? 'reserva' : 'reservas'}
+              {group.items.length} {group.items.length === 1 ? 'marcação' : 'marcações'}
             </span>
           </div>
 
@@ -163,9 +163,9 @@ export function UpcomingListView({ bookings, onBookingClick }: UpcomingListViewP
                     {/* Origem (website/telefone) */}
                     <span className="hidden shrink-0 md:inline-flex" style={{ color: '#8A8A8A' }}>
                       {b.source === 'website' ? (
-                        <Globe size={12} strokeWidth={1.75} aria-label="Reserva online" />
+                        <Globe size={12} strokeWidth={1.75} aria-label="Marcação online" />
                       ) : b.source === 'phone' ? (
-                        <Phone size={12} strokeWidth={1.75} aria-label="Reserva por telefone" />
+                        <Phone size={12} strokeWidth={1.75} aria-label="Marcação por telefone" />
                       ) : null}
                     </span>
 

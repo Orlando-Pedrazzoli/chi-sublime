@@ -1,24 +1,24 @@
 // 📄 src/app/api/cron/reminders/route.ts
 /**
- * Chi Sublime — Cron: Lembretes de reserva
+ * Chi Sublime — Cron: Lembretes de marcação
  * ============================================================
  *
  * Corre diariamente (vercel.json). Envia o lembrete "dia antes" ao
- * cliente para todas as reservas ativas (estados em
+ * cliente para todas as marcações ativas (estados em
  * getReminderStatuses(): só 'confirmed' em modo de aprovação manual)
  * que:
  *
  *   - começam nas próximas 36 horas (janela cobre "amanhã" e
- *     reservas do próprio dia criadas com antecedência), e
+ *     marcações do próprio dia criadas com antecedência), e
  *   - ainda não receberam o lembrete (remindersSent.dayBefore=false).
  *
  * O flag só é marcado APÓS envio bem-sucedido — se o Resend falhar,
- * a reserva volta a ser apanhada na próxima execução. Usa o índice
+ * a marcação volta a ser apanhada na próxima execução. Usa o índice
  * { status, startTime, remindersSent.dayBefore } já existente.
  *
  * FIX (revisão): Booking.clientId aponta para Client, não para User.
  * O cron procurava User.find({ _id: clientIds }) — nunca encontrava
- * ninguém, e TODAS as reservas online eram "skipped" sem lembrete.
+ * ninguém, e TODAS as marcações online eram "skipped" sem lembrete.
  * Agora resolve nome/email no Client.
  *
  * Segurança: exige `Authorization: Bearer ${CRON_SECRET}` (enviado
@@ -98,13 +98,13 @@ export async function GET(request: Request) {
   const errors: string[] = [];
 
   for (const booking of bookings) {
-    // Destinatário: Client associado ou guestInfo (reservas antigas/manuais)
+    // Destinatário: Client associado ou guestInfo (marcações antigas/manuais)
     const client = booking.clientId ? clientById.get(String(booking.clientId)) : undefined;
     const to = client?.email ?? booking.guestInfo?.email;
     const name = client?.name ?? booking.guestInfo?.name;
 
     if (!to || !name) {
-      skipped += 1; // reserva por telefone sem email — nada a enviar
+      skipped += 1; // marcação por telefone sem email — nada a enviar
       continue;
     }
 

@@ -4,7 +4,7 @@
  * Chi Sublime — Booking Summary
  * ============================================================
  *
- * Resumo do que o cliente esta a reservar.
+ * Resumo do que o cliente esta a marcar.
  *
  * Comportamento responsive:
  *  - Desktop: sticky sidebar a direita

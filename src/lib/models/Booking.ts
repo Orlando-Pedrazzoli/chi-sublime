@@ -30,7 +30,7 @@ export const BOOKING_SOURCES: BookingSource[] = [
 ];
 
 /**
- * Estados que efetivamente OCUPAM a agenda do staff. Só estas reservas
+ * Estados que efetivamente OCUPAM a agenda do staff. Só estas marcações
  * bloqueiam um slot (usado no índice único anti-double-booking via
  * `blocksSlot`, e na deteção de conflitos).
  */
@@ -42,7 +42,7 @@ export interface BookingServiceItem {
   price: number;
   /** Duração do serviço em minutos (tempo de cadeira) */
   duration: number;
-  /** Buffer após este serviço (gap para o próximo serviço da mesma reserva) */
+  /** Buffer após este serviço (gap para o próximo serviço da mesma marcação) */
   bufferAfter: number;
 }
 
@@ -68,7 +68,7 @@ export interface IBooking {
   /** Tempo total de cadeira (durações + buffers ENTRE serviços). endTime = startTime + isto */
   totalDuration: number;
   totalPrice: number;
-  /** Buffer APÓS a reserva inteira (limpeza/preparação antes do próximo cliente). Só entra na deteção de conflito, não no endTime. */
+  /** Buffer APÓS a marcação inteira (limpeza/preparação antes do próximo cliente). Só entra na deteção de conflito, não no endTime. */
   bufferAfter: number;
   startTime: Date;
   endTime: Date;
@@ -243,12 +243,12 @@ const bookingSchema = new Schema<IBooking>(
   { timestamps: true, versionKey: false },
 );
 
-// Índice único ANTI-DOUBLE-BOOKING: garante que não existem 2 reservas
+// Índice único ANTI-DOUBLE-BOOKING: garante que não existem 2 marcações
 // ativas para o mesmo staff no mesmo instante de início. Como a grelha
 // mostrada ao cliente alinha sempre os starts (grelha de 30min), dois
 // clientes a apanhar o mesmo slot colidem no mesmo startTime → E11000,
 // que as server actions traduzem em "slot ocupado". Parcial via blocksSlot
-// para que reservas canceladas/no-show/concluídas NÃO bloqueiem o slot.
+// para que marcações canceladas/no-show/concluídas NÃO bloqueiem o slot.
 bookingSchema.index(
   { staffId: 1, startTime: 1 },
   { unique: true, partialFilterExpression: { blocksSlot: true } },
@@ -267,7 +267,7 @@ bookingSchema.index({ source: 1, startTime: -1 });
  * Normalização + validação ANTES da validação de schema (pre-validate),
  * para que os campos derivados (totalDuration, endTime, bufferAfter,
  * blocksSlot) existam sempre e sejam a ÚNICA fonte da verdade —
- * independentemente de quem cria a reserva (site público ou admin).
+ * independentemente de quem cria a marcação (site público ou admin).
  * Isto elimina a divergência online-vs-admin e garante endTime coerente.
  */
 bookingSchema.pre('validate', function () {
@@ -284,7 +284,7 @@ bookingSchema.pre('validate', function () {
 
   // Derivar totalDuration, totalPrice e bufferAfter a partir dos serviços.
   // totalDuration = Σ durações + Σ buffers ENTRE serviços (todos exceto o último).
-  // O buffer do ÚLTIMO serviço vira o buffer APÓS a reserva (bufferAfter),
+  // O buffer do ÚLTIMO serviço vira o buffer APÓS a marcação (bufferAfter),
   // usado apenas na deteção de conflitos, não no endTime.
   if (this.services && this.services.length > 0) {
     let chairTime = 0;
@@ -314,10 +314,10 @@ bookingSchema.pre('validate', function () {
   // Validação: cancelled exige razão e cancelledBy
   if (this.status === 'cancelled') {
     if (!this.cancellationReason?.trim()) {
-      throw new Error('Reservas canceladas têm de ter cancellationReason');
+      throw new Error('Marcações canceladas têm de ter cancellationReason');
     }
     if (!this.cancelledBy) {
-      throw new Error('Reservas canceladas têm de ter cancelledBy');
+      throw new Error('Marcações canceladas têm de ter cancelledBy');
     }
   }
 
@@ -331,7 +331,7 @@ bookingSchema.pre('validate', function () {
     this.startedAt = new Date();
   }
 
-  // blocksSlot: só reservas ativas ocupam a agenda (suporta índice único parcial)
+  // blocksSlot: só marcações ativas ocupam a agenda (suporta índice único parcial)
   this.blocksSlot = SLOT_BLOCKING_STATUSES.includes(this.status);
 });
 

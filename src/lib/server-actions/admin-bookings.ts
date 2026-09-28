@@ -6,6 +6,7 @@ import { connectDB } from '@/lib/db/connect';
 import { notifyAdminStatusChange } from '@/lib/booking/status-notifications';
 import {
   Booking,
+  Category,
   Client,
   Service,
   Staff,
@@ -45,7 +46,7 @@ export type AdminBookingForList = {
     photo?: string;
   } | null;
   services: Array<{ serviceId: string; name: string; price: number; duration: number }>;
-  /** Preenchido quando a reserva já foi cobrada (venda ligada). */
+  /** Preenchido quando a marcação já foi cobrada (venda ligada). */
   transactionId?: string;
   /** Hora real de início do atendimento (status → in-progress). */
   startedAt?: Date;
@@ -86,8 +87,14 @@ export type AdminBookingMeta = {
     name: string;
     price: number;
     duration: number;
+    /** Buffer de limpeza após o serviço (min) — entra na duração total */
+    bufferAfter: number;
+    /** Profissionais que fazem o serviço (vazio = qualquer um) */
+    staffIds: string[];
     categorySlug?: string;
   }>;
+  /** Categorias ativas, na ordem do admin — as tabs do modal são dinâmicas */
+  categories: Array<{ slug: string; name: string; color: string; order: number }>;
 };
 
 export type CreateManualBookingInput = {
@@ -173,7 +180,12 @@ function formatBooking(doc: any): AdminBookingForList {
           email: client.email,
         }
       : doc.guestInfo
-        ? { id: '', name: doc.guestInfo.name, phone: doc.guestInfo.phone, email: doc.guestInfo.email }
+        ? {
+            id: '',
+            name: doc.guestInfo.name,
+            phone: doc.guestInfo.phone,
+            email: doc.guestInfo.email,
+          }
         : { id: '', name: 'Cliente removido', phone: '' },
     staff: staff
       ? {
@@ -199,7 +211,7 @@ function formatBooking(doc: any): AdminBookingForList {
 // ============================================================
 
 /**
- * Reservas de HOJE (em Europe/Lisbon) para o board de atendimento da
+ * Marcações de HOJE (em Europe/Lisbon) para o board de atendimento da
  * dashboard, mais a lista de profissionais ativas (uma coluna cada).
  * Exclui canceladas — não são trabalho para ninguém no balcão.
  */
@@ -277,7 +289,7 @@ export async function getBookingsByDayAction(dateStr: string): Promise<DayBookin
     };
   } catch (err) {
     console.error('[getBookingsByDayAction]', err);
-    return { success: false, error: 'Erro ao buscar reservas' };
+    return { success: false, error: 'Erro ao buscar marcações' };
   }
 }
 
@@ -312,7 +324,7 @@ export async function getBookingsByWeekAction(dateStr: string): Promise<WeekBook
     };
   } catch (err) {
     console.error('[getBookingsByWeekAction]', err);
-    return { success: false, error: 'Erro ao buscar reservas' };
+    return { success: false, error: 'Erro ao buscar marcações' };
   }
 }
 
@@ -325,7 +337,7 @@ export type UpcomingBookingsResult =
   | { success: false; error: string };
 
 /**
- * Reservas ativas (pending/confirmed/in-progress) desde o início do
+ * Marcações ativas (pending/confirmed/in-progress) desde o início do
  * dia indicado até `days` dias à frente. Alimenta a vista "Próximas"
  * da agenda e o hint de dia vazio.
  */
@@ -361,7 +373,7 @@ export async function getUpcomingBookingsAction(
     };
   } catch (err) {
     console.error('[getUpcomingBookingsAction]', err);
-    return { success: false, error: 'Erro ao buscar próximas reservas' };
+    return { success: false, error: 'Erro ao buscar próximas marcações' };
   }
 }
 
@@ -382,7 +394,7 @@ export async function updateBookingStatusAction(input: UpdateStatusInput): Promi
   await connectDB();
 
   const booking = await Booking.findOne({ bookingNumber: input.bookingNumber });
-  if (!booking) return { success: false, error: 'Reserva não encontrada' };
+  if (!booking) return { success: false, error: 'Marcação não encontrada' };
 
   const oldStatus = booking.status;
 
@@ -392,7 +404,7 @@ export async function updateBookingStatusAction(input: UpdateStatusInput): Promi
   if (!canTransition(oldStatus, input.newStatus)) {
     return {
       success: false,
-      error: `A reserva já está "${BOOKING_STATUS_VISUAL[oldStatus].label}" — atualize o ecrã.`,
+      error: `A marcação já está "${BOOKING_STATUS_VISUAL[oldStatus].label}" — atualize o ecrã.`,
     };
   }
 
@@ -519,7 +531,7 @@ export async function createManualBookingAction(
   if (conflict) {
     return {
       success: false,
-      error: `Conflito: ${staff.name} já tem reserva neste horário.`,
+      error: `Conflito: ${staff.name} já tem marcação neste horário.`,
     };
   }
 
@@ -558,7 +570,7 @@ export async function createManualBookingAction(
     ) {
       return {
         success: false,
-        error: `Conflito: ${staff.name} já tem reserva neste horário.`,
+        error: `Conflito: ${staff.name} já tem marcação neste horário.`,
       };
     }
     throw err;
@@ -572,7 +584,7 @@ export async function createManualBookingAction(
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Reserva manual: ${bookingNumber} (${input.source}) — ${clientDoc.name}`,
+    message: `Marcação manual: ${bookingNumber} (${input.source}) — ${clientDoc.name}`,
     severity: 'info',
     metadata: {
       bookingNumber,
@@ -627,10 +639,13 @@ export async function searchClientsAction(query: string): Promise<SearchClientsR
 export async function getAdminBookingMetaAction(): Promise<AdminBookingMeta> {
   await connectDB();
 
-  const [staff, services] = await Promise.all([
+  const [staff, services, categories] = await Promise.all([
     Staff.find({ active: true }).sort({ order: 1 }).lean(),
     Service.find({ active: true }).sort({ order: 1 }).populate('categoryId', 'slug').lean(),
+    Category.find({ active: true }).sort({ order: 1 }).lean(),
   ]);
+
+  const FALLBACK_COLOR = '#1F3D2E';
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   return {
@@ -644,7 +659,15 @@ export async function getAdminBookingMetaAction(): Promise<AdminBookingMeta> {
       name: s.name?.pt ?? '',
       price: s.price,
       duration: s.duration,
+      bufferAfter: s.bufferAfter ?? 0,
+      staffIds: (s.staffIds ?? []).map(String),
       categorySlug: s.categoryId?.slug,
+    })),
+    categories: categories.map((c: any) => ({
+      slug: c.slug,
+      name: c.name?.pt ?? c.slug,
+      color: c.color ?? FALLBACK_COLOR,
+      order: c.order ?? 0,
     })),
   };
   /* eslint-enable @typescript-eslint/no-explicit-any */

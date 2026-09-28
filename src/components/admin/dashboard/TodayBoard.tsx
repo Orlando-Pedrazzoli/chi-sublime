@@ -45,6 +45,7 @@ type TodayBoardProps = {
   bookings: AdminBookingForList[];
   staff: StaffOption[];
   services: AdminBookingMeta['services'];
+  categories: AdminBookingMeta['categories'];
   /** YYYY-MM-DD de hoje em Lisboa (para o walk-in) */
   today: string;
 };
@@ -53,7 +54,7 @@ type Override = { status: BookingStatus; startedAt?: Date };
 
 const UNASSIGNED = '__unassigned__';
 
-export function TodayBoard({ bookings, staff, services, today }: TodayBoardProps) {
+export function TodayBoard({ bookings, staff, services, categories, today }: TodayBoardProps) {
   const router = useRouter();
   const toast = useToast();
 
@@ -99,9 +100,14 @@ export function TodayBoard({ bookings, staff, services, today }: TodayBoardProps
     }
 
     const list: Array<{ id: string; name: string; photo?: string; items: AdminBookingForList[] }> =
-      staff.map((s) => ({ id: s.id, name: s.name, photo: s.photo, items: byStaff.get(s.id) ?? [] }));
+      staff.map((s) => ({
+        id: s.id,
+        name: s.name,
+        photo: s.photo,
+        items: byStaff.get(s.id) ?? [],
+      }));
 
-    // Profissionais inativas que ainda têm reservas hoje
+    // Profissionais inativas que ainda têm marcações hoje
     for (const [key, items] of byStaff) {
       if (key === UNASSIGNED || staff.some((s) => s.id === key)) continue;
       list.push({ id: key, name: items[0].staff?.name ?? 'Profissional', items });
@@ -273,7 +279,7 @@ export function TodayBoard({ bookings, staff, services, today }: TodayBoardProps
         onClose={() => setPrefill(null)}
         onCompleted={() => {
           setPrefill(null);
-          toast.success('Venda registada — reserva concluída.');
+          toast.success('Venda registada — marcação concluída.');
           router.refresh();
         }}
       />
@@ -293,14 +299,15 @@ export function TodayBoard({ bookings, staff, services, today }: TodayBoardProps
         <NewBookingModal
           staff={staff}
           services={services}
+          categories={categories}
           defaultDate={today}
           prefillTime={walkInTime()}
           prefillStaffId={walkInStaffId || undefined}
           prefillSource="walk-in"
           onClose={() => setWalkInStaffId(null)}
-          onCreated={() => {
+          onCreated={(created) => {
             setWalkInStaffId(null);
-            toast.success('Walk-in registado.');
+            toast.success(`Walk-in registado — ${created.clientName} com ${created.staffName}.`);
             router.refresh();
           }}
         />
@@ -387,7 +394,11 @@ function StaffColumn({
               {name}
             </p>
             <p className="truncate text-[11px]" style={{ color: '#5A5A5A' }}>
-              {live.length > 0 ? 'Em atendimento' : upcoming.length > 0 ? 'Livre' : 'Sem mais clientes'}
+              {live.length > 0
+                ? 'Em atendimento'
+                : upcoming.length > 0
+                  ? 'Livre'
+                  : 'Sem mais clientes'}
               {upcoming.length > 0 ? ` · ${upcoming.length} por chegar` : ''}
             </p>
           </div>
@@ -444,7 +455,7 @@ function StaffColumn({
             className="rounded-md border border-dashed text-center text-xs italic"
             style={{ borderColor: 'rgba(31,61,46,0.15)', color: '#9A9A9A', padding: '20px 12px' }}
           >
-            Sem reservas por atender.
+            Sem marcações por atender.
           </p>
         ) : null}
 

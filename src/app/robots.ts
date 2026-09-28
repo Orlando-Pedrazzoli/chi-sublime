@@ -9,7 +9,7 @@
  *   relevantes para o mercado PT) + regra genérica para os restantes.
  * - Bloqueia tudo o que é privado, transacional ou stateful:
  *   admin, API, área de cliente, autenticação e passos do funil
- *   de reserva (dependem de sessão — crawl geraria soft-404s).
+ *   de marcação (dependem de sessão — crawl geraria soft-404s).
  * - /marcacoes (passo 1) fica INDEXÁVEL — é landing page valiosa
  *   para "marcar cabeleireiro Cascais". Apenas os sub-passos
  *   (/marcacoes/horario, /marcacoes/confirmar, /marcacoes/[nº])

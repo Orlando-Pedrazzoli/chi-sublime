@@ -7,7 +7,7 @@
  * envia via `sendEmail` (resend.ts). Templates são componentes puros;
  * aqui é que se constroem os URLs e os assuntos.
  *
- * NOVO: sendNewBookingAdminEmail — alerta ao SALÃO a cada reserva
+ * NOVO: sendNewBookingAdminEmail — alerta ao SALÃO a cada marcação
  * nova (substitui o push do Noona HQ). Destinatário configurável
  * via SALON_NOTIFICATION_EMAIL (fallback: FROM_EMAIL).
  *
@@ -61,7 +61,7 @@ export {
 export type { SendEmailInput, SendEmailResult } from './resend';
 
 /**
- * Para onde vão os alertas operacionais do salão (novas reservas).
+ * Para onde vão os alertas operacionais do salão (novas marcações).
  * Definir SALON_NOTIFICATION_EMAIL no .env; sem ela, cai no FROM
  * (a caixa reservas@chisublime.pt recebe os próprios alertas).
  */
@@ -121,7 +121,7 @@ export async function sendEmailVerificationEmail(params: {
 }
 
 // ============================================================
-// Reservas
+// Marcações
 // ============================================================
 
 export async function sendBookingConfirmationEmail(params: {
@@ -234,7 +234,7 @@ export async function sendNewBookingAdminEmail(params: {
     staffName: params.staffName,
     total: params.total,
     source: params.source,
-    agendaUrl: `${APP_URL}/admin/reservas`,
+    agendaUrl: `${APP_URL}/admin/marcacoes`,
     pendingApproval: params.pendingApproval,
   });
   const { html, text } = await renderEmail(node);
@@ -315,7 +315,7 @@ export async function sendBookingCancelledAdminEmail(params: {
 }): Promise<SendEmailResult> {
   const node = createElement(BookingCancelledAdminEmail, {
     ...params,
-    agendaUrl: `${APP_URL}/admin/reservas`,
+    agendaUrl: `${APP_URL}/admin/marcacoes`,
   });
   const { html, text } = await renderEmail(node);
   return sendEmail({

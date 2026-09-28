@@ -9,20 +9,20 @@
  *  - SEGURANÇA: createBookingAction exige sessão de cliente. O fluxo
  *    /marcacoes/confirmar só funciona com login, mas a action podia ser
  *    chamada diretamente com qualquer nome/email/telefone.
- *  - DADOS: a reserva liga-se ao Client da SESSÃO. Antes procurava
+ *  - DADOS: a marcação liga-se ao Client da SESSÃO. Antes procurava
  *    por email OU telefone e renomeava o registo encontrado — uma mãe
- *    a marcar para a filha com o mesmo telefone ficava com a reserva
+ *    a marcar para a filha com o mesmo telefone ficava com a marcação
  *    (e o nome) trocados.
  *  - AGENDA: a verificação final de conflito considera o buffer das
- *    reservas existentes e qualquer sobreposição, igual ao motor de
+ *    marcações existentes e qualquer sobreposição, igual ao motor de
  *    disponibilidade (antes ignorava o buffer).
  *  - `source` forçado a 'website' (vinha do browser).
  *  - Cancelamento por token: o email ao cliente usava guestInfo, que
- *    nunca existe em reservas online → nenhum email era enviado.
+ *    nunca existe em marcações online → nenhum email era enviado.
  *  - Janela de cancelamento lida de BOOKING_RULES.
  *  - getAvailableSlotsAction valida o input (IDs inválidos rebentavam).
  *  - POLÍTICA: confirmação instantânea (lib/booking/policy.ts). A
- *    reserva nasce 'confirmed' e o email de confirmação leva o convite
+ *    marcação nasce 'confirmed' e o email de confirmação leva o convite
  *    .ics. Com approvalMode='manual' nasce 'pending' e o cliente recebe
  *    "pedido recebido".
  *  - Cancelamentos pela cliente alertam o salão (horário ficou livre).
@@ -188,7 +188,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       success: false,
       error: {
         code: 'rate-limit',
-        message: `Demasiadas reservas. Tente novamente em ${Math.ceil((rateLimit.retryAfter ?? 60) / 60)} minutos.`,
+        message: `Demasiadas marcações. Tente novamente em ${Math.ceil((rateLimit.retryAfter ?? 60) / 60)} minutos.`,
       },
     };
   }
@@ -197,7 +197,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
 
   const dateObj = parseDateString(data.date);
 
-  // ── Guarda explícita do horizonte de reserva ────────────────
+  // ── Guarda explícita do horizonte de marcação ────────────────
   // O getAvailableSlots abaixo já valida isto, mas é uma função de
   // LEITURA. Garantir uma invariante de ESCRITA através de um efeito
   // secundário de uma leitura é frágil: qualquer caminho novo (API
@@ -307,9 +307,9 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
   const bookingNumber = await generateBookingNumber();
 
   try {
-    // Verificação final contra reservas criadas entre o cálculo dos slots e
+    // Verificação final contra marcações criadas entre o cálculo dos slots e
     // agora. Mesma regra do motor de disponibilidade: sobreposição real,
-    // contando o buffer após cada reserva existente. (O índice único só
+    // contando o buffer após cada marcação existente. (O índice único só
     // apanha o MESMO startTime; sobreposições parciais passavam.)
     const MAX_BUFFER_MS = 120 * 60_000;
     const nearby = await Booking.find({
@@ -337,7 +337,7 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
         success: false,
         error: {
           code: 'slot-taken',
-          message: 'Este horario foi reservado por outro cliente. Por favor escolha outro.',
+          message: 'Este horario foi marcado por outro cliente. Por favor escolha outro.',
         },
       };
     }
@@ -412,14 +412,14 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
         success: false,
         error: {
           code: 'slot-taken',
-          message: 'Este horario foi reservado por outro cliente. Por favor escolha outro.',
+          message: 'Este horario foi marcado por outro cliente. Por favor escolha outro.',
         },
       };
     }
     console.error('[createBookingAction] Falha:', err);
     return {
       success: false,
-      error: { code: 'internal', message: 'Erro ao criar reserva. Por favor tente novamente.' },
+      error: { code: 'internal', message: 'Erro ao criar marcação. Por favor tente novamente.' },
     };
   }
 }
@@ -450,7 +450,7 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
 
   const booking = await Booking.findOne({ bookingNumber });
   if (!booking) {
-    return { success: false, error: { code: 'not-found', message: 'Reserva nao encontrada' } };
+    return { success: false, error: { code: 'not-found', message: 'Marcação nao encontrada' } };
   }
 
   const tokenMatch = booking.internalNotes?.match(/cancellationToken=(\S+)/);
@@ -461,14 +461,14 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
   if (booking.status === 'cancelled') {
     return {
       success: false,
-      error: { code: 'already-cancelled', message: 'Reserva ja foi cancelada' },
+      error: { code: 'already-cancelled', message: 'Marcação ja foi cancelada' },
     };
   }
 
   if (booking.status === 'completed') {
     return {
       success: false,
-      error: { code: 'already-cancelled', message: 'Reserva ja foi concluida' },
+      error: { code: 'already-cancelled', message: 'Marcação ja foi concluida' },
     };
   }
 
@@ -500,7 +500,7 @@ export async function cancelBookingAction(input: unknown): Promise<CancelBooking
     metadata: { reason: booking.cancellationReason },
   });
 
-  // Reservas online têm clientId (não guestInfo) — resolver o contacto no Client
+  // Marcações online têm clientId (não guestInfo) — resolver o contacto no Client
   const [bookingClient, bookingStaff] = await Promise.all([
     booking.clientId ? Client.findById(booking.clientId).select('name email phone').lean() : null,
     Staff.findById(booking.staffId).select('name').lean(),
@@ -614,7 +614,7 @@ export async function getMyBookingsAction(): Promise<GetMyBookingsResult> {
     return { success: true, bookings: formatted };
   } catch (err) {
     console.error('[getMyBookingsAction] failed:', err);
-    return { success: false, error: 'Erro ao buscar reservas' };
+    return { success: false, error: 'Erro ao buscar marcações' };
   }
 }
 
@@ -635,20 +635,20 @@ export async function cancelMyBookingAction(input: {
   });
 
   if (!booking) {
-    return { success: false, error: { code: 'not-found', message: 'Reserva não encontrada' } };
+    return { success: false, error: { code: 'not-found', message: 'Marcação não encontrada' } };
   }
 
   if (booking.status === 'cancelled') {
     return {
       success: false,
-      error: { code: 'already-cancelled', message: 'Reserva já cancelada' },
+      error: { code: 'already-cancelled', message: 'Marcação já cancelada' },
     };
   }
 
   if (!['pending', 'confirmed'].includes(booking.status)) {
     return {
       success: false,
-      error: { code: 'already-completed', message: 'Esta reserva já não pode ser cancelada' },
+      error: { code: 'already-completed', message: 'Esta marcação já não pode ser cancelada' },
     };
   }
 
@@ -678,7 +678,7 @@ export async function cancelMyBookingAction(input: {
     userName: session.user.name,
     userEmail: session.user.email,
     userRole: 'client',
-    message: `Cliente cancelou reserva ${input.bookingNumber} pela área de cliente`,
+    message: `Cliente cancelou marcação ${input.bookingNumber} pela área de cliente`,
     severity: 'info',
     metadata: { reason: booking.cancellationReason },
   });

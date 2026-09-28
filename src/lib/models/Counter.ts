@@ -9,7 +9,7 @@
  * sequencial e não pode haver lacunas (exigência da AT).
  *
  * Usamos `findOneAndUpdate` com `$inc` que é uma operação atómica
- * a nível de MongoDB — mesmo que 1000 utilizadores criem reservas
+ * a nível de MongoDB — mesmo que 1000 utilizadores criem marcações
  * ao mesmo tempo, cada um recebe um número único e sequencial.
  *
  * Padrões de uso:

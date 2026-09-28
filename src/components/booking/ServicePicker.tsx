@@ -6,7 +6,7 @@
  * ============================================================
  *
  * Accordion de categorias com lista de servicos para o cliente
- * escolher um ou mais para a reserva.
+ * escolher um ou mais para a marcação.
  *
  * ELEGIBILIDADE (set. 2026):
  *  Uma marcação é feita por UM profissional, do princípio ao fim
@@ -395,7 +395,7 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
       {/* Aviso de limite */}
       {isMaxServicesReached && (
         <p className="text-chi-charcoal-light pt-4 text-center text-sm leading-relaxed italic">
-          Atingiu o máximo de 5 serviços por reserva. Para escolher outro, remova um dos
+          Atingiu o máximo de 5 serviços por marcação. Para escolher outro, remova um dos
           selecionados.
         </p>
       )}

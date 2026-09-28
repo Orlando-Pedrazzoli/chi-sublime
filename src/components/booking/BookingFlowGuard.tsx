@@ -4,7 +4,7 @@
  * Chi Sublime — Booking Flow Guard
  * ============================================================
  *
- * Componente que protege rotas do flow de reserva.
+ * Componente que protege rotas do flow de marcação.
  * Se o utilizador chegar a /marcacoes/horario sem ter passado pelo
  * Step 1 (sessionStorage vazio), redireciona para /marcacoes.
  *
@@ -36,7 +36,7 @@ export function BookingFlowGuard({ fallback, children, requireStep }: Props) {
   useEffect(() => {
     if (!isHydrated) return;
 
-    // Reserva acabada de criar e hard navigation em curso — não
+    // Marcação acabada de criar e hard navigation em curso — não
     // interferir (ver markLeavingFlow no Step3Client)
     if (isLeavingFlow()) return;
 
