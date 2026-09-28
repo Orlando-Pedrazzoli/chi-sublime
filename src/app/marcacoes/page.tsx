@@ -16,12 +16,16 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
 import { connectDB } from '@/lib/db/connect';
-import { Category, Service } from '@/lib/models';
+import { Category, Service, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingStepper } from '@/components/booking/BookingStepper';
 import { BookingSummary } from '@/components/booking/BookingSummary';
-import { ServicePicker, type CategoryWithServices } from '@/components/booking/ServicePicker';
+import {
+  ServicePicker,
+  type CategoryWithServices,
+  type StaffLite,
+} from '@/components/booking/ServicePicker';
 
 export const metadata: Metadata = {
   title: 'Marcações Online em Cascais | Chi Sublime',
@@ -59,12 +63,23 @@ async function getCategoriesWithServices(locale: Locale): Promise<CategoryWithSe
           bufferAfter: s.bufferAfter ?? 5,
           price: s.price,
           popular: s.popular ?? false,
+          // Elegibilidade: quem faz este serviço (vazio = qualquer um).
+          // Permite ao ServicePicker avisar, ANTES do passo 2, quando
+          // dois serviços não têm nenhum profissional em comum.
+          staffIds: (s.staffIds ?? []).map(String),
         })),
       };
     }),
   );
 
   return result;
+}
+
+/** Profissionais ativos (só id + nome) — para as mensagens de elegibilidade. */
+async function getActiveStaffLite(): Promise<StaffLite[]> {
+  await connectDB();
+  const staff = await Staff.find({ active: true }).sort({ order: 1 }).select('name').lean();
+  return staff.map((s) => ({ id: String(s._id), name: s.name }));
 }
 
 // ============================================================
@@ -76,9 +91,10 @@ type SearchParams = Promise<{ categoria?: string }>;
 export default async function MarcacoesPage({ searchParams }: { searchParams: SearchParams }) {
   const { categoria } = await searchParams;
   const locale = (await getLocale()) as Locale;
-  const [t, categories] = await Promise.all([
+  const [t, categories, staff] = await Promise.all([
     getTranslations('booking.pages'),
     getCategoriesWithServices(locale),
+    getActiveStaffLite(),
   ]);
 
   return (
@@ -111,7 +127,7 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-12">
             {/* Coluna principal — categorias e servicos */}
             <div>
-              <ServicePicker categories={categories} initialOpenSlug={categoria} />
+              <ServicePicker categories={categories} staff={staff} initialOpenSlug={categoria} />
             </div>
 
             {/* Coluna lateral — resumo (sticky em desktop; no mobile o

@@ -231,6 +231,22 @@
       "withStaff": "com {name}",
       "confirmSlot": "Confirmar este horário",
       "changeHint": "Podes escolher outro horário na lista acima."
+    },
+    "eligibility": {
+      "and": "e",
+      "dismiss": "Fechar aviso",
+      "staffNotEligibleBadge": "Não faz este serviço",
+      "staffNotEligible": "{name} não realiza {services}. Escolha outro profissional ou «Qualquer disponível» para ver todas as datas.",
+      "resetToAny": "Repusemos «Qualquer disponível» para lhe mostrar os horários possíveis.",
+      "separateBookingBadge": "Marcação separada",
+      "incompatibleService": "«{service}» é feito por {serviceStaff}, mas {cart} é feito por {cartStaff}. Cada marcação é realizada por um único profissional, por isso estes serviços não podem ser combinados na mesma marcação.",
+      "separateBookingHint": "Conclua esta marcação e faça uma segunda marcação para este serviço — pode escolher um horário logo a seguir.",
+      "noCommonStaffKicker": "Atenção",
+      "noCommonStaffTitle": "Estes serviços são feitos por profissionais diferentes",
+      "noCommonStaffBody": "Cada marcação é realizada por um único profissional do princípio ao fim, e nenhum dos nossos profissionais faz todos os serviços que escolheu:",
+      "performedBy": "feito por {staff}",
+      "noCommonStaffHint": "Volte aos serviços, mantenha apenas os que são feitos pelo mesmo profissional e faça uma segunda marcação para os restantes — pode escolher um horário logo a seguir.",
+      "backToServices": "Voltar aos serviços"
     }
   },
   "contact": {

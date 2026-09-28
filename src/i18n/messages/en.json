@@ -231,6 +231,22 @@
       "withStaff": "with {name}",
       "confirmSlot": "Confirm this time",
       "changeHint": "You can pick a different time from the list above."
+    },
+    "eligibility": {
+      "and": "and",
+      "dismiss": "Dismiss notice",
+      "staffNotEligibleBadge": "Does not offer this service",
+      "staffNotEligible": "{name} does not offer {services}. Choose another professional or «Any available» to see all dates.",
+      "resetToAny": "We switched to «Any available» so you can see the possible times.",
+      "separateBookingBadge": "Separate booking",
+      "incompatibleService": "«{service}» is performed by {serviceStaff}, but {cart} is performed by {cartStaff}. Each booking is carried out by a single professional, so these services cannot be combined in the same booking.",
+      "separateBookingHint": "Complete this booking and make a second one for this service — you can pick a time right after.",
+      "noCommonStaffKicker": "Heads up",
+      "noCommonStaffTitle": "These services are performed by different professionals",
+      "noCommonStaffBody": "Each booking is carried out by a single professional from start to finish, and none of our professionals offers every service you selected:",
+      "performedBy": "performed by {staff}",
+      "noCommonStaffHint": "Go back to the services, keep only the ones offered by the same professional and make a second booking for the rest — you can pick a time right after.",
+      "backToServices": "Back to services"
     }
   },
   "contact": {

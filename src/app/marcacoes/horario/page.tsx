@@ -15,7 +15,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
 import { connectDB } from '@/lib/db/connect';
-import { Staff } from '@/lib/models';
+import { Service, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingStepper } from '@/components/booking/BookingStepper';
@@ -43,15 +43,32 @@ async function getActiveStaff(locale: Locale): Promise<StaffOption[]> {
   }));
 }
 
+/**
+ * Mapa serviço → profissionais que o fazem (vazio = qualquer um),
+ * para TODOS os serviços ativos. O carrinho vive no sessionStorage
+ * (o servidor não o conhece), por isso o Step2Client cruza este mapa
+ * com os serviços escolhidos no browser — sem round-trip extra.
+ */
+async function getServiceEligibility(): Promise<Record<string, string[]>> {
+  await connectDB();
+  const services = await Service.find({ active: true }).select('staffIds').lean();
+  const map: Record<string, string[]> = {};
+  for (const s of services) {
+    map[String(s._id)] = (s.staffIds ?? []).map(String);
+  }
+  return map;
+}
+
 // ============================================================
 // PAGE
 // ============================================================
 
 export default async function MarcacoesHorarioPage() {
   const locale = (await getLocale()) as Locale;
-  const [t, staffOptions] = await Promise.all([
+  const [t, staffOptions, serviceEligibility] = await Promise.all([
     getTranslations('booking.pages'),
     getActiveStaff(locale),
+    getServiceEligibility(),
   ]);
 
   return (
@@ -82,7 +99,7 @@ export default async function MarcacoesHorarioPage() {
 
           {/* Conteudo protegido — exige Step 1 completado */}
           <BookingFlowGuard requireStep="time">
-            <Step2Client staffOptions={staffOptions} />
+            <Step2Client staffOptions={staffOptions} serviceEligibility={serviceEligibility} />
           </BookingFlowGuard>
         </div>
       </main>

@@ -1,3 +1,4 @@
+// 📄 src/components/booking/StaffPicker.tsx
 'use client';
 
 /**
@@ -13,11 +14,21 @@
  *  - Cards: foto round + nome + role
  *  - Selecionado: borda dourada + sombra
  *
- * Mobile: scroll horizontal (overflow-x).
- * Desktop: grelha 4 colunas.
+ * ELEGIBILIDADE (set. 2026):
+ *  Um profissional que NÃO faz (pelo menos) um dos serviços do
+ *  carrinho aparece DESATIVADO COM EXPLICAÇÃO — cinzento, badge
+ *  "Não faz este serviço" — e o clique NÃO o seleciona: chama
+ *  `onBlockedSelect`, que mostra o aviso no Step2Client. Antes, o
+ *  cliente selecionava-o, o calendário ficava sem datas e ninguém
+ *  lhe dizia porquê.
+ *  (Padrão Nielsen: desativar + explicar > esconder; os líderes do
+ *  setor — Fresha, Booksy, Vagaro — filtram a lista por serviço.)
+ *
+ * Mobile: grelha 2 colunas. Desktop: grelha 4 colunas.
  */
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
 import { cn } from '@/lib/utils/cn';
 
@@ -30,13 +41,25 @@ export type StaffOption = {
 
 type Props = {
   staffOptions: StaffOption[];
+  /** Staff efetivamente selecionado ('any' quando o guardado deixou de ser elegível) */
+  selectedStaffId: string;
+  /** IDs dos profissionais que fazem TODOS os serviços do carrinho */
+  qualifiedStaffIds: string[];
+  /** Chamado quando o cliente toca num profissional não elegível */
+  onBlockedSelect: (staff: StaffOption) => void;
 };
 
-export function StaffPicker({ staffOptions }: Props) {
-  const { staffId, updateState } = useBookingFlow();
+export function StaffPicker({
+  staffOptions,
+  selectedStaffId,
+  qualifiedStaffIds,
+  onBlockedSelect,
+}: Props) {
+  const t = useTranslations('booking.eligibility');
+  const { updateState } = useBookingFlow();
 
-  // Se nao houver staffId definido, default a "any"
-  const currentStaffId = staffId ?? 'any';
+  // O selecionado vem do orquestrador (já com fallback a "any")
+  const currentStaffId = selectedStaffId;
 
   const handleSelect = (id: string) => {
     updateState({ staffId: id, date: null, time: null, assignedStaffName: null });
@@ -99,23 +122,31 @@ export function StaffPicker({ staffOptions }: Props) {
         {/* Cards de staff */}
         {staffOptions.map((staff) => {
           const isSelected = currentStaffId === staff.id;
+          const isEligible = qualifiedStaffIds.includes(staff.id);
 
           return (
             <button
               key={staff.id}
-              onClick={() => handleSelect(staff.id)}
+              onClick={() => (isEligible ? handleSelect(staff.id) : onBlockedSelect(staff))}
               className={cn(
-                'group bg-chi-cream flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all',
+                'group bg-chi-cream relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all',
                 isSelected
                   ? 'border-chi-gold shadow-gold'
-                  : 'border-chi-border hover:border-chi-gold/50 hover:shadow-soft',
+                  : isEligible
+                    ? 'border-chi-border hover:border-chi-gold/50 hover:shadow-soft'
+                    : 'border-chi-border cursor-not-allowed',
               )}
+              // Cor/opacidade críticas em inline style (regra do projeto)
+              style={!isEligible ? { opacity: 0.55, backgroundColor: '#F3EFE8' } : undefined}
               aria-pressed={isSelected}
+              aria-disabled={!isEligible || undefined}
+              title={!isEligible ? t('staffNotEligibleBadge') : undefined}
             >
               <div
                 className={cn(
                   'bg-chi-sand relative h-16 w-16 overflow-hidden rounded-full transition-all md:h-20 md:w-20',
                   isSelected && 'ring-chi-gold ring-offset-chi-cream ring-2 ring-offset-2',
+                  !isEligible && 'grayscale',
                 )}
               >
                 {staff.photo ? (
@@ -141,9 +172,18 @@ export function StaffPicker({ staffOptions }: Props) {
                 >
                   {staff.name}
                 </p>
-                <p className="text-chi-charcoal-light mt-1 line-clamp-1 text-[10px] tracking-[0.18em] uppercase">
-                  {staff.role}
-                </p>
+                {isEligible ? (
+                  <p className="text-chi-charcoal-light mt-1 line-clamp-1 text-[10px] tracking-[0.18em] uppercase">
+                    {staff.role}
+                  </p>
+                ) : (
+                  <p
+                    className="mt-1 line-clamp-2 text-[10px] font-semibold tracking-[0.14em] uppercase"
+                    style={{ color: '#8A6D3B' }}
+                  >
+                    {t('staffNotEligibleBadge')}
+                  </p>
+                )}
               </div>
             </button>
           );
