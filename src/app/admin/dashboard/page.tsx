@@ -327,6 +327,8 @@ export default async function AdminDashboardPage() {
           services={meta.services}
           categories={meta.categories}
           today={today}
+          days={board.days}
+          upcoming={board.upcoming}
         />
       ) : (
         <div

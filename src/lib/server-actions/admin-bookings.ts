@@ -15,7 +15,16 @@ import {
   type IBooking,
 } from '@/lib/models';
 import { auth } from '@/lib/auth';
-import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
+import {
+  combineDateAndTime,
+  timeToMinutes,
+  minutesToTime,
+  getWeekDay,
+} from '@/lib/utils/time-utils';
+import { isStaffOnVacation } from '@/lib/booking/availability';
+
+/** Dias à frente de hoje que o board da dashboard carrega para consulta */
+const BOARD_WINDOW_DAYS = 6;
 import { BOOKING_RULES } from '@/lib/constants/business';
 import { canTransition, BOOKING_STATUS_VISUAL } from '@/lib/constants/booking-status';
 import { resolveRange } from '@/lib/utils/dates';
@@ -52,12 +61,26 @@ export type AdminBookingForList = {
   startedAt?: Date;
 };
 
+export type BoardStaff = {
+  id: string;
+  name: string;
+  photo?: string;
+  /** Dias (YYYY-MM-DD, dentro de `days`) em que não trabalha: folga ou férias */
+  offDays: Record<string, 'off' | 'vacation'>;
+};
+
 export type TodayBoardResult =
   | {
       success: true;
+      /** Hoje em Lisboa (YYYY-MM-DD) */
       date: string;
+      /** Janela do board: hoje + 6 dias seguintes (YYYY-MM-DD, em Lisboa) */
+      days: string[];
+      /** Marcações de HOJE (posto de trabalho — com ações) */
       bookings: AdminBookingForList[];
-      staff: Array<{ id: string; name: string; photo?: string }>;
+      /** Marcações dos dias seguintes da janela (só consulta) */
+      upcoming: AdminBookingForList[];
+      staff: BoardStaff[];
     }
   | { success: false; error: string };
 
@@ -223,10 +246,12 @@ export async function getTodayBoardAction(): Promise<TodayBoardResult> {
 
   try {
     const today = resolveRange('today');
+    // Janela: hoje + 6 dias (uma query só; o board divide por dia no cliente)
+    const windowEnd = new Date(today.to.getTime() + BOARD_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
     const [bookings, staff] = await Promise.all([
       Booking.find({
-        startTime: { $gte: today.from, $lte: today.to },
+        startTime: { $gte: today.from, $lte: windowEnd },
         status: { $ne: 'cancelled' },
       })
         .sort({ startTime: 1 })
@@ -239,18 +264,46 @@ export async function getTodayBoardAction(): Promise<TodayBoardResult> {
     /* eslint-disable @typescript-eslint/no-explicit-any */
     // YYYY-MM-DD em hora de Lisboa (toISOString daria o dia anterior
     // no verão: meia-noite em Lisboa = 23:00 UTC)
-    const date = new Intl.DateTimeFormat('en-CA', {
+    const lisbonDay = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Lisbon',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date());
+    });
+    const date = lisbonDay.format(new Date());
+
+    const days: string[] = [];
+    for (let i = 0; i <= BOARD_WINDOW_DAYS; i++) {
+      days.push(
+        lisbonDay.format(
+          new Date(today.from.getTime() + i * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000),
+        ),
+      );
+    }
+
+    const todayBookings: AdminBookingForList[] = [];
+    const upcoming: AdminBookingForList[] = [];
+    for (const doc of bookings) {
+      const formatted = formatBooking(doc);
+      if (lisbonDay.format(new Date(formatted.startTime)) === date) todayBookings.push(formatted);
+      else upcoming.push(formatted);
+    }
 
     return {
       success: true,
       date,
-      bookings: bookings.map(formatBooking),
-      staff: staff.map((s: any) => ({ id: String(s._id), name: s.name, photo: s.photo })),
+      days,
+      bookings: todayBookings,
+      upcoming,
+      staff: staff.map((s: any) => {
+        const offDays: Record<string, 'off' | 'vacation'> = {};
+        for (const iso of days) {
+          const noon = new Date(`${iso}T12:00:00`);
+          if (isStaffOnVacation(s, noon)) offDays[iso] = 'vacation';
+          else if (!s.workingHours?.[getWeekDay(noon)]?.enabled) offDays[iso] = 'off';
+        }
+        return { id: String(s._id), name: s.name, photo: s.photo, offDays };
+      }),
     };
     /* eslint-enable @typescript-eslint/no-explicit-any */
   } catch (err) {

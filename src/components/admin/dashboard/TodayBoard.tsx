@@ -22,16 +22,27 @@
  *
  * Reutiliza o que já existe: updateBookingStatusAction, CheckoutModal
  * (prefill), BookingDetailModal e NewBookingModal (walk-in).
+ *
+ * PRÓXIMOS DIAS (set. 2026):
+ *  Cada coluna tem uma faixa de 7 chips (hoje + 6) com a contagem de
+ *  marcações da profissional nesse dia; folgas/férias esbatidas. Tocar
+ *  noutro dia mostra a agenda desse dia em MODO LEITURA (sem Iniciar /
+ *  Cobrar — essas ações só fazem sentido hoje), com "Voltar a hoje" em
+ *  destaque. O estado vazio de hoje passa a dizer quando é a próxima
+ *  marcação. Tudo vem numa única query (getTodayBoardAction) — os chips
+ *  não fazem chamadas.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Plus, Users } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronUp, Plus, Users } from 'lucide-react';
 import {
   updateBookingStatusAction,
   type AdminBookingForList,
   type AdminBookingMeta,
+  type BoardStaff,
 } from '@/lib/server-actions/admin-bookings';
+import { BOOKING_STATUS_VISUAL } from '@/lib/constants/booking-status';
 import { CheckoutModal, type CheckoutPrefill } from '@/components/admin/checkout/CheckoutModal';
 import { BookingDetailModal } from '@/components/admin/agenda/BookingDetailModal';
 import { NewBookingModal } from '@/components/admin/agenda/NewBookingModal';
@@ -39,7 +50,7 @@ import { useToast } from '@/hooks/useToast';
 import { BoardBookingCard, type BoardAction } from './BoardBookingCard';
 
 type BookingStatus = AdminBookingForList['status'];
-type StaffOption = AdminBookingMeta['staff'][number];
+type StaffOption = AdminBookingMeta['staff'][number] & Partial<Pick<BoardStaff, 'offDays'>>;
 
 type TodayBoardProps = {
   bookings: AdminBookingForList[];
@@ -48,15 +59,76 @@ type TodayBoardProps = {
   categories: AdminBookingMeta['categories'];
   /** YYYY-MM-DD de hoje em Lisboa (para o walk-in) */
   today: string;
+  /** Janela do board: hoje + 6 dias (YYYY-MM-DD). Default: só hoje. */
+  days?: string[];
+  /** Marcações dos dias seguintes (consulta) */
+  upcoming?: AdminBookingForList[];
 };
+
+const LISBON_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Lisbon',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const LISBON_TIME = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: 'Europe/Lisbon',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+const WEEKDAY_SHORT = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const MONTH_SHORT = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+/** "qua 30" a partir de YYYY-MM-DD */
+function shortDay(iso: string): { weekday: string; day: number; month: string } {
+  const d = new Date(`${iso}T12:00:00`);
+  return { weekday: WEEKDAY_SHORT[d.getDay()], day: d.getDate(), month: MONTH_SHORT[d.getMonth()] };
+}
 
 type Override = { status: BookingStatus; startedAt?: Date };
 
 const UNASSIGNED = '__unassigned__';
 
-export function TodayBoard({ bookings, staff, services, categories, today }: TodayBoardProps) {
+export function TodayBoard({
+  bookings,
+  staff,
+  services,
+  categories,
+  today,
+  days,
+  upcoming = [],
+}: TodayBoardProps) {
   const router = useRouter();
   const toast = useToast();
+  const windowDays = days && days.length > 0 ? days : [today];
+
+  // Marcações futuras por profissional e por dia (só consulta)
+  const upcomingByStaffDay = useMemo(() => {
+    const map = new Map<string, Map<string, AdminBookingForList[]>>();
+    for (const b of upcoming) {
+      const key = b.staff?.id ?? UNASSIGNED;
+      const iso = LISBON_DAY.format(new Date(b.startTime));
+      if (!map.has(key)) map.set(key, new Map());
+      const byDay = map.get(key)!;
+      if (!byDay.has(iso)) byDay.set(iso, []);
+      byDay.get(iso)!.push(b);
+    }
+    return map;
+  }, [upcoming]);
 
   // ── Relógio partilhado (cronómetros / "atrasada") ────────────
   const [now, setNow] = useState(() => Date.now());
@@ -99,13 +171,19 @@ export function TodayBoard({ bookings, staff, services, categories, today }: Tod
       byStaff.get(key)!.push(b);
     }
 
-    const list: Array<{ id: string; name: string; photo?: string; items: AdminBookingForList[] }> =
-      staff.map((s) => ({
-        id: s.id,
-        name: s.name,
-        photo: s.photo,
-        items: byStaff.get(s.id) ?? [],
-      }));
+    const list: Array<{
+      id: string;
+      name: string;
+      photo?: string;
+      offDays?: Record<string, 'off' | 'vacation'>;
+      items: AdminBookingForList[];
+    }> = staff.map((s) => ({
+      id: s.id,
+      name: s.name,
+      photo: s.photo,
+      offDays: s.offDays,
+      items: byStaff.get(s.id) ?? [],
+    }));
 
     // Profissionais inativas que ainda têm marcações hoje
     for (const [key, items] of byStaff) {
@@ -259,6 +337,10 @@ export function TodayBoard({ bookings, staff, services, categories, today }: Tod
               name={col.name}
               photo={col.photo}
               items={col.items}
+              offDays={col.offDays ?? {}}
+              days={windowDays}
+              today={today}
+              upcomingByDay={upcomingByStaffDay.get(col.id) ?? new Map()}
               now={now}
               busy={busy}
               onAction={handleAction}
@@ -325,6 +407,10 @@ function StaffColumn({
   name,
   photo,
   items,
+  offDays,
+  days,
+  today,
+  upcomingByDay,
   now,
   busy,
   onAction,
@@ -334,12 +420,38 @@ function StaffColumn({
   name: string;
   photo?: string;
   items: AdminBookingForList[];
+  offDays: Record<string, 'off' | 'vacation'>;
+  days: string[];
+  today: string;
+  upcomingByDay: Map<string, AdminBookingForList[]>;
   now: number;
   busy: Record<string, true>;
   onAction: (action: BoardAction, booking: AdminBookingForList) => void;
   onWalkIn?: () => void;
 }) {
   const [showDone, setShowDone] = useState(false);
+  /** Dia em consulta nesta coluna (hoje = posto de trabalho) */
+  const [viewDayRaw, setViewDay] = useState(today);
+  // Se a janela avançou (virou o dia com o ecrã aberto), volta a hoje
+  const viewDay = days.includes(viewDayRaw) ? viewDayRaw : today;
+  const isToday = viewDay === today;
+
+  // Próxima marcação depois de hoje (para o estado vazio)
+  const nextUpcoming = useMemo(() => {
+    let best: AdminBookingForList | null = null;
+    for (const list of upcomingByDay.values()) {
+      for (const b of list) {
+        if (b.status !== 'pending' && b.status !== 'confirmed') continue;
+        if (!best || new Date(b.startTime) < new Date(best.startTime)) best = b;
+      }
+    }
+    return best;
+  }, [upcomingByDay]);
+
+  const countFor = (iso: string) =>
+    iso === today
+      ? items.filter((b) => b.status !== 'no-show').length
+      : (upcomingByDay.get(iso)?.length ?? 0);
 
   const live = items.filter((b) => b.status === 'in-progress');
   const upcoming = items
@@ -398,7 +510,7 @@ function StaffColumn({
                 ? 'Em atendimento'
                 : upcoming.length > 0
                   ? 'Livre'
-                  : 'Sem mais clientes'}
+                  : 'Sem mais clientes hoje'}
               {upcoming.length > 0 ? ` · ${upcoming.length} por chegar` : ''}
             </p>
           </div>
@@ -423,8 +535,75 @@ function StaffColumn({
         ) : null}
       </div>
 
-      {/* Corpo */}
-      <div className="flex flex-1 flex-col" style={{ padding: '10px', gap: '8px' }}>
+      {/* Faixa de dias — hoje + 6 (contagem por dia; folga/férias esbatidas) */}
+      {days.length > 1 ? (
+        <div
+          className="flex overflow-x-auto border-b"
+          style={{ gap: '4px', padding: '8px 10px', borderColor: 'rgba(31,61,46,0.08)' }}
+          role="tablist"
+          aria-label={`Agenda de ${name} nos próximos dias`}
+        >
+          {days.map((iso) => {
+            const active = iso === viewDay;
+            const off = offDays[iso];
+            const n = countFor(iso);
+            const { weekday, day } = shortDay(iso);
+            const isTodayChip = iso === today;
+            return (
+              <button
+                key={iso}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setViewDay(iso)}
+                title={off === 'vacation' ? 'Férias' : off === 'off' ? 'Folga' : `${n} marcações`}
+                className="flex shrink-0 flex-col items-center font-mono transition-colors"
+                style={{
+                  minWidth: '38px',
+                  padding: '4px 5px',
+                  borderRadius: '6px',
+                  border: `1px solid ${active ? '#1F3D2E' : 'transparent'}`,
+                  backgroundColor: active ? '#1F3D2E' : off ? 'transparent' : '#FFFFFF',
+                  color: active ? '#FAF7F2' : '#1F3D2E',
+                  opacity: off && !active ? 0.4 : 1,
+                  textDecoration: off && !active ? 'line-through' : 'none',
+                }}
+              >
+                <span className="text-[9px] tracking-[0.12em] uppercase" style={{ opacity: 0.8 }}>
+                  {isTodayChip ? 'hoje' : weekday}
+                </span>
+                <span className="text-xs leading-tight font-semibold">{day}</span>
+                <span
+                  className="text-[10px] leading-tight"
+                  style={{
+                    color: active ? '#D4AF6E' : n > 0 ? '#B8924A' : '#9A9A9A',
+                    fontWeight: n > 0 ? 600 : 400,
+                  }}
+                >
+                  {off ? '—' : n}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Modo consulta — outro dia, só leitura */}
+      {!isToday ? (
+        <ReadOnlyDay
+          iso={viewDay}
+          off={offDays[viewDay]}
+          items={upcomingByDay.get(viewDay) ?? []}
+          onBack={() => setViewDay(today)}
+          onOpen={(b) => onAction('open', b)}
+        />
+      ) : null}
+
+      {/* Corpo — posto de trabalho (só hoje) */}
+      <div
+        className="flex flex-1 flex-col"
+        style={{ padding: '10px', gap: '8px', display: isToday ? 'flex' : 'none' }}
+      >
         {live.map((b) => (
           <BoardBookingCard
             key={b.bookingNumber}
@@ -451,12 +630,35 @@ function StaffColumn({
             ))}
           </>
         ) : live.length === 0 ? (
-          <p
-            className="rounded-md border border-dashed text-center text-xs italic"
-            style={{ borderColor: 'rgba(31,61,46,0.15)', color: '#9A9A9A', padding: '20px 12px' }}
+          <div
+            className="rounded-md border border-dashed text-center text-xs"
+            style={{ borderColor: 'rgba(31,61,46,0.15)', color: '#9A9A9A', padding: '16px 12px' }}
           >
-            Sem marcações por atender.
-          </p>
+            <p className="italic">Sem mais marcações hoje.</p>
+            {nextUpcoming ? (
+              <button
+                type="button"
+                onClick={() => setViewDay(LISBON_DAY.format(new Date(nextUpcoming.startTime)))}
+                className="mt-2 inline-flex items-center text-left not-italic hover:underline"
+                style={{ gap: '6px', color: '#1F3D2E' }}
+              >
+                <CalendarDays size={12} style={{ color: '#B8924A' }} />
+                <span>
+                  <strong>Próxima:</strong>{' '}
+                  {(() => {
+                    const { weekday, day } = shortDay(
+                      LISBON_DAY.format(new Date(nextUpcoming.startTime)),
+                    );
+                    return `${weekday} ${day}, ${LISBON_TIME.format(new Date(nextUpcoming.startTime))}`;
+                  })()}{' '}
+                  — {nextUpcoming.client.name} ·{' '}
+                  {nextUpcoming.services.map((s) => s.name).join(', ')}
+                </span>
+              </button>
+            ) : days.length > 1 ? (
+              <p className="mt-1.5">Sem marcações nos próximos {days.length - 1} dias.</p>
+            ) : null}
+          </div>
         ) : null}
 
         {/* Por cobrar fica sempre visível — é dinheiro */}
@@ -506,6 +708,104 @@ function StaffColumn({
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Dia em consulta (só leitura) — outro dia da faixa
+// ============================================================
+
+function ReadOnlyDay({
+  iso,
+  off,
+  items,
+  onBack,
+  onOpen,
+}: {
+  iso: string;
+  off?: 'off' | 'vacation';
+  items: AdminBookingForList[];
+  onBack: () => void;
+  onOpen: (b: AdminBookingForList) => void;
+}) {
+  const { weekday, day, month } = shortDay(iso);
+  const sorted = [...items].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+  );
+
+  return (
+    <div className="flex flex-1 flex-col" style={{ padding: '10px', gap: '8px' }}>
+      <div
+        className="flex items-center justify-between rounded-md"
+        style={{ backgroundColor: 'rgba(212,175,110,0.12)', padding: '6px 10px', gap: '8px' }}
+      >
+        <p className="text-[11px]" style={{ color: '#8A6D3B' }}>
+          A ver <strong className="capitalize">{`${weekday} ${day} ${month}`}</strong>
+          {off === 'vacation' ? ' · férias' : off === 'off' ? ' · folga' : ''}
+          {' · só consulta'}
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 text-[11px] font-semibold tracking-[0.12em] uppercase hover:underline"
+          style={{ color: '#1F3D2E', minHeight: '28px' }}
+        >
+          Voltar a hoje
+        </button>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p
+          className="rounded-md border border-dashed text-center text-xs italic"
+          style={{ borderColor: 'rgba(31,61,46,0.15)', color: '#9A9A9A', padding: '20px 12px' }}
+        >
+          {off === 'vacation'
+            ? 'De férias neste dia.'
+            : off === 'off'
+              ? 'Dia de folga.'
+              : 'Sem marcações neste dia.'}
+        </p>
+      ) : (
+        sorted.map((b) => {
+          const visual = BOOKING_STATUS_VISUAL[b.status];
+          return (
+            <button
+              key={b.bookingNumber}
+              type="button"
+              onClick={() => onOpen(b)}
+              className="flex w-full items-start rounded-md border text-left transition-colors hover:bg-white"
+              style={{
+                borderColor: 'rgba(31,61,46,0.1)',
+                backgroundColor: '#FFFFFF',
+                padding: '8px 10px',
+                gap: '10px',
+              }}
+            >
+              <span
+                className="shrink-0 font-mono text-sm font-semibold"
+                style={{ color: '#1F3D2E' }}
+              >
+                {LISBON_TIME.format(new Date(b.startTime))}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm" style={{ color: '#1A1A1A' }}>
+                  {b.client.name}
+                </span>
+                <span className="block truncate text-[11px]" style={{ color: '#5A5A5A' }}>
+                  {b.services.map((s) => s.name).join(', ')} · {b.totalDuration} min
+                </span>
+              </span>
+              <span
+                className={`shrink-0 rounded-full text-[9px] font-semibold tracking-[0.12em] uppercase ${visual.bg} ${visual.text}`}
+                style={{ padding: '3px 7px' }}
+              >
+                {visual.label}
+              </span>
+            </button>
+          );
+        })
+      )}
     </div>
   );
 }
