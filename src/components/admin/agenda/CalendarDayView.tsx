@@ -5,7 +5,8 @@ import { useMemo } from 'react';
 import { Clock, User as UserIcon, Phone, Globe, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
-import { salonHoursBounds } from '@/lib/constants/business';
+import { SALON_TIMEZONE, salonHoursBounds } from '@/lib/constants/business';
+import { salonMinutesOfDay } from '@/lib/utils/salon-day';
 
 type StatusColors = { bg: string; border: string; text: string };
 
@@ -50,6 +51,18 @@ const HOUR_START = earliestHour;
 const HOUR_END = latestHour + 1;
 const SLOT_HEIGHT = 80;
 const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+
+/**
+ * Hora SEMPRE em hora de Lisboa. Sem `timeZone`, a hora (e a posição do
+ * bloco na grelha) dependiam do fuso do dispositivo: num telemóvel ou
+ * portátil noutro fuso, as marcações apareciam deslocadas na grelha.
+ */
+const TIME_FMT = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: SALON_TIMEZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
 
 export function CalendarDayView({
   bookings,
@@ -220,7 +233,8 @@ function StaffColumn({
 
 function BookingBlock({ booking, onClick }: { booking: AdminBookingForList; onClick: () => void }) {
   const start = new Date(booking.startTime);
-  const startHour = start.getHours() + start.getMinutes() / 60;
+  // Posição na grelha pela hora de LISBOA (não getHours(), que é a do dispositivo)
+  const startHour = salonMinutesOfDay(start) / 60;
   const top = (startHour - HOUR_START) * SLOT_HEIGHT;
   const height = (booking.totalDuration / 60) * SLOT_HEIGHT;
 
@@ -229,11 +243,6 @@ function BookingBlock({ booking, onClick }: { booking: AdminBookingForList; onCl
 
   const colors = STATUS_COLORS[booking.status] ?? FALLBACK_COLORS;
   const sourceIcon = SOURCE_ICONS[booking.source] ?? null;
-
-  const timeFmt = new Intl.DateTimeFormat('pt-PT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <button
@@ -264,7 +273,7 @@ function BookingBlock({ booking, onClick }: { booking: AdminBookingForList; onCl
             className="truncate text-[10px] leading-tight opacity-80"
             style={{ color: colors.text }}
           >
-            {timeFmt.format(start)} · {booking.totalDuration}min
+            {TIME_FMT.format(start)} · {booking.totalDuration}min
           </p>
           {height > 50 ? (
             <p
@@ -291,10 +300,6 @@ function BookingPill({
   expanded?: boolean;
 }) {
   const colors = STATUS_COLORS[booking.status] ?? FALLBACK_COLORS;
-  const timeFmt = new Intl.DateTimeFormat('pt-PT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <button
@@ -307,7 +312,7 @@ function BookingPill({
       style={{ backgroundColor: colors.bg, borderLeftColor: colors.border }}
     >
       <span className="font-mono text-xs font-semibold" style={{ color: colors.text }}>
-        {timeFmt.format(new Date(booking.startTime))}
+        {TIME_FMT.format(new Date(booking.startTime))}
       </span>
       <span className="flex-1 truncate text-sm" style={{ color: colors.text }}>
         {booking.client.name} · {booking.services[0]?.name}

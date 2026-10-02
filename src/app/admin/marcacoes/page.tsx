@@ -8,6 +8,7 @@ import {
   getUpcomingBookingsAction,
   getAdminBookingMetaAction,
 } from '@/lib/server-actions/admin-bookings';
+import { isISODay, salonDayISO } from '@/lib/utils/salon-day';
 
 export const metadata: Metadata = {
   title: 'Marcações',
@@ -20,10 +21,6 @@ type SearchParams = {
   new?: string;
 };
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export default async function AdminMarcacoesPage({
   searchParams,
 }: {
@@ -32,7 +29,9 @@ export default async function AdminMarcacoesPage({
   await requireAdmin();
   const params = await searchParams;
 
-  const date = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayString();
+  // Sem ?date= válido → hoje EM LISBOA. (toISOString() dava o dia UTC do
+  // servidor: entre a meia-noite e a 01:00 no verão abria a agenda de ontem.)
+  const date = isISODay(params.date) ? params.date : salonDayISO();
   const view: 'day' | 'week' | 'list' =
     params.view === 'week' ? 'week' : params.view === 'list' ? 'list' : 'day';
   const openNewModal = params.new === '1';

@@ -2,6 +2,7 @@
 'use server';
 
 import mongoose from 'mongoose';
+import { fromZonedTime } from 'date-fns-tz';
 import { connectDB } from '@/lib/db/connect';
 import { notifyAdminStatusChange } from '@/lib/booking/status-notifications';
 import {
@@ -25,7 +26,8 @@ import { isStaffOnVacation } from '@/lib/booking/availability';
 
 /** Dias à frente de hoje que o board da dashboard carrega para consulta */
 const BOARD_WINDOW_DAYS = 6;
-import { BOOKING_RULES } from '@/lib/constants/business';
+import { BOOKING_RULES, SALON_TIMEZONE } from '@/lib/constants/business';
+import { addDaysISO, isISODay, startOfWeekISO } from '@/lib/utils/salon-day';
 import { canTransition, BOOKING_STATUS_VISUAL } from '@/lib/constants/booking-status';
 import { resolveRange } from '@/lib/utils/dates';
 
@@ -150,35 +152,17 @@ function parseDate(dateStr: string): Date {
   return new Date(`${dateStr}T12:00:00`);
 }
 
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function endOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
-function startOfWeek(d: Date): Date {
-  const x = startOfDay(d);
-  const day = x.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  x.setDate(x.getDate() + diff);
-  return x;
-}
-
-function endOfWeek(d: Date): Date {
-  const x = startOfWeek(d);
-  x.setDate(x.getDate() + 7);
-  x.setMilliseconds(-1);
-  return x;
-}
-
-function toDateString(d: Date): string {
-  return d.toISOString().slice(0, 10);
+/**
+ * Instante (UTC) em que o dia YYYY-MM-DD começa EM LISBOA.
+ *
+ * FIX (out. 2026): as janelas de dia/semana eram calculadas com
+ * setHours(0,0,0,0), que usa o fuso do SERVIDOR (UTC na Vercel). No
+ * horário de verão a janela ficava 1h deslocada face ao dia do salão.
+ * Agora os limites são sempre a meia-noite de Lisboa, e o fim é
+ * exclusivo ($lt do dia seguinte) — sem buracos nem sobreposições.
+ */
+function salonDayStart(isoDay: string): Date {
+  return fromZonedTime(`${isoDay}T00:00:00`, SALON_TIMEZONE);
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -322,13 +306,11 @@ export async function getBookingsByDayAction(dateStr: string): Promise<DayBookin
 
   await connectDB();
 
-  try {
-    const date = parseDate(dateStr);
-    const start = startOfDay(date);
-    const end = endOfDay(date);
+  if (!isISODay(dateStr)) return { success: false, error: 'Data inválida' };
 
+  try {
     const bookings = await Booking.find({
-      startTime: { $gte: start, $lte: end },
+      startTime: { $gte: salonDayStart(dateStr), $lt: salonDayStart(addDaysISO(dateStr, 1)) },
     })
       .sort({ startTime: 1 })
       .populate('clientId', 'name phone email')
@@ -356,13 +338,14 @@ export async function getBookingsByWeekAction(dateStr: string): Promise<WeekBook
 
   await connectDB();
 
+  if (!isISODay(dateStr)) return { success: false, error: 'Data inválida' };
+
   try {
-    const date = parseDate(dateStr);
-    const start = startOfWeek(date);
-    const end = endOfWeek(date);
+    // Segunda → Domingo da semana do dia pedido, em dias de Lisboa
+    const weekStart = startOfWeekISO(dateStr);
 
     const bookings = await Booking.find({
-      startTime: { $gte: start, $lte: end },
+      startTime: { $gte: salonDayStart(weekStart), $lt: salonDayStart(addDaysISO(weekStart, 7)) },
     })
       .sort({ startTime: 1 })
       .populate('clientId', 'name phone email')
@@ -372,8 +355,8 @@ export async function getBookingsByWeekAction(dateStr: string): Promise<WeekBook
     return {
       success: true,
       bookings: bookings.map(formatBooking),
-      weekStart: toDateString(start),
-      weekEnd: toDateString(end),
+      weekStart,
+      weekEnd: addDaysISO(weekStart, 6),
     };
   } catch (err) {
     console.error('[getBookingsByWeekAction]', err);
@@ -403,13 +386,14 @@ export async function getUpcomingBookingsAction(
 
   await connectDB();
 
+  if (!isISODay(fromDateStr)) return { success: false, error: 'Data inválida' };
+
   try {
-    const from = startOfDay(parseDate(fromDateStr));
-    const to = new Date(from);
-    to.setDate(to.getDate() + Math.min(Math.max(days, 1), BOOKING_RULES.upcomingViewDays));
+    const span = Math.min(Math.max(Math.trunc(days) || 1, 1), BOOKING_RULES.upcomingViewDays);
+    const toDay = addDaysISO(fromDateStr, span);
 
     const bookings = await Booking.find({
-      startTime: { $gte: from, $lt: to },
+      startTime: { $gte: salonDayStart(fromDateStr), $lt: salonDayStart(toDay) },
       status: { $in: ['pending', 'confirmed', 'in-progress'] },
     })
       .sort({ startTime: 1 })
@@ -422,7 +406,7 @@ export async function getUpcomingBookingsAction(
       success: true,
       bookings: bookings.map(formatBooking),
       from: fromDateStr,
-      to: toDateString(to),
+      to: toDay,
     };
   } catch (err) {
     console.error('[getUpcomingBookingsAction]', err);

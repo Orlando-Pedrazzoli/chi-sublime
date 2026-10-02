@@ -7,13 +7,17 @@
  * agrupada por dia ("Hoje", "Amanhã", ou data por extenso).
  * Cada linha abre o BookingDetailModal (via onBookingClick),
  * tal como acontece nas vistas Dia/Semana.
+ *
+ * FIX (out. 2026): o agrupamento por dia, os rótulos "Hoje"/"Amanhã"
+ * e as horas usam o fuso do salão (Europe/Lisbon), não o do dispositivo.
  */
 
 'use client';
 
 import { Clock, Phone, Globe, User as UserIcon, CalendarX2 } from 'lucide-react';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
-import { BOOKING_RULES } from '@/lib/constants/business';
+import { BOOKING_RULES, SALON_TIMEZONE } from '@/lib/constants/business';
+import { addDaysISO, salonDayISO } from '@/lib/utils/salon-day';
 
 const STATUS_META: Record<string, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pendente', bg: 'rgba(212,175,110,0.15)', text: '#7A5A2A' },
@@ -22,33 +26,26 @@ const STATUS_META: Record<string, { label: string; bg: string; text: string }> =
 };
 
 const dayLabelFmt = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: SALON_TIMEZONE,
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
 
 const timeFmt = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: SALON_TIMEZONE,
   hour: '2-digit',
   minute: '2-digit',
+  hourCycle: 'h23',
 });
 
 function euros(cents: number): string {
   return `${(cents / 100).toFixed(2).replace('.', ',')} €`;
 }
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-    d.getDate(),
-  ).padStart(2, '0')}`;
-}
-
 function relativeDayLabel(key: string, date: Date): string {
-  const today = dateKey(new Date());
-  const tomorrow = (() => {
-    const t = new Date();
-    t.setDate(t.getDate() + 1);
-    return dateKey(t);
-  })();
+  const today = salonDayISO();
+  const tomorrow = addDaysISO(today, 1);
   const base = dayLabelFmt.format(date);
   if (key === today) return `Hoje · ${base}`;
   if (key === tomorrow) return `Amanhã · ${base}`;
@@ -82,7 +79,7 @@ export function UpcomingListView({ bookings, onBookingClick }: UpcomingListViewP
   const groups: Array<{ key: string; label: string; items: AdminBookingForList[] }> = [];
   for (const b of bookings) {
     const start = new Date(b.startTime);
-    const key = dateKey(start);
+    const key = salonDayISO(start);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {
       last.items.push(b);

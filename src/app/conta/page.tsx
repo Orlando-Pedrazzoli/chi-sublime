@@ -1,8 +1,10 @@
+// 📄 src/app/conta/page.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Calendar, ArrowRight, Plus, User as UserIcon } from 'lucide-react';
 import { requireClient } from '@/lib/auth/permissions';
 import { getMyBookingsAction, type BookingForClient } from '@/lib/server-actions/bookings';
+import { SALON_TIMEZONE } from '@/lib/constants/business';
 
 export const metadata: Metadata = {
   title: 'Resumo',
@@ -66,14 +68,20 @@ export default async function ClientDashboardPage() {
 }
 
 function NextBookingCard({ booking }: { booking: BookingForClient }) {
+  // FIX (out. 2026): este é um Server Component — corre na Vercel em UTC.
+  // Sem `timeZone`, a "Próxima marcação" aparecia à cliente 1 HORA MAIS CEDO
+  // durante o horário de verão (marcação das 11:00 mostrada como "às 10:00").
   const dateFormat = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
   const timeFormat = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
+    hourCycle: 'h23',
   });
 
   return (

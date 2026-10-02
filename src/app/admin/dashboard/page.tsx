@@ -49,6 +49,7 @@ import { getWeekDay, timeToMinutes } from '@/lib/utils/time-utils';
 import { resolveRange } from '@/lib/utils/dates';
 import { toZonedTime } from 'date-fns-tz';
 import { SALON_TIMEZONE } from '@/lib/constants/business';
+import { salonDayISO } from '@/lib/utils/salon-day';
 import { DashboardAutoRefresh } from '@/components/admin/dashboard/AutoRefresh';
 import { TodayBoard } from '@/components/admin/dashboard/TodayBoard';
 import {
@@ -214,7 +215,8 @@ async function getDashboardData() {
     title: clientName(b),
     subtitle: b.services.map((s: any) => s.name).join(', '),
     when: dayTimeFmt.format(new Date(b.startTime)),
-    date: new Date(b.startTime).toISOString().slice(0, 10),
+    // Dia em Lisboa (toISOString() é UTC) — é o ?date= do link para a agenda
+    date: salonDayISO(b.startTime),
   }));
 
   const recentCancellations: AttentionItem[] = recentCancellationsRaw.map((b: any) => ({
@@ -222,7 +224,8 @@ async function getDashboardData() {
     title: clientName(b),
     subtitle: b.cancellationReason ?? 'Sem motivo indicado',
     when: dayTimeFmt.format(new Date(b.startTime)),
-    date: new Date(b.startTime).toISOString().slice(0, 10),
+    // Dia em Lisboa (toISOString() é UTC) — é o ?date= do link para a agenda
+    date: salonDayISO(b.startTime),
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 

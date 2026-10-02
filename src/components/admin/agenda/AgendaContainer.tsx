@@ -16,6 +16,11 @@
  *    (vista de dia) e mostra um toast com cliente/profissional/hora
  *    — o funcionário vê o que acabou de criar.
  *  - Categorias do modal vêm da BD (meta.categories).
+ *
+ * FIX (out. 2026) — datas sempre no fuso do salão:
+ *  - "Hoje" e as setas ‹ › faziam contas com toISOString() (UTC).
+ *    Passam a usar lib/utils/salon-day.ts (strings YYYY-MM-DD em
+ *    hora de Lisboa), tal como a vista de semana.
  */
 
 import { useState, useTransition, useCallback } from 'react';
@@ -23,6 +28,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useToast } from '@/hooks/useToast';
+import { addDaysISO, isISODay, salonDayISO } from '@/lib/utils/salon-day';
 import type { ManualBookingCreated } from '@/lib/server-actions/manual-bookings';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
@@ -86,6 +92,8 @@ export function AgendaContainer({
   }, []);
 
   function navigateToDate(newDate: string, newView?: 'day' | 'week' | 'list') {
+    // O <input type="date"> devolve '' quando o utilizador limpa o campo
+    if (!isISODay(newDate)) return;
     const v = newView ?? view;
     setDate(newDate);
     if (newView) setView(newView);
@@ -106,20 +114,23 @@ export function AgendaContainer({
     navigateToDate(date, newView);
   }
 
+  /** Passo das setas ‹ ›: 1 dia, 1 semana ou 2 semanas (lista) */
+  function stepDays(): number {
+    return view === 'day' ? 1 : view === 'week' ? 7 : 14;
+  }
+
   function handlePrevDate() {
-    const d = new Date(`${date}T12:00:00`);
-    d.setDate(d.getDate() - (view === 'day' ? 1 : view === 'week' ? 7 : 14));
-    navigateToDate(d.toISOString().slice(0, 10));
+    navigateToDate(addDaysISO(date, -stepDays()));
   }
 
   function handleNextDate() {
-    const d = new Date(`${date}T12:00:00`);
-    d.setDate(d.getDate() + (view === 'day' ? 1 : view === 'week' ? 7 : 14));
-    navigateToDate(d.toISOString().slice(0, 10));
+    navigateToDate(addDaysISO(date, stepDays()));
   }
 
   function handleToday() {
-    navigateToDate(new Date().toISOString().slice(0, 10));
+    // Hoje EM LISBOA — toISOString() dava o dia UTC (ontem, entre a
+    // meia-noite e a 01:00 no horário de verão).
+    navigateToDate(salonDayISO());
   }
 
   function handleRefresh() {
@@ -157,12 +168,7 @@ export function AgendaContainer({
 
   function handleNewBookingCreated(created: ManualBookingCreated) {
     closeNewBooking();
-    const createdDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Europe/Lisbon',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(created.startTime));
+    const createdDate = salonDayISO(created.startTime);
     const createdTime = new Intl.DateTimeFormat('pt-PT', {
       timeZone: 'Europe/Lisbon',
       hour: '2-digit',

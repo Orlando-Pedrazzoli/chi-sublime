@@ -1,10 +1,29 @@
 // 📄 src/components/admin/agenda/CalendarWeekView.tsx
 'use client';
 
+/**
+ * Chi Sublime — Agenda: vista de semana (admin)
+ * ============================================================
+ *
+ * FIX CRÍTICO (out. 2026) — marcações apareciam no DIA SEGUINTE.
+ * As colunas eram Dates à meia-noite local e a chave de cada uma vinha
+ * de `toISOString().slice(0, 10)`, que é UTC. No horário de verão,
+ * meia-noite em Lisboa = 23:00 UTC da véspera, por isso a coluna
+ * "Sáb 3" ficava com a chave "2026-10-02" e a marcação de sábado
+ * (chave "2026-10-03") caía na coluna "Dom 4". O mesmo desvio
+ * destacava o dia errado como "hoje" e abria o dia errado ao clicar
+ * no cabeçalho. No inverno (Lisboa = UTC) o erro não se via.
+ *
+ * Agora cada coluna É uma string YYYY-MM-DD e o dia de cada marcação
+ * é calculado no fuso do salão (lib/utils/salon-day.ts) — o resultado
+ * é igual em qualquer telemóvel, computador ou servidor.
+ */
+
 import { useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { AdminBookingForList } from '@/lib/server-actions/admin-bookings';
-import { SALON_HOURS, type WeekDayIndex } from '@/lib/constants/business';
+import { SALON_HOURS, SALON_TIMEZONE } from '@/lib/constants/business';
+import { dayOfMonthISO, salonDayISO, weekDaysISO, weekdayOfISO } from '@/lib/utils/salon-day';
 
 type StatusColors = { bg: string; border: string; text: string };
 
@@ -25,20 +44,16 @@ const WEEK_STATUS_COLORS: Record<string, StatusColors> = {
 
 const WEEKDAYS_PT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-function startOfWeek(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  const day = x.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  x.setDate(x.getDate() + diff);
-  return x;
-}
-
-function toDateString(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+/** Hora da marcação SEMPRE em hora de Lisboa, seja qual for o dispositivo. */
+const TIME_FMT = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: SALON_TIMEZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
 
 type CalendarWeekViewProps = {
+  /** Qualquer dia (YYYY-MM-DD) da semana a mostrar */
   weekStart: string;
   bookings: AdminBookingForList[];
   onBookingClick: (booking: AdminBookingForList) => void;
@@ -51,27 +66,21 @@ export function CalendarWeekView({
   onBookingClick,
   onDayClick,
 }: CalendarWeekViewProps) {
-  const days = useMemo(() => {
-    const base = startOfWeek(new Date(`${weekStart}T12:00:00`));
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [weekStart]);
+  // Segunda → Domingo, como strings YYYY-MM-DD (sem Dates, sem fusos)
+  const days = useMemo(() => weekDaysISO(weekStart), [weekStart]);
 
   const bookingsByDay = useMemo(() => {
     const map = new Map<string, AdminBookingForList[]>();
-    for (const d of days) map.set(toDateString(d), []);
+    for (const iso of days) map.set(iso, []);
     for (const b of bookings) {
-      const key = toDateString(new Date(b.startTime));
-      const list = map.get(key);
+      // Dia da marcação no fuso do salão — NUNCA toISOString() (UTC)
+      const list = map.get(salonDayISO(b.startTime));
       if (list) list.push(b);
     }
     return map;
   }, [bookings, days]);
 
-  const today = toDateString(new Date());
+  const today = salonDayISO();
 
   return (
     <div
@@ -79,19 +88,18 @@ export function CalendarWeekView({
       style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
     >
       <div className="grid min-w-[840px] grid-cols-7">
-        {days.map((day, idx) => {
-          const dateStr = toDateString(day);
+        {days.map((dateStr, idx) => {
           const dayBookings = bookingsByDay.get(dateStr) ?? [];
           const isToday = dateStr === today;
           // Dia de encerramento do SALÃO — derivado de SALON_HOURS,
           // não de "é fim de semana". O salão fecha à segunda e abre
           // ao sábado; presumir sáb/dom sombreava o dia mais cheio.
-          const isClosed = !SALON_HOURS[day.getDay() as WeekDayIndex].open;
+          const isClosed = !SALON_HOURS[weekdayOfISO(dateStr)].open;
 
           return (
             <DayColumn
               key={dateStr}
-              date={day}
+              dayNum={dayOfMonthISO(dateStr)}
               weekdayLabel={WEEKDAYS_PT[idx]}
               bookings={dayBookings}
               isToday={isToday}
@@ -107,7 +115,7 @@ export function CalendarWeekView({
 }
 
 function DayColumn({
-  date,
+  dayNum,
   weekdayLabel,
   bookings,
   isToday,
@@ -115,7 +123,7 @@ function DayColumn({
   onBookingClick,
   onDayClick,
 }: {
-  date: Date;
+  dayNum: number;
   weekdayLabel: string;
   bookings: AdminBookingForList[];
   isToday: boolean;
@@ -123,8 +131,6 @@ function DayColumn({
   onBookingClick: (b: AdminBookingForList) => void;
   onDayClick: () => void;
 }) {
-  const dayNum = date.getDate();
-
   return (
     <div
       className="flex flex-col"
@@ -199,10 +205,6 @@ function WeekBookingPill({
   onClick: () => void;
 }) {
   const colors = WEEK_STATUS_COLORS[booking.status] ?? FALLBACK_COLORS;
-  const timeFmt = new Intl.DateTimeFormat('pt-PT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <button
@@ -212,7 +214,7 @@ function WeekBookingPill({
       style={{ backgroundColor: colors.bg, borderLeftColor: colors.border }}
     >
       <p className="truncate font-mono text-[10px] font-semibold" style={{ color: colors.text }}>
-        {timeFmt.format(new Date(booking.startTime))}
+        {TIME_FMT.format(new Date(booking.startTime))}
       </p>
       <p className="truncate text-[11px] leading-tight font-medium" style={{ color: colors.text }}>
         {booking.client.name}

@@ -1,3 +1,4 @@
+// 📄 src/components/admin/agenda/BookingDetailModal.tsx
 'use client';
 
 /**
@@ -31,6 +32,7 @@ import {
   type AdminBookingForList,
 } from '@/lib/server-actions/admin-bookings';
 import { CheckoutModal, type CheckoutPrefill } from '@/components/admin/checkout/CheckoutModal';
+import { SALON_TIMEZONE } from '@/lib/constants/business';
 
 type BookingStatus = AdminBookingForList['status'];
 
@@ -92,15 +94,19 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
     [booking],
   );
 
+  // Data/hora SEMPRE em hora de Lisboa (não no fuso do dispositivo)
   const dateFmt = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
   const timeFmt = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
+    hourCycle: 'h23',
   });
 
   function handleStatusChange(newStatus: BookingStatus, reason?: string) {
