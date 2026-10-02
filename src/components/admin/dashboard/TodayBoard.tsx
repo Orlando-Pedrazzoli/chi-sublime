@@ -31,6 +31,15 @@
  *  destaque. O estado vazio de hoje passa a dizer quando é a próxima
  *  marcação. Tudo vem numa única query (getTodayBoardAction) — os chips
  *  não fazem chamadas.
+ *
+ * MOBILE TIPO APP (out. 2026):
+ *  Abaixo de `lg` mostra-se UMA profissional de cada vez, em largura
+ *  total, com um seletor de profissionais por cima (avatar + nome +
+ *  quantas clientes faltam atender; ponto dourado = em atendimento).
+ *  Substitui o carrossel horizontal de colunas a 85% do ecrã — num
+ *  telemóvel, trocar de profissional com um toque é mais rápido e
+ *  mostra logo quem está ocupada. Em desktop nada muda: todas as
+ *  colunas lado a lado.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -47,6 +56,7 @@ import { CheckoutModal, type CheckoutPrefill } from '@/components/admin/checkout
 import { BookingDetailModal } from '@/components/admin/agenda/BookingDetailModal';
 import { NewBookingModal } from '@/components/admin/agenda/NewBookingModal';
 import { useToast } from '@/hooks/useToast';
+import { cn } from '@/lib/utils/cn';
 import { BoardBookingCard, type BoardAction } from './BoardBookingCard';
 
 type BookingStatus = AdminBookingForList['status'];
@@ -196,6 +206,19 @@ export function TodayBoard({
     return list;
   }, [merged, staff]);
 
+  // ── Mobile: profissional à vista ─────────────────────────────
+  // Escolha inicial (uma vez): quem está a atender → quem tem clientes
+  // por chegar → a primeira. Depois só muda quando alguém toca noutra —
+  // um refresh automático nunca troca a coluna a meio de uma ação.
+  const [pickedCol, setPickedCol] = useState<string | null>(() => {
+    const byStatus = (statuses: BookingStatus[]) =>
+      bookings.find((b) => statuses.includes(b.status))?.staff?.id ?? null;
+    return byStatus(['in-progress']) ?? byStatus(['pending', 'confirmed']);
+  });
+  const activeColId = columns.some((c) => c.id === pickedCol)
+    ? pickedCol
+    : (columns[0]?.id ?? null);
+
   const totals = useMemo(() => {
     let live = 0;
     let upcoming = 0;
@@ -292,7 +315,10 @@ export function TodayBoard({
       <div className="mb-3 flex flex-wrap items-center justify-between" style={{ gap: '8px' }}>
         <div className="flex items-center" style={{ gap: '8px' }}>
           <Users size={16} style={{ color: '#D4AF6E' }} />
-          <h2 className="text-xs tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
+          <h2
+            className="admin-section-title text-xs tracking-[0.22em] uppercase"
+            style={{ color: '#5A5A5A' }}
+          >
             Atendimento de hoje
           </h2>
         </div>
@@ -308,6 +334,102 @@ export function TodayBoard({
           ) : null}
         </p>
       </div>
+
+      {/* Seletor de profissional — só mobile (em desktop vêem-se todas) */}
+      {columns.length > 1 ? (
+        <div
+          className="admin-scroll-x -mx-4 flex lg:hidden"
+          style={{ gap: '8px', padding: '2px 16px 12px' }}
+          role="group"
+          aria-label="Escolher profissional"
+        >
+          {columns.map((col) => {
+            const selected = col.id === activeColId;
+            const liveCount = col.items.filter((b) => b.status === 'in-progress').length;
+            const remaining =
+              liveCount +
+              col.items.filter((b) => b.status === 'pending' || b.status === 'confirmed').length;
+            const firstName = col.id === UNASSIGNED ? 'Por atribuir' : col.name.split(/\s+/)[0];
+            return (
+              <button
+                key={col.id}
+                type="button"
+                aria-pressed={selected}
+                aria-label={`${col.name}: ${remaining} por atender${liveCount > 0 ? ', em atendimento' : ''}`}
+                onClick={() => setPickedCol(col.id)}
+                className="admin-press flex shrink-0 items-center"
+                style={{
+                  minHeight: '44px',
+                  padding: '5px 12px 5px 5px',
+                  gap: '8px',
+                  borderRadius: '999px',
+                  border: `1px solid ${selected ? '#1F3D2E' : 'rgba(31,61,46,0.14)'}`,
+                  backgroundColor: selected ? '#1F3D2E' : '#FFFFFF',
+                  color: selected ? '#FAF7F2' : '#1F3D2E',
+                }}
+              >
+                <span className="relative shrink-0" style={{ width: '32px', height: '32px' }}>
+                  {col.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={col.photo}
+                      alt=""
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-full w-full items-center justify-center rounded-full font-serif"
+                      style={{
+                        fontSize: '12px',
+                        backgroundColor: selected ? 'rgba(212,175,110,0.22)' : '#EFE9DD',
+                        color: selected ? '#D4AF6E' : '#1F3D2E',
+                      }}
+                    >
+                      {col.id === UNASSIGNED
+                        ? '?'
+                        : col.name
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((part) => part[0]?.toUpperCase() ?? '')
+                            .join('')}
+                    </span>
+                  )}
+                  {liveCount > 0 ? (
+                    <span
+                      aria-hidden
+                      className="absolute rounded-full"
+                      style={{
+                        right: '-1px',
+                        bottom: '-1px',
+                        width: '11px',
+                        height: '11px',
+                        backgroundColor: '#D4AF6E',
+                        border: `2px solid ${selected ? '#1F3D2E' : '#FFFFFF'}`,
+                      }}
+                    />
+                  ) : null}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{firstName}</span>
+                <span
+                  className="font-mono"
+                  style={{
+                    minWidth: '22px',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    backgroundColor: selected ? 'rgba(250,247,242,0.16)' : 'rgba(31,61,46,0.07)',
+                    color: selected ? '#FAF7F2' : remaining > 0 ? '#1F3D2E' : '#9A9A9A',
+                  }}
+                >
+                  {remaining}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {columns.length === 0 ? (
         <div
@@ -340,6 +462,7 @@ export function TodayBoard({
               offDays={col.offDays ?? {}}
               days={windowDays}
               today={today}
+              hiddenOnMobile={col.id !== activeColId}
               upcomingByDay={upcomingByStaffDay.get(col.id) ?? new Map()}
               now={now}
               busy={busy}
@@ -410,6 +533,7 @@ function StaffColumn({
   offDays,
   days,
   today,
+  hiddenOnMobile,
   upcomingByDay,
   now,
   busy,
@@ -423,6 +547,8 @@ function StaffColumn({
   offDays: Record<string, 'off' | 'vacation'>;
   days: string[];
   today: string;
+  /** Mobile mostra uma profissional de cada vez; em desktop vêem-se todas */
+  hiddenOnMobile: boolean;
   upcomingByDay: Map<string, AdminBookingForList[]>;
   now: number;
   busy: Record<string, true>;
@@ -471,7 +597,10 @@ function StaffColumn({
 
   return (
     <div
-      className="flex flex-col rounded-lg border"
+      className={cn(
+        'flex-col rounded-2xl border lg:rounded-lg',
+        hiddenOnMobile ? 'hidden lg:flex' : 'flex',
+      )}
       style={{
         backgroundColor: '#FAF7F2',
         borderColor: live.length > 0 ? 'rgba(31,61,46,0.35)' : 'rgba(31,61,46,0.08)',

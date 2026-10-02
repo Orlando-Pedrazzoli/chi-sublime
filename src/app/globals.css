@@ -387,6 +387,163 @@ select {
 }
 
 /* ============================================================
+   ADMIN — shell mobile tipo app
+   ------------------------------------------------------------
+   Em mobile/tablet (< 1024px) o painel admin comporta-se como uma
+   app: barra de topo compacta, conteúdo em scroll e barra de
+   separadores fixa no fundo (<AdminBottomNav />).
+
+   Estas regras vivem aqui (CSS simples, fora das layers do Tailwind)
+   porque padding/altura são críticos — não podem depender de classes
+   utilitárias que o Tailwind v4 + Next 16 por vezes descarta em
+   produção. `env(safe-area-inset-*)` precisa de viewport-fit=cover
+   (definido em src/app/admin/layout.tsx).
+   ============================================================ */
+
+.admin-shell {
+  /* Altura reservada para a barra inferior (0 em desktop) */
+  --admin-tabbar-height: calc(60px + env(safe-area-inset-bottom, 0px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #faf7f2;
+  /* Telemóvel deitado: não deixar o conteúdo por baixo do notch */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Toques sem o "flash" cinzento do browser e sem atraso de duplo-toque */
+.admin-shell a,
+.admin-shell button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Conteúdo: deixa sempre espaço para a barra inferior */
+.admin-main {
+  padding: 16px 16px calc(var(--admin-tabbar-height) + 24px);
+}
+
+.admin-topbar-row {
+  gap: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Botão "Nova" (marcação) — pílula em mobile */
+.admin-new-btn {
+  min-height: 40px;
+  gap: 6px;
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+/* Separadores da barra inferior */
+.admin-tab {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.admin-tab > span,
+.admin-press {
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+/* Resposta ao toque — o elemento "afunda" ligeiramente */
+.admin-tab:active > span {
+  transform: scale(0.92);
+}
+
+.admin-press:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.admin-tab:focus-visible,
+.admin-press:focus-visible {
+  outline: 2px solid #b8924a;
+  outline-offset: 2px;
+}
+
+/* Faixas com scroll horizontal (ex.: seletor de profissional) sem barra */
+.admin-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Só mobile/tablet */
+@media (max-width: 1023.98px) {
+  /* Títulos de secção como numa app: frase normal, a negrito
+     (em desktop mantêm-se as maiúsculas espaçadas) */
+  .admin-section-title {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #1f3d2e !important;
+  }
+
+  /* Notificações (toasts) sobem para cima da barra inferior */
+  body:has([data-admin-tabbar]) [data-toast-viewport] {
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-main {
+    padding: 24px 24px calc(var(--admin-tabbar-height) + 24px);
+  }
+}
+
+/* Desktop: sidebar à esquerda, sem barra inferior */
+@media (min-width: 1024px) {
+  .admin-shell {
+    --admin-tabbar-height: 0px;
+  }
+
+  .admin-main {
+    padding: 32px;
+  }
+
+  .admin-topbar-row {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .admin-new-btn {
+    min-height: 0;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tab > span,
+  .admin-press,
+  .admin-sheet {
+    transition: none !important;
+  }
+}
+
+/* ============================================================
    PRINT — para faturas e relatórios PDF
    ============================================================ */
 

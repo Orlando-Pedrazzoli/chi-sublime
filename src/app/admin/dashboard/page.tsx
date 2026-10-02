@@ -22,6 +22,13 @@
  * Nota: ocupação = minutos marcados ÷ janela salão ∩ staff
  * (sem descontar breaks — aproximação documentada).
  *
+ * MOBILE TIPO APP (out. 2026): abaixo de `lg` a página assume o aspeto
+ * de ecrã inicial de uma app — saudação grande com a data, cartões de
+ * cantos mais redondos, KPIs em linha (ícone + valor + legenda) e ações
+ * rápidas em mosaico. O espaço para a barra de separadores no fundo é
+ * dado pelo <AdminShell /> (.admin-main), não por esta página. Em
+ * desktop o layout mantém-se.
+ *
  * Janelas de tempo ("hoje", "esta semana", "este mês") calculadas
  * em Europe/Lisbon via resolveRange — o servidor (Vercel) corre em
  * UTC e `setHours(0,0,0,0)` dava meia-noite UTC (01:00 em Lisboa
@@ -305,19 +312,38 @@ export default async function AdminDashboardPage() {
 
   const firstName = user.name.split(/\s+/)[0];
   const greeting = getGreeting(toZonedTime(new Date(), SALON_TIMEZONE).getHours());
+  // "Sexta-feira, 2 de outubro" — em hora de Lisboa (o servidor corre em UTC)
+  const todayLong = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+  const todayLabel = todayLong.charAt(0).toUpperCase() + todayLong.slice(1);
   const weekDelta =
     data.revenuePrevWeek > 0
       ? Math.round(((data.revenueWeek - data.revenuePrevWeek) / data.revenuePrevWeek) * 100)
       : null;
 
   return (
-    <div className="mx-auto max-w-6xl pb-20">
+    <div className="mx-auto max-w-6xl">
       <DashboardAutoRefresh seconds={hasLive ? 30 : 120} />
 
       {/* ============ ZONA 1 — HOJE ============ */}
 
-      {/* Saudação compacta */}
-      <p className="mb-4 text-sm" style={{ color: '#5A5A5A' }}>
+      {/* Saudação — mobile: cabeçalho de ecrã inicial (data + nome) */}
+      <div className="lg:hidden" style={{ margin: '4px 0 20px' }}>
+        <p style={{ fontSize: '13px', lineHeight: '18px', color: '#5A5A5A' }}>{todayLabel}</p>
+        <h2
+          className="font-serif"
+          style={{ marginTop: '2px', fontSize: '28px', lineHeight: '34px', color: '#1F3D2E' }}
+        >
+          {greeting}, {firstName}
+        </h2>
+      </div>
+
+      {/* Saudação — desktop: linha compacta (a data está na topbar) */}
+      <p className="mb-4 hidden text-sm lg:block" style={{ color: '#5A5A5A' }}>
         {greeting}, <strong style={{ color: '#1F3D2E' }}>{firstName}</strong> ·{' '}
         {data.todayBookingsCount} {data.todayBookingsCount === 1 ? 'marcação' : 'marcações'} hoje
       </p>
@@ -358,6 +384,7 @@ export default async function AdminDashboardPage() {
         />
         <KpiCard
           label="Cancel. / faltas hoje"
+          mobileLabel="Cancel. e faltas"
           value={String(data.cancelledToday)}
           icon={<XCircle size={18} />}
           href="/admin/marcacoes"
@@ -365,6 +392,7 @@ export default async function AdminDashboardPage() {
         />
         <KpiCard
           label="Online (24h)"
+          mobileLabel="Online em 24 h"
           value={String(data.recentOnline.length)}
           icon={<Globe size={18} />}
           href="/admin/marcacoes"
@@ -372,7 +400,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       {/* Ações rápidas */}
-      <section className="mb-8 grid grid-cols-3 gap-3">
+      <section className="mb-8 grid grid-cols-3 gap-3" aria-label="Ações rápidas">
         <QuickAction
           href="/admin/marcacoes?new=1"
           icon={<CalendarPlus size={16} />}
@@ -385,7 +413,10 @@ export default async function AdminDashboardPage() {
 
       {/* ============ ZONA 2 — ATENÇÃO ============ */}
 
-      <h3 className="mt-10 mb-4 text-xs tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
+      <h3
+        className="admin-section-title mt-10 mb-4 text-xs tracking-[0.22em] uppercase"
+        style={{ color: '#5A5A5A' }}
+      >
         Precisa de atenção
       </h3>
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -407,13 +438,16 @@ export default async function AdminDashboardPage() {
 
       {/* ============ ZONA 3 — O NEGÓCIO ============ */}
 
-      <h3 className="mt-10 mb-4 text-xs tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
+      <h3
+        className="admin-section-title mt-10 mb-4 text-xs tracking-[0.22em] uppercase"
+        style={{ color: '#5A5A5A' }}
+      >
         O negócio
       </h3>
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Receita da semana */}
         <div
-          className="rounded-lg border p-5"
+          className="rounded-2xl border p-5 lg:rounded-lg"
           style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
         >
           <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
@@ -453,7 +487,7 @@ export default async function AdminDashboardPage() {
 
         {/* Ocupação por profissional */}
         <div
-          className="rounded-lg border p-5"
+          className="rounded-2xl border p-5 lg:rounded-lg"
           style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
         >
           <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
@@ -487,7 +521,7 @@ export default async function AdminDashboardPage() {
 
         {/* Top serviços */}
         <div
-          className="rounded-lg border p-5"
+          className="rounded-2xl border p-5 lg:rounded-lg"
           style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
         >
           <p className="text-[10px] tracking-[0.22em] uppercase" style={{ color: '#5A5A5A' }}>
@@ -524,33 +558,44 @@ export default async function AdminDashboardPage() {
 
 function KpiCard({
   label,
+  mobileLabel,
   value,
   icon,
   href,
   alert = false,
 }: {
   label: string;
+  /** Legenda em mobile (frase normal, cabe numa linha). Default: `label` */
+  mobileLabel?: string;
   value: string;
   icon: React.ReactNode;
   href: string;
   alert?: boolean;
 }) {
+  // Mobile: legenda em frase normal por cima, valor por baixo (cabe sempre,
+  // mesmo "1234,50 €" num ecrã de 360px). Desktop: maiúsculas espaçadas.
   return (
     <Link
       href={href}
-      className="rounded-lg border p-4 transition-shadow hover:shadow-md"
+      className="admin-press block rounded-2xl border p-4 transition-shadow hover:shadow-md lg:rounded-lg"
       style={{
         backgroundColor: '#FFFFFF',
         borderColor: alert ? 'rgba(178,60,60,0.35)' : 'rgba(31,61,46,0.08)',
       }}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[10px] tracking-[0.18em] uppercase" style={{ color: '#5A5A5A' }}>
-          {label}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span
+          className="min-w-0 truncate text-[13px] lg:text-[10px] lg:tracking-[0.18em] lg:uppercase"
+          style={{ color: '#5A5A5A' }}
+        >
+          <span className="lg:hidden">{mobileLabel ?? label}</span>
+          <span className="hidden lg:inline">{label}</span>
         </span>
-        <span style={{ color: alert ? '#B23C3C' : '#D4AF6E' }}>{icon}</span>
+        <span className="shrink-0" style={{ color: alert ? '#B23C3C' : '#D4AF6E' }}>
+          {icon}
+        </span>
       </div>
-      <p className="font-serif text-2xl sm:text-3xl" style={{ color: '#1F3D2E' }}>
+      <p className="truncate font-serif text-2xl sm:text-3xl" style={{ color: '#1F3D2E' }}>
         {value}
       </p>
     </Link>
@@ -568,19 +613,21 @@ function QuickAction({
   label: string;
   primary?: boolean;
 }) {
+  // Mobile: mosaico (ícone por cima, nome completo por baixo).
+  // Desktop: botão em linha, maiúsculas — como sempre foi.
   return (
     <Link
       href={href}
-      className="flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-xs font-semibold tracking-wide uppercase transition-all hover:-translate-y-[1px] hover:shadow-md"
-      style={
-        primary
+      className="admin-press flex flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-center text-[13px] leading-tight font-semibold transition-all hover:shadow-md lg:flex-row lg:rounded-md lg:px-3 lg:text-xs lg:tracking-wide lg:uppercase lg:hover:-translate-y-[1px]"
+      style={{
+        minHeight: '48px',
+        ...(primary
           ? { backgroundColor: '#D4AF6E', borderColor: '#D4AF6E', color: '#1F3D2E' }
-          : { backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.15)', color: '#1F3D2E' }
-      }
+          : { backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.15)', color: '#1F3D2E' }),
+      }}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
-      <span className="sm:hidden">{label.split(' ')[0]}</span>
+      <span>{label}</span>
     </Link>
   );
 }
@@ -598,7 +645,7 @@ function Panel({
 }) {
   return (
     <div
-      className="rounded-lg border p-5"
+      className="rounded-2xl border p-5 lg:rounded-lg"
       style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -620,8 +667,11 @@ function Panel({
 
 function AttentionList({ items, accent }: { items: AttentionItem[]; accent: string }) {
   return (
-    <ul className="divide-y" style={{ borderColor: 'rgba(31,61,46,0.06)' }}>
-      {items.map((item) => {
+    <ul>
+      {items.map((item, index) => {
+        // Linha separadora subtil entre itens (inline — o `divide-y` herdava
+        // a cor do texto e desenhava um traço preto)
+        const divider = index > 0 ? { borderTop: '1px solid rgba(31,61,46,0.08)' } : undefined;
         const inner = (
           <>
             <span
@@ -650,7 +700,7 @@ function AttentionList({ items, accent }: { items: AttentionItem[]; accent: stri
         // Com data → linha clicável que abre a agenda no dia da marcação
         if (item.date) {
           return (
-            <li key={item.id}>
+            <li key={item.id} style={divider}>
               <Link
                 href={`/admin/marcacoes?date=${item.date}&view=day`}
                 className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-[rgba(212,175,110,0.08)]"
@@ -662,7 +712,7 @@ function AttentionList({ items, accent }: { items: AttentionItem[]; accent: stri
         }
 
         return (
-          <li key={item.id} className="flex items-center gap-3 py-3">
+          <li key={item.id} className="flex items-center gap-3 py-3" style={divider}>
             {inner}
           </li>
         );

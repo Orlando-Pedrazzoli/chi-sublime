@@ -1,3 +1,4 @@
+// 📄 src/components/ui/Toast.tsx
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
@@ -20,7 +21,11 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const TONE_STYLE: Record<
   ToastTone,
-  { icon: React.ComponentType<{ size?: number; className?: string }>; ring: string; iconColor: string }
+  {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    ring: string;
+    iconColor: string;
+  }
 > = {
   success: { icon: CheckCircle2, ring: 'border-chi-success/30', iconColor: 'text-chi-success' },
   error: { icon: XCircle, ring: 'border-chi-danger/30', iconColor: 'text-chi-danger' },
@@ -58,7 +63,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end">
+      {/* data-toast-viewport: no admin mobile, o globals.css sobe esta zona
+          para cima da barra de separadores (ver "ADMIN — shell mobile") */}
+      <div
+        data-toast-viewport
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end"
+      >
         {toasts.map((t) => {
           const { icon: Icon, ring, iconColor } = TONE_STYLE[t.tone];
           return (
@@ -66,16 +76,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               key={t.id}
               role="status"
               className={cn(
-                'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3 shadow-medium',
+                'shadow-medium pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3',
                 ring,
               )}
             >
               <Icon size={18} className={cn('mt-0.5 shrink-0', iconColor)} />
-              <p className="flex-1 text-sm text-chi-charcoal">{t.message}</p>
+              <p className="text-chi-charcoal flex-1 text-sm">{t.message}</p>
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Fechar"
-                className="-mr-1 shrink-0 rounded p-0.5 text-chi-charcoal-light transition-colors hover:text-chi-charcoal"
+                className="text-chi-charcoal-light hover:text-chi-charcoal -mr-1 shrink-0 rounded p-0.5 transition-colors"
               >
                 <X size={16} />
               </button>
