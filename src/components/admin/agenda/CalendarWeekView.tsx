@@ -14,6 +14,10 @@
  * destacava o dia errado como "hoje" e abria o dia errado ao clicar
  * no cabeçalho. No inverno (Lisboa = UTC) o erro não se via.
  *
+ * MOBILE (nov. 2026): abaixo de lg os 7 dias são uma lista vertical
+ * (cabeçalho do dia tocável + marcações em cartões), em vez de 7
+ * colunas com scroll horizontal.
+ *
  * Agora cada coluna É uma string YYYY-MM-DD e o dia de cada marcação
  * é calculado no fuso do salão (lib/utils/salon-day.ts) — o resultado
  * é igual em qualquer telemóvel, computador ou servidor.
@@ -52,6 +56,14 @@ const TIME_FMT = new Intl.DateTimeFormat('pt-PT', {
   hourCycle: 'h23',
 });
 
+/** Cabeçalho de cada dia na lista mobile ("terça, 17 nov") — curto, cabe numa linha */
+const MOBILE_DAY_FMT = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: 'UTC',
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
 type CalendarWeekViewProps = {
   /** Qualquer dia (YYYY-MM-DD) da semana a mostrar */
   weekStart: string;
@@ -83,34 +95,102 @@ export function CalendarWeekView({
   const today = salonDayISO();
 
   return (
-    <div
-      className="overflow-x-auto rounded-lg border"
-      style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
-    >
-      <div className="grid min-w-[840px] grid-cols-7">
-        {days.map((dateStr, idx) => {
+    <>
+      {/* Mobile/tablet: os 7 dias em lista vertical (sem scroll horizontal) */}
+      <div className="lg:hidden">
+        {days.map((dateStr) => {
           const dayBookings = bookingsByDay.get(dateStr) ?? [];
-          const isToday = dateStr === today;
-          // Dia de encerramento do SALÃO — derivado de SALON_HOURS,
-          // não de "é fim de semana". O salão fecha à segunda e abre
-          // ao sábado; presumir sáb/dom sombreava o dia mais cheio.
           const isClosed = !SALON_HOURS[weekdayOfISO(dateStr)].open;
-
+          const label = MOBILE_DAY_FMT.format(new Date(`${dateStr}T12:00:00Z`));
           return (
-            <DayColumn
-              key={dateStr}
-              dayNum={dayOfMonthISO(dateStr)}
-              weekdayLabel={WEEKDAYS_PT[idx]}
-              bookings={dayBookings}
-              isToday={isToday}
-              isClosed={isClosed}
-              onBookingClick={onBookingClick}
-              onDayClick={() => onDayClick(dateStr)}
-            />
+            <section key={dateStr}>
+              <button
+                type="button"
+                className="agm-weekday admin-press"
+                onClick={() => onDayClick(dateStr)}
+                aria-label={`Abrir ${label}`}
+              >
+                <span style={{ color: dateStr === today ? '#8A6A2A' : '#1A1A1A' }}>
+                  {dateStr === today ? `Hoje · ${label}` : label}
+                </span>
+                <small>
+                  {dayBookings.length > 0
+                    ? `${dayBookings.length} ${dayBookings.length === 1 ? 'marcação' : 'marcações'}`
+                    : isClosed
+                      ? 'Encerrado'
+                      : 'Livre'}
+                </small>
+                <ChevronRight size={18} strokeWidth={1.75} style={{ color: '#B8924A' }} />
+              </button>
+              {dayBookings.length > 0 ? (
+                <ul className="agm-list">
+                  {dayBookings.map((b) => {
+                    const colors = WEEK_STATUS_COLORS[b.status] ?? FALLBACK_COLORS;
+                    return (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          className="agm-card admin-press"
+                          style={{ minHeight: '60px' }}
+                          onClick={() => onBookingClick(b)}
+                        >
+                          <span
+                            aria-hidden
+                            className="agm-card-bar"
+                            style={{ backgroundColor: colors.border }}
+                          />
+                          <span className="agm-card-time">
+                            <span className="agm-card-start">
+                              {TIME_FMT.format(new Date(b.startTime))}
+                            </span>
+                          </span>
+                          <span className="agm-card-body">
+                            <span className="agm-card-name">{b.client.name}</span>
+                            <span className="agm-card-sub">
+                              {[b.services[0]?.name, b.staff?.name].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </section>
           );
         })}
       </div>
-    </div>
+
+      {/* Desktop: 7 colunas */}
+      <div
+        className="hidden overflow-x-auto rounded-lg border lg:block"
+        style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(31,61,46,0.08)' }}
+      >
+        <div className="grid min-w-[840px] grid-cols-7">
+          {days.map((dateStr, idx) => {
+            const dayBookings = bookingsByDay.get(dateStr) ?? [];
+            const isToday = dateStr === today;
+            // Dia de encerramento do SALÃO — derivado de SALON_HOURS,
+            // não de "é fim de semana". O salão fecha à segunda e abre
+            // ao sábado; presumir sáb/dom sombreava o dia mais cheio.
+            const isClosed = !SALON_HOURS[weekdayOfISO(dateStr)].open;
+
+            return (
+              <DayColumn
+                key={dateStr}
+                dayNum={dayOfMonthISO(dateStr)}
+                weekdayLabel={WEEKDAYS_PT[idx]}
+                bookings={dayBookings}
+                isToday={isToday}
+                isClosed={isClosed}
+                onBookingClick={onBookingClick}
+                onDayClick={() => onDayClick(dateStr)}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }
 

@@ -26,6 +26,11 @@
  *    .ics. Com approvalMode='manual' nasce 'pending' e o cliente recebe
  *    "pedido recebido".
  *  - Cancelamentos pela cliente alertam o salão (horário ficou livre).
+ *
+ * CHANGELOG (nov. 2026):
+ *  - CORRIDA: verificação pós-gravação (lib/booking/overlap.ts). Dois
+ *    pedidos simultâneos com inícios diferentes mas sobrepostos já não
+ *    podem ficar os dois gravados.
  */
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -36,7 +41,6 @@ import {
   Booking,
   Client,
   Service,
-  SLOT_BLOCKING_STATUSES,
   Staff,
   generateBookingNumber,
   logAudit,
@@ -48,7 +52,7 @@ import {
   validateDate,
   type AvailabilityResult,
 } from '@/lib/booking/availability';
-import { slotConflictsWithBookings } from '@/lib/booking/conflicts';
+import { findOverlappingBooking, lostWriteRace } from '@/lib/booking/overlap';
 import { BOOKING_RULES } from '@/lib/constants/business';
 import { getOnlineBookingInitialStatus } from '@/lib/booking/policy';
 import { combineDateAndTime, timeToMinutes, minutesToTime } from '@/lib/utils/time-utils';
@@ -311,28 +315,14 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
     // agora. Mesma regra do motor de disponibilidade: sobreposição real,
     // contando o buffer após cada marcação existente. (O índice único só
     // apanha o MESMO startTime; sobreposições parciais passavam.)
-    const MAX_BUFFER_MS = 120 * 60_000;
-    const nearby = await Booking.find({
+    const conflict = await findOverlappingBooking({
       staffId: requestedSlot.staffId,
-      status: { $in: SLOT_BLOCKING_STATUSES },
-      startTime: { $lt: endTime },
-      endTime: { $gt: new Date(startTime.getTime() - MAX_BUFFER_MS) },
-    })
-      .select('_id startTime endTime bufferAfter')
-      .lean();
-
-    const conflictCheck = slotConflictsWithBookings(
       startTime,
       endTime,
-      nearby.map((b) => ({
-        id: String(b._id),
-        startTime: new Date(b.startTime),
-        endTime: new Date(b.endTime),
-        bufferAfter: b.bufferAfter ?? BOOKING_RULES.defaultBufferMinutes,
-      })),
-    ).hasConflict;
+      withBuffer: true,
+    });
 
-    if (conflictCheck) {
+    if (conflict) {
       return {
         success: false,
         error: {
@@ -357,6 +347,29 @@ export async function createBookingAction(input: unknown): Promise<CreateBooking
       remindersSent: { confirmation: false, dayBefore: false, hourBefore: false },
       internalNotes: `cancellationToken=${cancellationToken}`,
     });
+
+    // Corrida entre dois pedidos com inícios DIFERENTES que se sobrepõem
+    // (o índice único não os apanha): quem grava volta a ler e, se vir
+    // outra marcação por cima, desiste — antes de qualquer email sair.
+    // Ver lib/booking/overlap.ts.
+    if (
+      await lostWriteRace({
+        staffId: requestedSlot.staffId,
+        startTime,
+        endTime: booking.endTime,
+        excludeId: booking._id,
+        withBuffer: true,
+      })
+    ) {
+      await Booking.deleteOne({ _id: booking._id });
+      return {
+        success: false,
+        error: {
+          code: 'slot-taken',
+          message: 'Este horario foi marcado por outro cliente. Por favor escolha outro.',
+        },
+      };
+    }
 
     await logAudit({
       action: 'create',

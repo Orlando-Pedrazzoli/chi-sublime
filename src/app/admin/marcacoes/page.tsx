@@ -65,6 +65,7 @@ export default async function AdminMarcacoesPage({
       initialDate={date}
       initialView={view}
       initialBookings={bookingsResult.bookings}
+      initialDayInfo={'dayInfo' in bookingsResult ? bookingsResult.dayInfo : null}
       staff={meta.staff}
       services={meta.services}
       categories={meta.categories}

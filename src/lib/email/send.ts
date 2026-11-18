@@ -137,6 +137,8 @@ export async function sendBookingConfirmationEmail(params: {
   startTime?: Date;
   endTime?: Date;
   approvedBySalon?: boolean;
+  /** Data/hora antigas, quando o salão remarcou (muda assunto e texto) */
+  rescheduledFrom?: string;
 }): Promise<SendEmailResult> {
   const detailUrl = getBookingDetailUrl(params.bookingNumber);
   const calendarEvent =
@@ -164,11 +166,14 @@ export async function sendBookingConfirmationEmail(params: {
     calendarUrl: calendarEvent ? googleCalendarUrl(calendarEvent) : undefined,
     cancellationWindowHours: BOOKING_RULES.cancellationWindowHours,
     approvedBySalon: params.approvedBySalon,
+    rescheduledFrom: params.rescheduledFrom,
   });
   const { html, text } = await renderEmail(node);
   return sendEmail({
     to: params.to,
-    subject: `Marcação confirmada · ${params.date}, ${params.time} — Chi Sublime`,
+    subject: params.rescheduledFrom
+      ? `Marcação alterada · nova data: ${params.date}, ${params.time} — Chi Sublime`
+      : `Marcação confirmada · ${params.date}, ${params.time} — Chi Sublime`,
     html,
     text,
     attachments: calendarEvent

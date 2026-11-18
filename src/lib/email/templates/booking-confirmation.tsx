@@ -5,8 +5,9 @@
  *
  * Enviado quando a marcação fica CONFIRMADA: logo ao marcar (modo
  * automático, o padrão) ou quando o salão aprova um pedido (modo
- * manual). O convite .ics segue em anexo; `calendarUrl` abre o
- * Google Calendar já preenchido.
+ * manual), e quando o salão a REMARCA (`rescheduledFrom`). O convite
+ * .ics segue em anexo; `calendarUrl` abre o Google Calendar já
+ * preenchido.
  *
  * Componente puro. Dados e URLs vêm por props.
  */
@@ -29,6 +30,12 @@ export interface BookingConfirmationEmailProps {
   cancellationWindowHours: number;
   /** true quando vem de um pedido aprovado pelo salão (modo manual) */
   approvedBySalon?: boolean;
+  /**
+   * Preenchido quando o salão REMARCOU a marcação: data/hora antigas
+   * ("sexta-feira, 20 de novembro de 2026 às 10:00"). Muda o texto de
+   * abertura e o preview para "nova data".
+   */
+  rescheduledFrom?: string;
 }
 
 export function BookingConfirmationEmail({
@@ -44,14 +51,23 @@ export function BookingConfirmationEmail({
   calendarUrl,
   cancellationWindowHours,
   approvedBySalon,
+  rescheduledFrom,
 }: BookingConfirmationEmailProps) {
   return (
-    <EmailShell preview={`Marcação confirmada · ${date} às ${time}`}>
+    <EmailShell
+      preview={
+        rescheduledFrom
+          ? `Marcação alterada · nova data: ${date} às ${time}`
+          : `Marcação confirmada · ${date} às ${time}`
+      }
+    >
       <Greeting name={name} />
       <Paragraph>
-        {approvedBySalon
-          ? 'Boas notícias: o salão confirmou o teu pedido. A tua marcação está confirmada.'
-          : 'A tua marcação está confirmada. Estamos à tua espera!'}
+        {rescheduledFrom
+          ? `A tua marcação de ${rescheduledFrom} foi alterada pelo salão. Fica confirmada para a nova data abaixo.`
+          : approvedBySalon
+            ? 'Boas notícias: o salão confirmou o teu pedido. A tua marcação está confirmada.'
+            : 'A tua marcação está confirmada. Estamos à tua espera!'}
       </Paragraph>
       <InfoTable
         rows={[

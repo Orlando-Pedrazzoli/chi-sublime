@@ -16,6 +16,9 @@
  *  - Respeita: salao hours, holidays, exceptions, staff vacations,
  *    staff working hours, breaks, marcações existentes
  *
+ * CHANGELOG (nov. 2026):
+ *  - `excludeBookingId` para a remarcação pelo admin.
+ *
  * CHANGELOG (auditoria):
  *  - FIX: validacao de passado agora e por DIA DE CALENDARIO em
  *    Lisboa (toISODate). Antes, uma janela de 24h permitia gerar
@@ -78,6 +81,12 @@ export type AvailabilityInput = {
   serviceIds: string[];
   /** Staff especifico ou "any" para qualquer disponivel */
   staffId: string | 'any';
+  /**
+   * Marcação a IGNORAR na deteção de conflitos (remarcação): sem isto,
+   * a própria marcação bloqueava os horários vizinhos do seu — mover
+   * 30 min para a frente era "conflito" consigo mesma.
+   */
+  excludeBookingId?: string;
 };
 
 export type AvailableSlot = {
@@ -140,7 +149,7 @@ export type AvailabilityError =
 export async function getAvailableSlots(input: AvailabilityInput): Promise<AvailabilityResult> {
   await connectDB();
 
-  const { date, serviceIds, staffId } = input;
+  const { date, serviceIds, staffId, excludeBookingId } = input;
 
   // ============================================================
   // PASSO 1 — VALIDACOES INICIAIS
@@ -261,6 +270,7 @@ export async function getAvailableSlots(input: AvailabilityInput): Promise<Avail
     staffId: { $in: candidateStaffIds },
     status: { $in: ['pending', 'confirmed', 'in-progress'] },
     startTime: { $gte: dayStart, $lte: dayEnd },
+    ...(excludeBookingId ? { _id: { $ne: excludeBookingId } } : {}),
   })
     .select('_id staffId startTime endTime bufferAfter')
     .lean();

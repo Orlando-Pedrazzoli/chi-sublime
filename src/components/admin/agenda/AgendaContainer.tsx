@@ -17,6 +17,20 @@
  *    — o funcionário vê o que acabou de criar.
  *  - Categorias do modal vêm da BD (meta.categories).
  *
+ * MOBILE TIPO APP (nov. 2026) — abaixo de lg (1024px):
+ *  - Cabeçalho próprio, fixo por baixo da topbar: data grande (toca-se
+ *    para abrir o calendário nativo), setas, "Hoje", faixa da semana
+ *    (um toque muda de dia) e o seletor Dia | Semana | Próximas a toda
+ *    a largura. A barra de ferramentas do desktop não aparece.
+ *  - A vista de dia é a <MobileDayAgenda /> (lista vertical com chips
+ *    da equipa e intervalos livres tocáveis), não a grelha.
+ *  - "Nova marcação" não se repete: em mobile já está na topbar.
+ *
+ * REVISÃO (nov. 2026):
+ *  - A vista de dia recebe `dayInfo` (horário do salão e de cada
+ *    profissional nesse dia) para sombrear o que não é marcável.
+ *  - O detalhe da marcação recebe a equipa — permite REMARCAR.
+ *
  * FIX (out. 2026) — datas sempre no fuso do salão:
  *  - "Hoje" e as setas ‹ › faziam contas com toISOString() (UTC).
  *    Passam a usar lib/utils/salon-day.ts (strings YYYY-MM-DD em
@@ -28,7 +42,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Plus, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useToast } from '@/hooks/useToast';
-import { addDaysISO, isISODay, salonDayISO } from '@/lib/utils/salon-day';
+import {
+  addDaysISO,
+  dayOfMonthISO,
+  isISODay,
+  salonDayISO,
+  weekDaysISO,
+  weekdayOfISO,
+} from '@/lib/utils/salon-day';
+import { SALON_HOURS } from '@/lib/constants/business';
+import { MobileDayAgenda } from './MobileDayAgenda';
 import type { ManualBookingCreated } from '@/lib/server-actions/manual-bookings';
 import { CalendarDayView } from './CalendarDayView';
 import { CalendarWeekView } from './CalendarWeekView';
@@ -41,17 +64,46 @@ import {
   getUpcomingBookingsAction,
   type AdminBookingForList,
   type AdminBookingMeta,
+  type AgendaDayInfo,
 } from '@/lib/server-actions/admin-bookings';
 
 type AgendaContainerProps = {
   initialDate: string;
   initialView: 'day' | 'week' | 'list';
   initialBookings: AdminBookingForList[];
+  /** Horário do salão/profissionais do dia inicial (só na vista de dia) */
+  initialDayInfo?: AgendaDayInfo | null;
   staff: Array<{ id: string; name: string; photo?: string }>;
   services: AdminBookingMeta['services'];
   categories: AdminBookingMeta['categories'];
   openNewModalInitially?: boolean;
 };
+
+type AgendaView = 'day' | 'week' | 'list';
+
+const VIEW_OPTIONS: Array<{ value: AgendaView; label: string }> = [
+  { value: 'day', label: 'Dia' },
+  { value: 'week', label: 'Semana' },
+  { value: 'list', label: 'Próximas' },
+];
+
+/** Segunda → Domingo (ordem de weekDaysISO) */
+const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+// Os dias são strings YYYY-MM-DD; formatam-se a partir do meio-dia UTC
+// desse dia, em UTC — o resultado não depende do fuso do dispositivo.
+const TITLE_WEEKDAY = new Intl.DateTimeFormat('pt-PT', { timeZone: 'UTC', weekday: 'long' });
+const TITLE_DAY = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: 'UTC',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+const TITLE_SHORT = new Intl.DateTimeFormat('pt-PT', {
+  timeZone: 'UTC',
+  day: 'numeric',
+  month: 'short',
+});
 
 type NewBookingPrefill = {
   time?: string;
@@ -62,6 +114,7 @@ export function AgendaContainer({
   initialDate,
   initialView,
   initialBookings,
+  initialDayInfo = null,
   staff,
   services,
   categories,
@@ -75,6 +128,12 @@ export function AgendaContainer({
   const [date, setDate] = useState(initialDate);
   const [view, setView] = useState<'day' | 'week' | 'list'>(initialView);
   const [bookings, setBookings] = useState(initialBookings);
+  // Dia a que `bookings`/`dayInfo` dizem respeito. Enquanto o pedido do
+  // novo dia não chega, o sombreado do dia anterior NÃO é mostrado por
+  // cima do novo (folga de terça pintada na quarta).
+  const [dayInfo, setDayInfo] = useState<{ date: string; info: AgendaDayInfo } | null>(
+    initialDayInfo ? { date: initialDate, info: initialDayInfo } : null,
+  );
   const [selectedBooking, setSelectedBooking] = useState<AdminBookingForList | null>(null);
   const [newBookingOpen, setNewBookingOpen] = useState(openNewModalInitially);
   const [newBookingPrefill, setNewBookingPrefill] = useState<NewBookingPrefill | null>(null);
@@ -88,6 +147,7 @@ export function AgendaContainer({
           : await getUpcomingBookingsAction(newDate);
     if (result.success) {
       setBookings(result.bookings);
+      if ('dayInfo' in result) setDayInfo({ date: newDate, info: result.dayInfo });
     }
   }, []);
 
@@ -192,10 +252,120 @@ export function AgendaContainer({
     }, 0);
   }
 
+  const todayISO = salonDayISO();
+  const currentDayInfo = dayInfo?.date === date ? dayInfo.info : null;
+
+  // Título do cabeçalho mobile, conforme a vista
+  const noon = new Date(`${date}T12:00:00Z`);
+  let mobileTitle: string;
+  let mobileSub: string;
+  if (view === 'day') {
+    mobileTitle =
+      date === todayISO
+        ? 'Hoje'
+        : date === addDaysISO(todayISO, 1)
+          ? 'Amanhã'
+          : date === addDaysISO(todayISO, -1)
+            ? 'Ontem'
+            : TITLE_WEEKDAY.format(noon);
+    mobileSub = TITLE_DAY.format(noon);
+  } else if (view === 'week') {
+    const days = weekDaysISO(date);
+    mobileTitle = 'Semana';
+    mobileSub = `${TITLE_SHORT.format(new Date(`${days[0]}T12:00:00Z`))} – ${TITLE_SHORT.format(new Date(`${days[6]}T12:00:00Z`))}`;
+  } else {
+    mobileTitle = 'Próximas';
+    mobileSub = `a partir de ${TITLE_SHORT.format(noon)}`;
+  }
+
   return (
     <>
-      {/* Toolbar */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      {/* ── Cabeçalho MOBILE (tipo app) ─────────────────────── */}
+      <div className="agm-head lg:hidden">
+        <div className="agm-head-row">
+          <button
+            type="button"
+            className="agm-icon-btn"
+            onClick={handlePrevDate}
+            aria-label={view === 'day' ? 'Dia anterior' : 'Anterior'}
+          >
+            <ChevronLeft size={22} strokeWidth={1.75} />
+          </button>
+
+          <label className="agm-date">
+            <span className="agm-date-title">{mobileTitle}</span>
+            <span className="agm-date-sub">{mobileSub}</span>
+            <input
+              type="date"
+              value={date}
+              aria-label="Escolher data"
+              onChange={(e) => navigateToDate(e.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="agm-icon-btn"
+            onClick={handleNextDate}
+            aria-label={view === 'day' ? 'Dia seguinte' : 'Seguinte'}
+          >
+            <ChevronRight size={22} strokeWidth={1.75} />
+          </button>
+
+          {date !== todayISO ? (
+            <button type="button" className="agm-today-btn admin-press" onClick={handleToday}>
+              Hoje
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="agm-icon-btn"
+              onClick={handleRefresh}
+              disabled={isPending}
+              aria-label="Atualizar"
+            >
+              <RotateCw size={18} strokeWidth={1.75} className={isPending ? 'animate-spin' : ''} />
+            </button>
+          )}
+        </div>
+
+        {view === 'day' ? (
+          <div className="agm-week" role="group" aria-label="Dias da semana">
+            {weekDaysISO(date).map((iso, idx) => (
+              <button
+                key={iso}
+                type="button"
+                className="agm-day admin-press"
+                data-selected={iso === date}
+                data-today={iso === todayISO}
+                data-closed={!SALON_HOURS[weekdayOfISO(iso)].open}
+                aria-pressed={iso === date}
+                aria-label={`${WEEKDAY_LABELS[idx]} ${dayOfMonthISO(iso)}`}
+                onClick={() => navigateToDate(iso)}
+              >
+                <span className="agm-day-name">{WEEKDAY_LABELS[idx]}</span>
+                <span className="agm-day-num">{dayOfMonthISO(iso)}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="agm-seg" role="group" aria-label="Vista">
+          {VIEW_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={view === option.value}
+              onClick={() => handleViewChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Toolbar DESKTOP ─────────────────────────────────── */}
+      <div className="mb-6 hidden flex-wrap items-center justify-between gap-3 lg:flex">
         {/* Navegação datas */}
         <div className="flex items-center gap-2">
           <button
@@ -337,9 +507,9 @@ export function AgendaContainer({
       </div>
 
       {/* Hint: dia sem marcações → atalho para a lista de próximas */}
-      {view === 'day' && bookings.length === 0 && (
+      {view === 'day' && !isPending && bookings.length === 0 && (
         <div
-          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3"
+          className="mb-4 hidden flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 lg:flex"
           style={{
             borderColor: 'rgba(212,175,110,0.4)',
             backgroundColor: 'rgba(212,175,110,0.08)',
@@ -367,16 +537,34 @@ export function AgendaContainer({
 
       {/* Vista actual */}
       {view === 'day' ? (
-        <CalendarDayView
-          date={date}
-          bookings={bookings}
-          staff={staff}
-          onBookingClick={setSelectedBooking}
-          onEmptySlotClick={(time, staffId) => {
-            // Prefill: abre o modal já com hora + profissional do slot clicado
-            openNewBooking({ time, staffId });
-          }}
-        />
+        <>
+          {/* Desktop: grelha por profissional */}
+          <div className="hidden lg:block">
+            <CalendarDayView
+              date={date}
+              bookings={bookings}
+              staff={staff}
+              dayInfo={currentDayInfo}
+              onBookingClick={setSelectedBooking}
+              onEmptySlotClick={(time, staffId) => {
+                // Prefill: abre o modal já com hora + profissional do slot clicado
+                openNewBooking({ time, staffId });
+              }}
+            />
+          </div>
+          {/* Mobile/tablet: lista vertical tipo app */}
+          <div className="lg:hidden">
+            <MobileDayAgenda
+              date={date}
+              bookings={bookings}
+              staff={staff}
+              dayInfo={currentDayInfo}
+              onBookingClick={setSelectedBooking}
+              onEmptySlotClick={(time, staffId) => openNewBooking({ time, staffId })}
+              onNewBooking={() => openNewBooking()}
+            />
+          </div>
+        </>
       ) : view === 'week' ? (
         <CalendarWeekView
           weekStart={date}
@@ -392,6 +580,7 @@ export function AgendaContainer({
       {selectedBooking && (
         <BookingDetailModal
           booking={selectedBooking}
+          staff={staff}
           onClose={() => setSelectedBooking(null)}
           onChanged={handleBookingChanged}
         />

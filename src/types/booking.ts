@@ -8,7 +8,8 @@
 export type {
   AdminBookingForList,
   AdminBookingMeta,
-  CreateManualBookingInput,
+  AgendaDayInfo,
+  RescheduleBookingInput,
   UpdateStatusInput,
 } from '@/lib/server-actions/admin-bookings';
 export type { BookingForClient } from '@/lib/server-actions/bookings';

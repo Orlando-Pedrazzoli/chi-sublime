@@ -492,6 +492,7 @@ export function TodayBoard({
       {detail ? (
         <BookingDetailModal
           booking={detail}
+          staff={staff}
           onClose={() => setDetail(null)}
           onChanged={() => {
             setDetail(null);

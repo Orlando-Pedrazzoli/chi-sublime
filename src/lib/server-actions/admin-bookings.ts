@@ -1,35 +1,49 @@
 // 📄 src/lib/server-actions/admin-bookings.ts
 'use server';
 
+/**
+ * Chi Sublime — Server Actions: agenda do admin
+ * ============================================================
+ *
+ * REVISÃO (nov. 2026):
+ *  - NOVO rescheduleBookingAction + getRescheduleSlotsAction: o salão
+ *    passa a poder REMARCAR (dia, hora, profissional). Antes só dava
+ *    para cancelar e criar de novo — a cliente recebia um email de
+ *    cancelamento e a marcação perdia o número e o histórico.
+ *  - getBookingsByDayAction devolve também `dayInfo` (horário do salão
+ *    e janela de trabalho de cada profissional nesse dia) — a vista de
+ *    dia sombreia folgas, férias, pausas e horas fora do expediente.
+ *  - Removida a createManualBookingAction antiga deste ficheiro: nenhum
+ *    ecrã a usava (o modal usa a de manual-bookings.ts) mas continuava
+ *    a ser um endpoint, sem validação Zod, sem verificar competências
+ *    nem datas passadas.
+ *  - getAdminBookingMetaAction exige sessão de admin (era pública).
+ */
+
 import mongoose from 'mongoose';
+import { z } from 'zod';
 import { fromZonedTime } from 'date-fns-tz';
 import { connectDB } from '@/lib/db/connect';
 import { notifyAdminStatusChange } from '@/lib/booking/status-notifications';
-import {
-  Booking,
-  Category,
-  Client,
-  Service,
-  Staff,
-  generateBookingNumber,
-  logAudit,
-  type IBooking,
-} from '@/lib/models';
+import { notifyBookingRescheduled } from '@/lib/email/booking-notifications';
+import { Booking, Category, Client, Service, Staff, logAudit, type IBooking } from '@/lib/models';
 import { auth } from '@/lib/auth';
+import { combineDateAndTime, getWeekDay } from '@/lib/utils/time-utils';
 import {
-  combineDateAndTime,
-  timeToMinutes,
-  minutesToTime,
-  getWeekDay,
-} from '@/lib/utils/time-utils';
-import { isStaffOnVacation } from '@/lib/booking/availability';
-
-/** Dias à frente de hoje que o board da dashboard carrega para consulta */
-const BOARD_WINDOW_DAYS = 6;
+  canStaffPerformAllServices,
+  getAvailableSlots,
+  isStaffOnVacation,
+  validateDate,
+} from '@/lib/booking/availability';
+import { resolveSchedule } from '@/lib/booking/schedule-resolver';
+import { findOverlappingBooking, lostWriteRace } from '@/lib/booking/overlap';
 import { BOOKING_RULES, SALON_TIMEZONE } from '@/lib/constants/business';
 import { addDaysISO, isISODay, startOfWeekISO } from '@/lib/utils/salon-day';
 import { canTransition, BOOKING_STATUS_VISUAL } from '@/lib/constants/booking-status';
 import { resolveRange } from '@/lib/utils/dates';
+
+/** Dias à frente de hoje que o board da dashboard carrega para consulta */
+const BOARD_WINDOW_DAYS = 6;
 
 // ============================================================
 // TIPOS
@@ -86,8 +100,40 @@ export type TodayBoardResult =
     }
   | { success: false; error: string };
 
+/** Intervalo "HH:MM"–"HH:MM" (pausa) */
+export type AgendaBreak = { start: string; end: string };
+
+/**
+ * Como o salão e cada profissional trabalham NUM dia concreto — já com
+ * exceções, feriados, folgas e férias resolvidos. Alimenta o sombreado
+ * da vista de dia (o que está a cinzento não é marcável online).
+ */
+export type AgendaDayInfo = {
+  salon: {
+    open: boolean;
+    start?: string;
+    end?: string;
+    /** Motivo legível quando fechado ("Feriado", "Encerrado neste dia…") */
+    closedDetail?: string;
+  };
+  /** Por id de profissional ativo */
+  staff: Record<
+    string,
+    {
+      working: boolean;
+      /** Porque não trabalha: folga semanal ou férias */
+      reason?: 'off' | 'vacation';
+      /** Janela efetiva = horário do salão ∩ horário do profissional */
+      start?: string;
+      end?: string;
+      /** Pausas do salão + pausas do profissional */
+      breaks: AgendaBreak[];
+    }
+  >;
+};
+
 export type DayBookingsResult =
-  | { success: true; bookings: AdminBookingForList[]; date: string }
+  | { success: true; bookings: AdminBookingForList[]; date: string; dayInfo: AgendaDayInfo }
   | { success: false; error: string };
 
 export type WeekBookingsResult =
@@ -95,10 +141,6 @@ export type WeekBookingsResult =
   | { success: false; error: string };
 
 export type SimpleResult = { success: true } | { success: false; error: string };
-
-export type CreateBookingResult =
-  | { success: true; bookingNumber: string }
-  | { success: false; error: string };
 
 export type SearchClientsResult = {
   success: true;
@@ -122,21 +164,9 @@ export type AdminBookingMeta = {
   categories: Array<{ slug: string; name: string; color: string; order: number }>;
 };
 
-export type CreateManualBookingInput = {
-  clientId?: string;
-  newClient?: {
-    name: string;
-    phone: string;
-    email?: string;
-  };
-  serviceIds: string[];
-  staffId: string;
-  date: string;
-  time: string;
-  source: 'phone' | 'walk-in' | 'instagram' | 'website';
-  initialStatus?: 'pending' | 'confirmed';
-  notes?: string;
-};
+export type RescheduleSlotsResult =
+  | { success: true; times: string[]; closedDetail?: string }
+  | { success: false; error: string };
 
 // ============================================================
 // HELPERS
@@ -163,6 +193,56 @@ function parseDate(dateStr: string): Date {
  */
 function salonDayStart(isoDay: string): Date {
   return fromZonedTime(`${isoDay}T00:00:00`, SALON_TIMEZONE);
+}
+
+/** Mesma regra do motor (availability.ts): janela = salão ∩ profissional. */
+async function buildDayInfo(isoDay: string): Promise<AgendaDayInfo> {
+  const noon = parseDate(isoDay);
+  const [schedule, staff] = await Promise.all([
+    resolveSchedule(noon),
+    Staff.find({ active: true }).select('workingHours vacations').lean(),
+  ]);
+
+  const weekday = getWeekDay(noon);
+  const info: AgendaDayInfo = {
+    salon: schedule.open
+      ? { open: true, start: schedule.start, end: schedule.end }
+      : { open: false, closedDetail: schedule.reasonDetail },
+    staff: {},
+  };
+
+  for (const s of staff) {
+    const id = String(s._id);
+    const config = s.workingHours?.[weekday];
+
+    if (isStaffOnVacation(s, noon)) {
+      info.staff[id] = { working: false, reason: 'vacation', breaks: [] };
+      continue;
+    }
+    if (!config?.enabled) {
+      info.staff[id] = { working: false, reason: 'off', breaks: [] };
+      continue;
+    }
+    if (!schedule.open || !schedule.start || !schedule.end) {
+      // Salão fechado: a coluna inteira fica sombreada pelo `salon.open`
+      info.staff[id] = { working: true, breaks: [] };
+      continue;
+    }
+
+    const start = config.start > schedule.start ? config.start : schedule.start;
+    const end = config.end < schedule.end ? config.end : schedule.end;
+    info.staff[id] = {
+      working: true,
+      start,
+      end,
+      breaks: [...(schedule.breaks ?? []), ...(config.breaks ?? [])].map((b) => ({
+        start: b.start,
+        end: b.end,
+      })),
+    };
+  }
+
+  return info;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -309,18 +389,22 @@ export async function getBookingsByDayAction(dateStr: string): Promise<DayBookin
   if (!isISODay(dateStr)) return { success: false, error: 'Data inválida' };
 
   try {
-    const bookings = await Booking.find({
-      startTime: { $gte: salonDayStart(dateStr), $lt: salonDayStart(addDaysISO(dateStr, 1)) },
-    })
-      .sort({ startTime: 1 })
-      .populate('clientId', 'name phone email')
-      .populate('staffId', 'name photo')
-      .lean();
+    const [bookings, dayInfo] = await Promise.all([
+      Booking.find({
+        startTime: { $gte: salonDayStart(dateStr), $lt: salonDayStart(addDaysISO(dateStr, 1)) },
+      })
+        .sort({ startTime: 1 })
+        .populate('clientId', 'name phone email')
+        .populate('staffId', 'name photo')
+        .lean(),
+      buildDayInfo(dateStr),
+    ]);
 
     return {
       success: true,
       bookings: bookings.map(formatBooking),
       date: dateStr,
+      dayInfo,
     };
   } catch (err) {
     console.error('[getBookingsByDayAction]', err);
@@ -477,161 +561,277 @@ export async function updateBookingStatusAction(input: UpdateStatusInput): Promi
 }
 
 // ============================================================
-// CREATE MANUAL
+// REMARCAR (dia / hora / profissional)
 // ============================================================
 
-export async function createManualBookingAction(
-  input: CreateManualBookingInput,
-): Promise<CreateBookingResult> {
+const objectIdRe = /^[a-f0-9]{24}$/i;
+
+const rescheduleSlotsSchema = z.object({
+  bookingNumber: z.string().trim().min(1).max(30),
+  date: z.string().refine(isISODay, 'Data inválida'),
+  staffId: z.string().regex(objectIdRe, 'Profissional inválido'),
+});
+
+const rescheduleSchema = rescheduleSlotsSchema.extend({
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:MM)'),
+  /** true = encaixe fora do horário/grelha. Nunca salta sobreposições. */
+  force: z.boolean().default(false),
+});
+
+export type RescheduleBookingInput = z.input<typeof rescheduleSchema>;
+
+/** Só marcações que ainda não começaram podem mudar de hora. */
+const RESCHEDULABLE: IBooking['status'][] = ['pending', 'confirmed'];
+
+function bookingServiceIds(booking: Pick<IBooking, 'services'>): string[] {
+  return booking.services.map((s) => String(s.serviceId));
+}
+
+/**
+ * Horários livres para remarcar uma marcação num dado dia/profissional.
+ * Usa o motor de disponibilidade real, ignorando a própria marcação.
+ */
+export async function getRescheduleSlotsAction(input: {
+  bookingNumber: string;
+  date: string;
+  staffId: string;
+}): Promise<RescheduleSlotsResult> {
   const admin = await requireAdminSession();
   if (!admin) return { success: false, error: 'Não autorizado' };
 
+  const parsed = rescheduleSlotsSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: 'Pedido inválido' };
+
   await connectDB();
 
-  let clientDoc;
-  if (input.clientId) {
-    clientDoc = await Client.findById(input.clientId);
-    if (!clientDoc) return { success: false, error: 'Cliente não encontrado' };
-  } else if (input.newClient) {
-    if (!input.newClient.name?.trim() || !input.newClient.phone?.trim()) {
-      return { success: false, error: 'Nome e telefone do cliente obrigatórios' };
-    }
-    const existing = await Client.findOne({
-      phone: input.newClient.phone.trim(),
-      active: true,
-    });
-    if (existing) {
-      clientDoc = existing;
-    } else {
-      clientDoc = await Client.create({
-        name: input.newClient.name.trim(),
-        phone: input.newClient.phone.trim(),
-        email: input.newClient.email?.trim() || undefined,
-        source: input.source,
-        active: true,
-      });
-    }
-  } else {
-    return { success: false, error: 'Cliente ou newClient obrigatório' };
-  }
-
-  const services = await Service.find({
-    _id: { $in: input.serviceIds },
-    active: true,
-  }).lean();
-
-  if (services.length === 0) {
-    return { success: false, error: 'Serviços não encontrados' };
-  }
-
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const staff: any = await Staff.findById(input.staffId).lean();
-  if (!staff) return { success: false, error: 'Profissional não encontrado' };
-
-  const dateObj = parseDate(input.date);
-  const startTime = combineDateAndTime(dateObj, input.time);
-
-  // Itens na ordem escolhida — a ordem define os buffers ENTRE serviços.
-  const serviceItems = input.serviceIds.map((sid: string) => {
-    const s: any = services.find((srv: any) => String(srv._id) === sid)!;
-    return {
-      serviceId: s._id,
-      name: s.name.pt,
-      price: s.price,
-      duration: s.duration,
-      bufferAfter: s.bufferAfter ?? 0,
-    };
-  });
-
-  // totalDuration = durações + buffers ENTRE serviços (coerente com o fluxo
-  // online e com o pre-validate do model, evitando divergência admin/site).
-  let totalDuration = 0;
-  for (let i = 0; i < serviceItems.length; i++) {
-    totalDuration += serviceItems[i].duration;
-    if (i < serviceItems.length - 1) totalDuration += serviceItems[i].bufferAfter ?? 0;
-  }
-  const endTime = combineDateAndTime(
-    dateObj,
-    minutesToTime(timeToMinutes(input.time) + totalDuration),
-  );
-
-  const conflict = await Booking.findOne({
-    staffId: input.staffId,
-    status: { $in: ['pending', 'confirmed', 'in-progress'] },
-    $or: [
-      { startTime: { $gte: startTime, $lt: endTime } },
-      { endTime: { $gt: startTime, $lte: endTime } },
-      { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
-    ],
-  }).lean();
-
-  if (conflict) {
-    return {
-      success: false,
-      error: `Conflito: ${staff.name} já tem marcação neste horário.`,
-    };
-  }
-
-  const totalPrice = serviceItems.reduce(
-    (sum: number, item: { price: number }) => sum + item.price,
-    0,
-  );
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-
-  const bookingNumber = await generateBookingNumber();
+  const booking = await Booking.findOne({ bookingNumber: parsed.data.bookingNumber })
+    .select('_id services status')
+    .lean();
+  if (!booking) return { success: false, error: 'Marcação não encontrada' };
 
   try {
-    await Booking.create({
-      bookingNumber,
-      clientId: clientDoc._id,
-      staffId: input.staffId,
-      services: serviceItems,
-      totalDuration,
-      totalPrice,
-      startTime,
-      endTime,
-      status: input.initialStatus ?? 'confirmed',
-      source: input.source,
-      notes: input.notes,
-      remindersSent: { confirmation: false, dayBefore: false, hourBefore: false },
-      internalNotes: `Criado pelo admin: ${admin.name}`,
+    const availability = await getAvailableSlots({
+      date: parseDate(parsed.data.date),
+      serviceIds: bookingServiceIds(booking),
+      staffId: parsed.data.staffId,
+      excludeBookingId: String(booking._id),
     });
-  } catch (err) {
-    // E11000 = índice único anti-double-booking: o staff já ficou ocupado
-    // neste instante entre o conflict-check e o create.
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code?: number }).code === 11000
-    ) {
-      return {
-        success: false,
-        error: `Conflito: ${staff.name} já tem marcação neste horário.`,
-      };
+
+    if (availability.error && availability.error.code !== 'no-qualified-staff') {
+      return { success: false, error: availability.error.message };
     }
-    throw err;
+
+    return {
+      success: true,
+      times: availability.slots
+        .filter((slot) => slot.staffId === parsed.data.staffId)
+        .map((slot) => slot.time),
+      closedDetail: availability.metadata.salonOpen
+        ? undefined
+        : (availability.metadata.closedReasonDetail ?? 'Salão encerrado neste dia'),
+    };
+  } catch (err) {
+    console.error('[getRescheduleSlotsAction]', err);
+    return { success: false, error: 'Erro ao calcular os horários livres' };
+  }
+}
+
+/**
+ * Muda o dia, a hora e/ou o profissional de uma marcação, mantendo o
+ * número, o cliente, os serviços e o histórico.
+ *
+ *  - Só 'pending' e 'confirmed' (o que já começou não se remarca).
+ *  - A competência do profissional é SEMPRE verificada.
+ *  - force=false: o horário tem de existir na grelha real (como no site).
+ *  - force=true: salta horário do salão/profissional e a grelha de 30 min,
+ *    mas a sobreposição com outras marcações é SEMPRE verificada.
+ *  - O lembrete da véspera volta a ficar por enviar (a data mudou).
+ *  - A cliente recebe um email com a nova data + convite .ics (o UID do
+ *    convite é o número da marcação — o calendário dela atualiza o evento).
+ */
+export async function rescheduleBookingAction(
+  input: RescheduleBookingInput,
+): Promise<SimpleResult> {
+  const admin = await requireAdminSession();
+  if (!admin) return { success: false, error: 'Não autorizado' };
+
+  const parsed = rescheduleSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
+  }
+  const data = parsed.data;
+
+  await connectDB();
+
+  const booking = await Booking.findOne({ bookingNumber: data.bookingNumber });
+  if (!booking) return { success: false, error: 'Marcação não encontrada' };
+
+  if (!RESCHEDULABLE.includes(booking.status)) {
+    return {
+      success: false,
+      error: `Uma marcação "${BOOKING_STATUS_VISUAL[booking.status].label}" já não pode ser remarcada.`,
+    };
   }
 
+  const dateObj = parseDate(data.date);
+  const dateError = validateDate(dateObj);
+  if (dateError?.code === 'no-past') return { success: false, error: dateError.message };
+
+  // ── Profissional: ativo e competente para TODOS os serviços ──
+  const staff = await Staff.findOne({ _id: data.staffId, active: true }).lean();
+  if (!staff) return { success: false, error: 'Profissional não encontrado ou inativo' };
+
+  const serviceIds = bookingServiceIds(booking);
+  const services = await Service.find({ _id: { $in: serviceIds } }).lean();
+  if (!canStaffPerformAllServices(staff, services)) {
+    return {
+      success: false,
+      error: `${staff.name} não realiza todos os serviços desta marcação. Escolhe outro profissional.`,
+    };
+  }
+
+  const newStart = combineDateAndTime(dateObj, data.time);
+  const newEnd = new Date(newStart.getTime() + booking.totalDuration * 60_000);
+
+  const oldStart = booking.startTime;
+  const oldStaffId = booking.staffId;
+  const staffChanged = String(oldStaffId) !== data.staffId;
+
+  if (!staffChanged && oldStart.getTime() === newStart.getTime()) {
+    return { success: false, error: 'A marcação já está nesse dia, hora e profissional.' };
+  }
+
+  // ── Horário (saltável com force) ──
+  if (!data.force) {
+    const availability = await getAvailableSlots({
+      date: dateObj,
+      serviceIds,
+      staffId: data.staffId,
+      excludeBookingId: String(booking._id),
+    });
+
+    if (availability.error) return { success: false, error: availability.error.message };
+    if (!availability.metadata.salonOpen) {
+      return {
+        success: false,
+        error: availability.metadata.closedReasonDetail ?? 'Salão encerrado nesta data',
+      };
+    }
+    const slotExists = availability.slots.some(
+      (slot) => slot.time === data.time && slot.staffId === data.staffId,
+    );
+    if (!slotExists) {
+      return {
+        success: false,
+        error:
+          `${staff.name} não tem este horário livre neste dia. ` +
+          'Escolhe um dos horários disponíveis ou usa "Forçar encaixe".',
+      };
+    }
+  }
+
+  // ── Sobreposição — SEMPRE verificada (ignorando a própria marcação) ──
+  const overlapQuery = {
+    staffId: data.staffId,
+    startTime: newStart,
+    endTime: newEnd,
+    excludeId: booking._id,
+  };
+  const overlap = await findOverlappingBooking(overlapQuery);
+  if (overlap) {
+    return {
+      success: false,
+      error: `Sobrepõe a marcação ${overlap.bookingNumber} de ${staff.name}. Escolhe outro horário.`,
+    };
+  }
+
+  const previousStatus = booking.status;
+  const dayBeforeSent = booking.remindersSent?.dayBefore ?? false;
+
+  booking.staffId = staff._id;
+  booking.startTime = newStart; // endTime é recalculado no pre-validate
+  if (booking.remindersSent) booking.remindersSent.dayBefore = false;
+
+  try {
+    await booking.save();
+  } catch (err) {
+    // E11000 = outro pedido ocupou exatamente este início entretanto
+    if (typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000) {
+      return { success: false, error: 'Este horário acabou de ser ocupado. Escolhe outro.' };
+    }
+    console.error('[rescheduleBookingAction]', err);
+    return { success: false, error: 'Erro ao remarcar. Tenta novamente.' };
+  }
+
+  // Corrida com uma escrita sobreposta de início diferente: repõe a
+  // marcação onde estava e avisa. Ver lib/booking/overlap.ts.
+  if (await lostWriteRace(overlapQuery)) {
+    booking.staffId = oldStaffId;
+    booking.startTime = oldStart;
+    if (booking.remindersSent) booking.remindersSent.dayBefore = dayBeforeSent;
+    try {
+      await booking.save();
+    } catch (err) {
+      console.error('[rescheduleBookingAction] falha ao repor a marcação', err);
+    }
+    return { success: false, error: 'Este horário acabou de ser ocupado. Escolhe outro.' };
+  }
+
+  const fmt = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+
   await logAudit({
-    action: 'create',
+    action: 'update',
     resource: 'booking',
-    resourceLabel: bookingNumber,
+    resourceId: String(booking._id),
+    resourceLabel: booking.bookingNumber,
     userId: new mongoose.Types.ObjectId(admin.id),
     userName: admin.name,
     userEmail: admin.email,
     userRole: 'admin',
-    message: `Marcação manual: ${bookingNumber} (${input.source}) — ${clientDoc.name}`,
+    message:
+      `Marcação ${booking.bookingNumber} remarcada: ${fmt.format(oldStart)} → ${fmt.format(newStart)}` +
+      (staffChanged ? ` (agora com ${staff.name})` : '') +
+      (data.force ? ' [encaixe forçado]' : ''),
     severity: 'info',
     metadata: {
-      bookingNumber,
-      source: input.source,
-      totalPrice,
-      clientId: String(clientDoc._id),
+      oldStart: oldStart.toISOString(),
+      newStart: newStart.toISOString(),
+      oldStaffId: String(oldStaffId),
+      newStaffId: data.staffId,
+      force: data.force,
     },
   });
 
-  return { success: true, bookingNumber };
+  // Email à cliente — só para marcações futuras já confirmadas (um pedido
+  // ainda pendente recebe a confirmação quando o salão o aprovar).
+  if (previousStatus === 'confirmed' && newStart.getTime() > Date.now()) {
+    const client = booking.clientId
+      ? await Client.findById(booking.clientId).select('name email').lean()
+      : null;
+    await notifyBookingRescheduled({
+      bookingNumber: booking.bookingNumber,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      previousStartTime: oldStart,
+      services: booking.services.map((s) => s.name),
+      staffName: staff.name,
+      totalPrice: booking.totalPrice,
+      client: {
+        name: client?.name ?? booking.guestInfo?.name ?? 'Cliente',
+        email: client?.email ?? booking.guestInfo?.email,
+      },
+    });
+  }
+
+  return { success: true };
 }
 
 // ============================================================
@@ -674,6 +874,11 @@ export async function searchClientsAction(query: string): Promise<SearchClientsR
 // ============================================================
 
 export async function getAdminBookingMetaAction(): Promise<AdminBookingMeta> {
+  // Todas as exports de um ficheiro 'use server' são endpoints: sem
+  // sessão de admin não se devolve nada (antes respondia a qualquer um).
+  const admin = await requireAdminSession();
+  if (!admin) return { staff: [], services: [], categories: [] };
+
   await connectDB();
 
   const [staff, services, categories] = await Promise.all([

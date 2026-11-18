@@ -5,11 +5,20 @@
  * Chi Sublime — Server Actions: Marcações manuais (admin)
  * ============================================================
  *
- * Implementa os 3 stubs documentados em bookings.ts:
- *  - createManualBookingAction  (telefone, walk-in, Instagram,
- *    e recriação das marcações futuras na migração do Noona)
- *  - adminCancelBookingAction   (sem janela de 24h)
- *  - updateBookingStatusAction  (confirmar / iniciar / concluir / falta)
+ * createManualBookingAction — telefone, walk-in, Instagram e
+ * recriação das marcações futuras na migração do Noona.
+ *
+ * As mudanças de estado, o cancelamento e a remarcação pelo salão
+ * vivem em admin-bookings.ts (updateBookingStatusAction e
+ * rescheduleBookingAction) — UMA só máquina de estados
+ * (constants/booking-status.ts).
+ *
+ * REVISÃO (nov. 2026): este ficheiro tinha uma segunda
+ * updateBookingStatusAction e uma adminCancelBookingAction que
+ * nenhum ecrã usava, com uma tabela de transições diferente da
+ * oficial (permitia pending → completed, por exemplo). Como todas as
+ * exports de um ficheiro 'use server' são endpoints públicos, foram
+ * removidas.
  *
  * Padrão do projeto (staff.ts): requireAdminSession, Zod +
  * fieldErrors, ok/fail, logAudit, revalidatePath.
@@ -20,7 +29,8 @@
  *  - force=true: salta horário do salão/staff e grelha de 30min
  *    (walk-in às 18:50, encaixe especial), MAS a sobreposição
  *    com marcações existentes é SEMPRE verificada + protegida
- *    pelo índice único anti-double-booking (E11000).
+ *    pelo índice único anti-double-booking (E11000) e pela
+ *    verificação pós-gravação (lib/booking/overlap.ts).
  */
 
 import mongoose from 'mongoose';
@@ -28,30 +38,18 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { connectDB } from '@/lib/db/connect';
 import { notifyBookingCreated } from '@/lib/email/booking-notifications';
-import { notifyAdminStatusChange } from '@/lib/booking/status-notifications';
 import { auth } from '@/lib/auth';
-import {
-  Booking,
-  Client,
-  Service,
-  Staff,
-  generateBookingNumber,
-  logAudit,
-  SLOT_BLOCKING_STATUSES,
-} from '@/lib/models';
+import { Booking, Client, Service, Staff, generateBookingNumber, logAudit } from '@/lib/models';
 import {
   getAvailableSlots,
   validateDate,
   calculateTotalDuration,
   canStaffPerformAllServices,
 } from '@/lib/booking/availability';
-import { combineDateAndTime, minutesToTime, timeToMinutes } from '@/lib/utils/time-utils';
+import { combineDateAndTime } from '@/lib/utils/time-utils';
 import { ok, fail, type ActionResult } from '@/types/common';
-import {
-  createManualBookingSchema,
-  adminCancelBookingSchema,
-  updateBookingStatusSchema,
-} from '@/lib/validation/manual-booking';
+import { createManualBookingSchema } from '@/lib/validation/manual-booking';
+import { findOverlappingBooking, lostWriteRace } from '@/lib/booking/overlap';
 
 // ============================================================
 // HELPERS
@@ -162,10 +160,9 @@ export async function createManualBookingAction(
 
   const totalDuration = calculateTotalDuration(orderedServices);
   const startTime = combineDateAndTime(dateObj, data.time);
-  const endTime = combineDateAndTime(
-    dateObj,
-    minutesToTime(timeToMinutes(data.time) + totalDuration),
-  );
+  // Fim por aritmética de instantes: minutesToTime() rebenta acima das
+  // 23:59, e um encaixe forçado ao fim do dia fazia a action lançar.
+  const endTime = new Date(startTime.getTime() + totalDuration * 60_000);
 
   // ----------------------------------------------------------
   // Validação de horário (saltável com force)
@@ -203,17 +200,11 @@ export async function createManualBookingAction(
   // Sobreposição com marcações existentes — SEMPRE verificada
   // ----------------------------------------------------------
 
-  const overlap = await Booking.findOne({
+  const overlap = await findOverlappingBooking({
     staffId: data.staffId,
-    status: { $in: SLOT_BLOCKING_STATUSES },
-    $or: [
-      { startTime: { $gte: startTime, $lt: endTime } },
-      { endTime: { $gt: startTime, $lte: endTime } },
-      { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
-    ],
-  })
-    .select('bookingNumber startTime')
-    .lean();
+    startTime,
+    endTime,
+  });
 
   if (overlap) {
     return fail(
@@ -286,6 +277,20 @@ export async function createManualBookingAction(
       createdBy: new mongoose.Types.ObjectId(admin.id),
     });
 
+    // Corrida com outra escrita sobreposta de início diferente (o índice
+    // único só apanha o mesmo início). Ver lib/booking/overlap.ts.
+    if (
+      await lostWriteRace({
+        staffId: staff._id,
+        startTime,
+        endTime: booking.endTime,
+        excludeId: booking._id,
+      })
+    ) {
+      await Booking.deleteOne({ _id: booking._id });
+      return fail('conflict', 'Este horário acabou de ser ocupado. Escolhe outro.');
+    }
+
     await logAudit({
       action: 'create',
       resource: 'booking',
@@ -345,118 +350,4 @@ export async function createManualBookingAction(
     console.error('[createManualBookingAction]', err);
     return fail('server', 'Erro ao criar a marcação. Tenta novamente.');
   }
-}
-
-// ============================================================
-// ADMIN CANCEL (sem janela de 24h)
-// ============================================================
-
-export async function adminCancelBookingAction(
-  input: unknown,
-): Promise<ActionResult<{ bookingNumber: string }>> {
-  const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
-
-  const parsed = adminCancelBookingSchema.safeParse(input);
-  if (!parsed.success) {
-    return fail('validation', 'Dados inválidos.', fieldErrors(parsed.error));
-  }
-
-  await connectDB();
-
-  const booking = await Booking.findById(parsed.data.id);
-  if (!booking) return fail('not_found', 'Marcação não encontrada');
-
-  if (booking.status === 'cancelled') {
-    return fail('validation', 'A marcação já está cancelada');
-  }
-  if (booking.status === 'completed') {
-    return fail('validation', 'Não é possível cancelar uma marcação concluída');
-  }
-
-  const previousStatus = booking.status;
-  booking.status = 'cancelled';
-  booking.cancellationReason = parsed.data.reason;
-  booking.cancelledBy = 'staff';
-  booking.cancelledAt = new Date();
-  await booking.save();
-
-  await logAudit({
-    action: 'cancel',
-    resource: 'booking',
-    resourceId: String(booking._id),
-    resourceLabel: booking.bookingNumber,
-    userId: new mongoose.Types.ObjectId(admin.id),
-    userName: admin.name,
-    userEmail: admin.email,
-    userRole: 'admin',
-    message: `Marcação ${booking.bookingNumber} cancelada pelo salão`,
-    severity: 'warning',
-    metadata: { reason: parsed.data.reason },
-  });
-
-  await notifyAdminStatusChange(booking, previousStatus);
-
-  revalidateBookingViews();
-  return ok({ bookingNumber: booking.bookingNumber });
-}
-
-// ============================================================
-// UPDATE STATUS (confirmar / iniciar / concluir / falta)
-// ============================================================
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  pending: ['confirmed', 'in-progress', 'completed', 'no-show'],
-  confirmed: ['in-progress', 'completed', 'no-show'],
-  'in-progress': ['completed', 'no-show'],
-  completed: [],
-  cancelled: [],
-  'no-show': [],
-};
-
-export async function updateBookingStatusAction(
-  input: unknown,
-): Promise<ActionResult<{ bookingNumber: string; status: string }>> {
-  const admin = await requireAdminSession();
-  if (!admin) return fail('unauthorized', 'Não autorizado');
-
-  const parsed = updateBookingStatusSchema.safeParse(input);
-  if (!parsed.success) {
-    return fail('validation', 'Dados inválidos.', fieldErrors(parsed.error));
-  }
-
-  await connectDB();
-
-  const booking = await Booking.findById(parsed.data.id);
-  if (!booking) return fail('not_found', 'Marcação não encontrada');
-
-  const allowed = ALLOWED_TRANSITIONS[booking.status] ?? [];
-  if (!allowed.includes(parsed.data.status)) {
-    return fail(
-      'validation',
-      `Não é possível passar de "${booking.status}" para "${parsed.data.status}"`,
-    );
-  }
-
-  const previous = booking.status;
-  booking.status = parsed.data.status;
-  await booking.save(); // pre-validate recalcula blocksSlot automaticamente
-
-  await logAudit({
-    action: 'update',
-    resource: 'booking',
-    resourceId: String(booking._id),
-    resourceLabel: booking.bookingNumber,
-    userId: new mongoose.Types.ObjectId(admin.id),
-    userName: admin.name,
-    userEmail: admin.email,
-    userRole: 'admin',
-    message: `Marcação ${booking.bookingNumber}: ${previous} → ${parsed.data.status}`,
-    severity: parsed.data.status === 'no-show' ? 'warning' : 'info',
-  });
-
-  await notifyAdminStatusChange(booking, previous);
-
-  revalidateBookingViews();
-  return ok({ bookingNumber: booking.bookingNumber, status: booking.status });
 }

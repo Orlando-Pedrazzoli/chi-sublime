@@ -10,9 +10,19 @@
  * já preenchido com os serviços, cliente e profissional da marcação.
  * A venda fica ligada à marcação (Booking.transactionId) e a marcação
  * passa a "Concluída" — é assim que a receita chega ao dashboard.
+ *
+ * REVISÃO (nov. 2026):
+ *  - NOVO "Remarcar": muda o dia, a hora e/ou o profissional sem
+ *    cancelar. Mostra os horários realmente livres (o mesmo motor do
+ *    site, ignorando a própria marcação); "Forçar encaixe" permite uma
+ *    hora fora da grelha. A cliente recebe um email com a nova data.
+ *    Antes era preciso cancelar (email de cancelamento à cliente) e
+ *    criar outra marcação.
+ *  - FIX: uma marcação "Não compareceu" mostrava o botão "Cancelar
+ *    marcação", que falhava sempre (a transição não é permitida).
  */
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   X,
   Calendar,
@@ -26,11 +36,16 @@ import {
   AlertCircle,
   Euro,
   Receipt,
+  CalendarClock,
+  Loader2,
 } from 'lucide-react';
 import {
+  getRescheduleSlotsAction,
+  rescheduleBookingAction,
   updateBookingStatusAction,
   type AdminBookingForList,
 } from '@/lib/server-actions/admin-bookings';
+import { salonDayISO } from '@/lib/utils/salon-day';
 import { CheckoutModal, type CheckoutPrefill } from '@/components/admin/checkout/CheckoutModal';
 import { SALON_TIMEZONE } from '@/lib/constants/business';
 
@@ -66,16 +81,136 @@ const SOURCE_LABELS: Record<string, string> = {
 
 type BookingDetailModalProps = {
   booking: AdminBookingForList;
+  /** Equipa ativa — permite trocar de profissional ao remarcar */
+  staff?: Array<{ id: string; name: string }>;
   onClose: () => void;
   onChanged: () => void;
 };
 
-export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetailModalProps) {
+type SlotsState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'loaded'; times: string[]; closedDetail?: string }
+  | { status: 'error'; message: string };
+
+const FIELD: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: '6px',
+  border: '1px solid rgba(31,61,46,0.2)',
+  backgroundColor: '#FFFFFF',
+  color: '#1A1A1A',
+  fontSize: '14px',
+  minHeight: '44px',
+};
+
+const FIELD_LABEL: React.CSSProperties = {
+  display: 'block',
+  marginBottom: '6px',
+  fontSize: '10px',
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  color: '#5A5A5A',
+};
+
+export function BookingDetailModal({
+  booking,
+  staff,
+  onClose,
+  onChanged,
+}: BookingDetailModalProps) {
   const [isPending, startTransition] = useTransition();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  // ── Remarcar ───────────────────────────────────────────────
+  const canReschedule = booking.status === 'pending' || booking.status === 'confirmed';
+  const currentDay = salonDayISO(booking.startTime);
+  const today = salonDayISO();
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  // Uma marcação de um dia já passado remarca-se, por defeito, para hoje
+  const [newDate, setNewDate] = useState(currentDay < today ? today : currentDay);
+  const [newStaffId, setNewStaffId] = useState(booking.staff?.id ?? '');
+  const [newTime, setNewTime] = useState('');
+  const [force, setForce] = useState(false);
+  const [slots, setSlots] = useState<SlotsState>({ status: 'idle' });
+  const slotsRequestRef = useRef(0);
+
+  // A equipa ativa + o profissional atual (pode já estar inativo)
+  const staffOptions = useMemo(() => {
+    const options = [...(staff ?? [])];
+    if (booking.staff && !options.some((s) => s.id === booking.staff?.id)) {
+      options.unshift({ id: booking.staff.id, name: booking.staff.name });
+    }
+    return options;
+  }, [staff, booking.staff]);
+
+  useEffect(() => {
+    if (!rescheduleOpen || force || !newDate || !newStaffId) return;
+    const requestId = ++slotsRequestRef.current;
+    let cancelled = false;
+
+    (async () => {
+      setSlots({ status: 'loading' });
+      try {
+        const result = await getRescheduleSlotsAction({
+          bookingNumber: booking.bookingNumber,
+          date: newDate,
+          staffId: newStaffId,
+        });
+        if (cancelled || requestId !== slotsRequestRef.current) return;
+        setSlots(
+          result.success
+            ? { status: 'loaded', times: result.times, closedDetail: result.closedDetail }
+            : { status: 'error', message: result.error },
+        );
+      } catch {
+        if (cancelled || requestId !== slotsRequestRef.current) return;
+        setSlots({ status: 'error', message: 'Não foi possível carregar os horários.' });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rescheduleOpen, force, newDate, newStaffId, booking.bookingNumber]);
+
+  const currentTime = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: SALON_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(booking.startTime));
+  const sameAsCurrent =
+    newDate === currentDay && newStaffId === (booking.staff?.id ?? '') && newTime === currentTime;
+  const canSubmitReschedule = Boolean(newDate && newStaffId && newTime) && !sameAsCurrent;
+
+  function openReschedule() {
+    setError(null);
+    setConfirmCancel(false);
+    setRescheduleOpen(true);
+  }
+
+  function handleReschedule() {
+    if (!canSubmitReschedule) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await rescheduleBookingAction({
+        bookingNumber: booking.bookingNumber,
+        date: newDate,
+        time: newTime,
+        staffId: newStaffId,
+        force,
+      });
+      if (result.success) {
+        onChanged();
+      } else {
+        setError(result.error);
+      }
+    });
+  }
 
   // A marcação pode ser cobrada quando está viva e ainda não tem venda.
   const isCharged = Boolean(booking.transactionId);
@@ -136,8 +271,15 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
         onClick={onClose}
       >
         <div
-          className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-lg sm:rounded-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
+          className="relative w-full max-w-lg overflow-y-auto rounded-t-2xl sm:rounded-lg"
+          style={{
+            backgroundColor: '#FFFFFF',
+            // dvh: em iOS, 90vh ficava por baixo da barra do browser
+            maxHeight: '92dvh',
+            // Os botões do fundo não ficam por baixo da barra do gesto "home"
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            overscrollBehavior: 'contain',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <div
@@ -335,6 +477,183 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
               </div>
             ) : null}
 
+            {/* ── Remarcar ─────────────────────────────────────── */}
+            {rescheduleOpen ? (
+              <div
+                className="rounded-md border"
+                style={{
+                  padding: '16px',
+                  borderColor: 'rgba(212,175,110,0.5)',
+                  backgroundColor: 'rgba(212,175,110,0.07)',
+                }}
+              >
+                <p
+                  className="flex items-center text-sm font-semibold"
+                  style={{ gap: '8px', marginBottom: '14px', color: '#1F3D2E' }}
+                >
+                  <CalendarClock size={16} strokeWidth={1.5} />
+                  Remarcar
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: '12px' }}>
+                  <label>
+                    <span style={FIELD_LABEL}>Novo dia</span>
+                    <input
+                      type="date"
+                      value={newDate}
+                      min={today}
+                      onChange={(e) => {
+                        setNewDate(e.target.value);
+                        if (!force) setNewTime('');
+                      }}
+                      style={FIELD}
+                    />
+                  </label>
+                  <label>
+                    <span style={FIELD_LABEL}>Profissional</span>
+                    <select
+                      value={newStaffId}
+                      onChange={(e) => {
+                        setNewStaffId(e.target.value);
+                        if (!force) setNewTime('');
+                      }}
+                      style={FIELD}
+                    >
+                      {staffOptions.length === 0 ? <option value="">—</option> : null}
+                      {staffOptions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <span style={FIELD_LABEL}>{force ? 'Hora (livre)' : 'Horários livres'}</span>
+
+                  {force ? (
+                    <input
+                      type="time"
+                      step={300}
+                      value={newTime}
+                      onChange={(e) => setNewTime(e.target.value)}
+                      style={{ ...FIELD, maxWidth: '160px' }}
+                    />
+                  ) : slots.status === 'loading' || slots.status === 'idle' ? (
+                    <p
+                      className="flex items-center text-sm"
+                      style={{ gap: '8px', color: '#5A5A5A' }}
+                    >
+                      <Loader2 size={14} className="animate-spin" />A procurar horários…
+                    </p>
+                  ) : slots.status === 'error' ? (
+                    <p className="text-sm" style={{ color: '#B23C3C' }}>
+                      {slots.message}
+                    </p>
+                  ) : slots.times.length === 0 ? (
+                    <p className="text-sm" style={{ color: '#7A5A2A' }}>
+                      {slots.closedDetail
+                        ? `Salão encerrado neste dia (${slots.closedDetail}).`
+                        : 'Sem horários livres para este profissional neste dia.'}{' '}
+                      Escolhe outro dia ou profissional, ou usa «Forçar encaixe».
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap" style={{ gap: '8px' }}>
+                      {slots.times.map((t) => {
+                        const selected = t === newTime;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setNewTime(t)}
+                            aria-pressed={selected}
+                            className="font-mono text-sm transition-colors"
+                            style={{
+                              padding: '9px 12px',
+                              minWidth: '64px',
+                              borderRadius: '6px',
+                              border: `1px solid ${selected ? '#1F3D2E' : 'rgba(31,61,46,0.2)'}`,
+                              backgroundColor: selected ? '#1F3D2E' : '#FFFFFF',
+                              color: selected ? '#FAF7F2' : '#1F3D2E',
+                            }}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <label
+                  className="flex items-start text-sm"
+                  style={{ gap: '10px', marginTop: '14px', color: '#5A4A2A', cursor: 'pointer' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={force}
+                    onChange={(e) => {
+                      setForce(e.target.checked);
+                      setNewTime('');
+                    }}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <span>
+                    Forçar encaixe — hora fora do horário normal ou da grelha de 30 min. Nunca
+                    sobrepõe outra marcação.
+                  </span>
+                </label>
+
+                {booking.client.email && booking.status === 'confirmed' ? (
+                  <p className="text-xs" style={{ marginTop: '12px', color: '#5A5A5A' }}>
+                    A cliente recebe um email com a nova data ({booking.client.email}).
+                  </p>
+                ) : null}
+
+                <div className="flex flex-wrap" style={{ gap: '8px', marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={handleReschedule}
+                    disabled={isPending || !canSubmitReschedule}
+                    className="inline-flex items-center justify-center rounded-md text-xs font-semibold tracking-wide transition-colors disabled:opacity-50"
+                    style={{
+                      backgroundColor: '#1F3D2E',
+                      color: '#FAF7F2',
+                      fontSize: '12px',
+                      ...ACTION_BTN,
+                    }}
+                  >
+                    {isPending ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <CalendarClock size={14} strokeWidth={1.5} />
+                    )}
+                    {isPending
+                      ? 'A remarcar…'
+                      : newTime
+                        ? `Remarcar para as ${newTime}`
+                        : 'Remarcar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleOpen(false)}
+                    disabled={isPending}
+                    className="rounded-md border text-xs tracking-wide"
+                    style={{
+                      borderColor: 'rgba(31,61,46,0.2)',
+                      color: '#1A1A1A',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: '12px',
+                      ...ACTION_BTN,
+                    }}
+                  >
+                    Voltar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             {/* ── Cobrança ─────────────────────────────────────── */}
             {isCharged ? (
               <div
@@ -350,7 +669,7 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
               </div>
             ) : null}
 
-            {!confirmCancel && canCharge ? (
+            {!confirmCancel && !rescheduleOpen && canCharge ? (
               <button
                 type="button"
                 onClick={() => setCheckoutOpen(true)}
@@ -368,7 +687,11 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
               </button>
             ) : null}
 
-            {!confirmCancel && booking.status !== 'cancelled' && booking.status !== 'completed' ? (
+            {!confirmCancel &&
+            !rescheduleOpen &&
+            booking.status !== 'cancelled' &&
+            booking.status !== 'completed' &&
+            booking.status !== 'no-show' ? (
               <div
                 className="grid grid-cols-2 border-t"
                 style={{ borderColor: 'rgba(31,61,46,0.08)', gap: '10px', paddingTop: '16px' }}
@@ -422,6 +745,19 @@ export function BookingDetailModal({ booking, onClose, onChanged }: BookingDetai
                   >
                     <AlertCircle size={14} strokeWidth={1.5} />
                     Não compareceu
+                  </button>
+                ) : null}
+
+                {canReschedule ? (
+                  <button
+                    type="button"
+                    onClick={openReschedule}
+                    disabled={isPending}
+                    className="col-span-2 inline-flex items-center justify-center rounded-md border text-xs font-semibold tracking-wide transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    style={{ borderColor: 'rgba(31,61,46,0.25)', color: '#1F3D2E', ...ACTION_BTN }}
+                  >
+                    <CalendarClock size={14} strokeWidth={1.5} />
+                    Remarcar (dia, hora ou profissional)
                   </button>
                 ) : null}
 

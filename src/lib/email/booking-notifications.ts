@@ -10,6 +10,8 @@
  *           pending   → CLIENTE: pedido recebido      | SALÃO: por confirmar
  *  confirmada (pending → confirmed pelo admin)
  *                     → CLIENTE: confirmação + .ics
+ *  remarcada pelo salão
+ *                     → CLIENTE: "marcação alterada" + .ics novo
  *  cancelada          → CLIENTE: cancelada | pedido não confirmado
  *                       SALÃO: alerta, quando foi a cliente a cancelar
  *
@@ -174,6 +176,39 @@ export async function notifyBookingConfirmed(params: BookingConfirmedNotificatio
         startTime: params.startTime,
         endTime: params.endTime,
         approvedBySalon: true,
+      }),
+    },
+  ]);
+}
+
+// ------------------------------------------------------------
+// Marcação remarcada pelo salão (novo dia / hora / profissional)
+// ------------------------------------------------------------
+
+export type BookingRescheduledNotification = BookingConfirmedNotification & {
+  /** Início ANTES da remarcação — para o "de … para …" do email */
+  previousStartTime: Date;
+};
+
+export async function notifyBookingRescheduled(
+  params: BookingRescheduledNotification,
+): Promise<void> {
+  if (!params.client.email) return;
+  await settle([
+    {
+      label: 'remarcação (cliente)',
+      job: sendBookingConfirmationEmail({
+        to: params.client.email,
+        name: params.client.name,
+        bookingNumber: params.bookingNumber,
+        date: dateFmt.format(params.startTime),
+        time: timeFmt.format(params.startTime),
+        services: params.services.join(', '),
+        staffName: params.staffName,
+        total: euros(params.totalPrice),
+        startTime: params.startTime,
+        endTime: params.endTime,
+        rescheduledFrom: `${dateFmt.format(params.previousStartTime)} às ${timeFmt.format(params.previousStartTime)}`,
       }),
     },
   ]);

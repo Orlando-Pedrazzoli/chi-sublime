@@ -544,6 +544,489 @@ select {
 }
 
 /* ============================================================
+   ADMIN — agenda em mobile (< 1024px), tipo app
+   ------------------------------------------------------------
+   Em telemóvel a agenda não é a grelha do desktop com scroll
+   horizontal: é uma lista vertical (uma marcação por linha, alvos
+   de toque grandes), com a semana em faixa e a equipa em chips.
+   Componentes: AgendaContainer (cabeçalho), MobileDayAgenda,
+   CalendarWeekView (lista). CSS simples, fora das layers do
+   Tailwind — espaçamentos críticos não podem ser descartados.
+   ============================================================ */
+
+/* Cabeçalho fixo por baixo da topbar (56px + notch) */
+.agm-head {
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  z-index: 20;
+  margin: -16px -16px 14px;
+  padding: 12px 16px 10px;
+  background-color: #faf7f2;
+  border-bottom: 1px solid rgba(31, 61, 46, 0.08);
+}
+
+.agm-head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agm-icon-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #1f3d2e;
+}
+
+.agm-icon-btn:active {
+  background-color: rgba(31, 61, 46, 0.08);
+}
+
+/* Título da data — toca-se para abrir o calendário nativo */
+.agm-date {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.agm-date:active {
+  background-color: rgba(31, 61, 46, 0.06);
+}
+
+.agm-date-title {
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Só a primeira letra ("Quinta-feira", não "Quinta-Feira") */
+.agm-date-title::first-letter,
+.agm-weekday > span::first-letter {
+  text-transform: uppercase;
+}
+
+.agm-date-sub {
+  font-size: 12px;
+  line-height: 15px;
+  color: #6b6b66;
+}
+
+.agm-date input[type='date'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.agm-today-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(31, 61, 46, 0.2);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1f3d2e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Faixa da semana */
+.agm-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.agm-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  padding: 6px 0;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: #1a1a1a;
+}
+
+.agm-day-name {
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 600;
+  color: #6b6b66;
+}
+
+.agm-day-num {
+  font-size: 17px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.agm-day[data-closed='true'] .agm-day-num,
+.agm-day[data-closed='true'] .agm-day-name {
+  color: #b5b5ae;
+}
+
+.agm-day[data-today='true'] {
+  border-color: rgba(184, 146, 74, 0.7);
+}
+
+.agm-day[data-selected='true'] {
+  border-color: #1f3d2e;
+  background-color: #1f3d2e;
+}
+
+.agm-day[data-selected='true'] .agm-day-name {
+  color: rgba(212, 175, 110, 0.95);
+}
+
+.agm-day[data-selected='true'] .agm-day-num {
+  color: #faf7f2;
+}
+
+/* Dia | Semana | Próximas */
+.agm-seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 10px;
+  padding: 3px;
+  border-radius: 12px;
+  background-color: rgba(31, 61, 46, 0.08);
+}
+
+.agm-seg button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #1f3d2e;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.agm-seg button[aria-pressed='true'] {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(20, 40, 32, 0.14);
+}
+
+/* Chips da equipa */
+.agm-chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 -16px 12px;
+  padding: 2px 16px;
+}
+
+.agm-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(31, 61, 46, 0.16);
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.agm-chip[aria-pressed='true'] {
+  border-color: #1f3d2e;
+  background-color: #1f3d2e;
+  color: #faf7f2;
+}
+
+.agm-chip-count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background-color: rgba(31, 61, 46, 0.08);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.agm-chip[aria-pressed='true'] .agm-chip-count {
+  background-color: rgba(212, 175, 110, 0.3);
+  color: #f3dfb6;
+}
+
+.agm-chip-tag {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+/* Lista do dia */
+.agm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agm-card {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px 12px 0;
+  border: 1px solid rgba(31, 61, 46, 0.08);
+  border-radius: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(20, 40, 32, 0.04);
+  text-align: left;
+  overflow: hidden;
+}
+
+.agm-card-bar {
+  flex-shrink: 0;
+  width: 5px;
+  margin: -12px 0;
+}
+
+.agm-card-time {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  width: 46px;
+  font-variant-numeric: tabular-nums;
+}
+
+.agm-card-start {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  color: #1f3d2e;
+}
+
+.agm-card-end {
+  font-size: 12px;
+  line-height: 16px;
+  color: #8a8a84;
+}
+
+.agm-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.agm-card-name {
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agm-card-sub {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 17px;
+  color: #5a5a5a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agm-card-side {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+}
+
+.agm-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Intervalo livre — toca-se para marcar */
+.agm-free {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 1.5px dashed rgba(31, 61, 46, 0.22);
+  border-radius: 14px;
+  background-color: transparent;
+  color: #1f3d2e;
+  font-size: 14px;
+  text-align: left;
+}
+
+.agm-free:active {
+  background-color: rgba(212, 175, 110, 0.16);
+}
+
+.agm-free-cta {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-weight: 700;
+  color: #8a6a2a;
+}
+
+.agm-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: #8a8a84;
+}
+
+.agm-note::before,
+.agm-note::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: rgba(31, 61, 46, 0.1);
+}
+
+.agm-note[data-now='true'] {
+  color: #b23c3c;
+  font-weight: 700;
+}
+
+.agm-note[data-now='true']::before,
+.agm-note[data-now='true']::after {
+  height: 2px;
+  background-color: #b23c3c;
+}
+
+.agm-banner {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background-color: rgba(31, 61, 46, 0.06);
+  color: #1f3d2e;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.agm-empty {
+  padding: 36px 20px;
+  border: 1px solid rgba(31, 61, 46, 0.08);
+  border-radius: 16px;
+  background-color: #ffffff;
+  text-align: center;
+}
+
+.agm-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background-color: #d4af6e;
+  color: #1f3d2e;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.agm-section-title {
+  margin: 20px 4px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a5a5a;
+}
+
+/* Vista de semana em lista */
+.agm-weekday {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.agm-weekday > span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agm-weekday small {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b6b66;
+}
+
+@media (min-width: 640px) {
+  .agm-head {
+    margin: -24px -24px 16px;
+    padding: 14px 24px 12px;
+  }
+
+  .agm-chips {
+    margin: 0 -24px 12px;
+    padding: 2px 24px;
+  }
+}
+
+/* ============================================================
    PRINT — para faturas e relatórios PDF
    ============================================================ */
 
