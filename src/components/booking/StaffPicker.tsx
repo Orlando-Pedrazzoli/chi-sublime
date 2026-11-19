@@ -24,7 +24,11 @@
  *  (Padrão Nielsen: desativar + explicar > esconder; os líderes do
  *  setor — Fresha, Booksy, Vagaro — filtram a lista por serviço.)
  *
- * Mobile: grelha 2 colunas. Desktop: grelha 4 colunas.
+ * Mobile (< 640px): faixa horizontal numa só linha (desliza se
+ * houver muitos profissionais) — ocupa ~1/3 da altura da antiga
+ * grelha de 2 colunas, por isso o calendário fica logo à vista.
+ * Tablet/desktop: grelha 4 colunas.
+ * Layout/padding em globals.css (.bk-staff-row / .bk-staff-card).
  */
 
 import Image from 'next/image';
@@ -68,14 +72,14 @@ export function StaffPicker({
 
   return (
     <div>
-      <h3 className="text-chi-charcoal mb-5 font-serif text-xl">Profissional</h3>
+      <h3 className="text-chi-charcoal mb-4 font-serif text-xl md:mb-5">Profissional</h3>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4">
+      <div className="bk-staff-row">
         {/* Card "Qualquer disponivel" */}
         <button
           onClick={() => handleSelect('any')}
           className={cn(
-            'group bg-chi-cream flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all',
+            'bk-staff-card group bg-chi-cream flex flex-col items-center gap-3 rounded-lg border-2 transition-all',
             currentStaffId === 'any'
               ? 'border-chi-gold shadow-gold'
               : 'border-chi-border hover:border-chi-gold/50 hover:shadow-soft',
@@ -85,7 +89,7 @@ export function StaffPicker({
           {/* "Avatar" decorativo */}
           <div
             className={cn(
-              'relative flex h-16 w-16 items-center justify-center rounded-full transition-all md:h-20 md:w-20',
+              'relative flex h-14 w-14 items-center justify-center rounded-full transition-all sm:h-16 sm:w-16 md:h-20 md:w-20',
               currentStaffId === 'any' ? 'bg-chi-gold' : 'bg-chi-sand group-hover:bg-chi-sand-deep',
             )}
           >
@@ -129,7 +133,7 @@ export function StaffPicker({
               key={staff.id}
               onClick={() => (isEligible ? handleSelect(staff.id) : onBlockedSelect(staff))}
               className={cn(
-                'group bg-chi-cream relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all',
+                'bk-staff-card group bg-chi-cream relative flex flex-col items-center gap-3 rounded-lg border-2 transition-all',
                 isSelected
                   ? 'border-chi-gold shadow-gold'
                   : isEligible
@@ -144,7 +148,7 @@ export function StaffPicker({
             >
               <div
                 className={cn(
-                  'bg-chi-sand relative h-16 w-16 overflow-hidden rounded-full transition-all md:h-20 md:w-20',
+                  'bg-chi-sand relative h-14 w-14 overflow-hidden rounded-full transition-all sm:h-16 sm:w-16 md:h-20 md:w-20',
                   isSelected && 'ring-chi-gold ring-offset-chi-cream ring-2 ring-offset-2',
                   !isEligible && 'grayscale',
                 )}

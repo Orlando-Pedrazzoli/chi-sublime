@@ -24,6 +24,11 @@
  *  - SELECIONADO   → preenchido verde profundo
  *
  * Cache por mes+staff+servicos para navegacao instantanea.
+ *
+ * MOBILE (nov. 2026): o cabeçalho empilha — título numa linha e, por
+ * baixo, o mês centrado entre as duas setas (alvos de 44px, uma em
+ * cada ponta). Antes, título + navegação não cabiam lado a lado num
+ * telemóvel. A grelha ganha largura (menos padding → dias maiores).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -211,16 +216,16 @@ export function CalendarPicker({
   return (
     <div>
       {/* Header com setas + nome do mes */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-chi-charcoal font-serif text-xl">Escolha a data</h3>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end sm:gap-1">
           <button
             onClick={goToPrevMonth}
             disabled={!canGoPrev}
             aria-label="Mês anterior"
             className={cn(
-              'rounded-md p-2 transition-colors',
+              'bk-cal-nav-btn rounded-md transition-colors',
               canGoPrev
                 ? 'text-chi-charcoal hover:bg-chi-sand/50 hover:text-chi-green-deep'
                 : 'text-chi-charcoal-light/40 cursor-not-allowed',
@@ -240,7 +245,7 @@ export function CalendarPicker({
             </svg>
           </button>
 
-          <span className="text-chi-charcoal min-w-[160px] text-center font-serif text-base md:min-w-[180px] md:text-lg">
+          <span className="text-chi-charcoal min-w-[160px] text-center font-serif text-lg md:min-w-[180px]">
             {MONTH_NAMES[viewMonth]} {viewYear}
           </span>
 
@@ -249,7 +254,7 @@ export function CalendarPicker({
             disabled={!canGoNext}
             aria-label="Mês seguinte"
             className={cn(
-              'rounded-md p-2 transition-colors',
+              'bk-cal-nav-btn rounded-md transition-colors',
               canGoNext
                 ? 'text-chi-charcoal hover:bg-chi-sand/50 hover:text-chi-green-deep'
                 : 'text-chi-charcoal-light/40 cursor-not-allowed',
@@ -274,7 +279,7 @@ export function CalendarPicker({
       {/* Grelha */}
       <div
         className={cn(
-          'border-chi-border bg-chi-cream relative rounded-lg border p-4 transition-opacity md:p-5',
+          'bk-cal-box border-chi-border bg-chi-cream relative rounded-lg border transition-opacity',
           loading && 'pointer-events-none opacity-60',
         )}
         aria-busy={loading}

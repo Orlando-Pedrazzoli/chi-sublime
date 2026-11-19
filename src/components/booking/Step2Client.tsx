@@ -30,9 +30,20 @@
  *  - Carrinho sem NENHUM profissional em comum (ex.: serviço A só X,
  *    serviço B só Y): painel explicativo com CTA para voltar aos
  *    serviços, em vez de um calendário sem datas.
+ *
+ * MOBILE TIPO APP (nov. 2026, < 1024px):
+ *  - O "Continuar" passa para a barra de ação fixa no fundo
+ *    (<BookingBottomBar />): diz o que falta ("Escolha uma data" →
+ *    "Escolha um horário") e, com tudo escolhido, mostra a data/hora
+ *    e ativa o botão. A linha Voltar/Continuar e o cartão "A tua
+ *    escolha" ficam só em desktop (`bk-desktop-only`) — em mobile
+ *    o "voltar" é o ← da barra de topo.
+ *  - Ao escolher a data, a página alinha o calendário no topo para
+ *    os horários (logo abaixo) ficarem à vista sem scroll manual.
+ *  - Toque no botão ainda cinzento leva à secção em falta.
  */
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useBookingFlow } from '@/hooks/useBookingFlow';
@@ -45,6 +56,7 @@ import {
 import { StaffPicker, type StaffOption } from './StaffPicker';
 import { CalendarPicker } from './CalendarPicker';
 import { TimeSlotGrid, type SlotData } from './TimeSlotGrid';
+import { BookingBottomBar } from './BookingBottomBar';
 
 /* Estilos críticos dos CTAs — sempre inline */
 const CTA_PRIMARY: React.CSSProperties = {
@@ -60,6 +72,12 @@ const CTA_DISABLED: React.CSSProperties = {
   padding: '15px 32px',
   borderRadius: '8px',
 };
+
+/** Só em mobile/tablet (onde existe a barra de ação fixa): leva a secção ao topo */
+function scrollToOnMobile(el: HTMLElement | null) {
+  if (!el || !window.matchMedia('(max-width: 1023.98px)').matches) return;
+  el.scrollIntoView({ block: 'start' });
+}
 
 type FetchState = {
   status: 'idle' | 'loading' | 'loaded' | 'closed' | 'error';
@@ -77,6 +95,7 @@ type Props = {
 export function Step2Client({ staffOptions, serviceEligibility }: Props) {
   const t = useTranslations('booking.step2');
   const te = useTranslations('booking.eligibility');
+  const ta = useTranslations('booking.app');
   const locale = useLocale();
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -94,6 +113,10 @@ export function Step2Client({ staffOptions, serviceEligibility }: Props) {
   const currentStaffId = staffId ?? 'any';
 
   const [fetchState, setFetchState] = useState<FetchState>({ status: 'idle' });
+
+  // Âncoras de scroll (mobile)
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const slotsRef = useRef<HTMLDivElement>(null);
   const [cache, setCache] = useState<Map<string, FetchState>>(new Map());
 
   // ------------------------------------------------------------
@@ -168,6 +191,9 @@ export function Step2Client({ staffOptions, serviceEligibility }: Props) {
   const handleSelectDate = (isoDate: string) => {
     // staffId incluído de propósito: normaliza um staff "stale" para 'any'
     updateState({ staffId: effectiveStaffId, date: isoDate, time: null, assignedStaffName: null });
+
+    // Mobile: calendário no topo → os horários (logo abaixo) ficam à vista
+    scrollToOnMobile(calendarRef.current);
 
     const cacheKey = `${effectiveStaffId}:${isoDate}`;
     const cached = cache.get(cacheKey);
@@ -247,6 +273,29 @@ export function Step2Client({ staffOptions, serviceEligibility }: Props) {
   const canContinue = Boolean(effectiveDate && effectiveTime);
 
   // ------------------------------------------------------------
+  // Barra de ação fixa (mobile): etiqueta + detalhe para a folha
+  // ------------------------------------------------------------
+  const dateLocale = locale === 'en' ? 'en-GB' : 'pt-PT';
+  const formatDate = (isoDate: string, style: 'short' | 'long') =>
+    new Intl.DateTimeFormat(dateLocale, {
+      weekday: style,
+      day: 'numeric',
+      month: style,
+    }).format(new Date(`${isoDate}T12:00:00`));
+
+  const barLabel = !effectiveDate
+    ? ta('chooseDate')
+    : !effectiveTime
+      ? ta('chooseTime')
+      : `${formatDate(effectiveDate, 'short')} · ${effectiveTime}`;
+
+  const barStaffName =
+    assignedStaffName ??
+    (effectiveStaffId !== 'any'
+      ? (staffOptions.find((s) => s.id === effectiveStaffId)?.name ?? null)
+      : null);
+
+  // ------------------------------------------------------------
   // Beco sem saída: nenhum profissional faz todos os serviços.
   // Explica QUEM faz o quê e devolve o cliente ao passo 1.
   // ------------------------------------------------------------
@@ -308,176 +357,197 @@ export function Step2Client({ staffOptions, serviceEligibility }: Props) {
   }
 
   return (
-    <div className="space-y-10 md:space-y-12">
-      <div>
-        <StaffPicker
-          staffOptions={staffOptions}
-          selectedStaffId={effectiveStaffId}
-          qualifiedStaffIds={qualifiedStaffIds}
-          onBlockedSelect={handleBlockedSelect}
-        />
-
-        {/* Aviso de elegibilidade — colado ao picker, anunciado a leitores de ecrã */}
-        {eligibilityNotice && (
-          <div
-            role="alert"
-            className="mt-4 flex items-start gap-3 border text-sm leading-[1.6]"
-            style={{
-              padding: '14px 18px',
-              borderColor: 'rgba(212,175,110,0.6)',
-              backgroundColor: 'rgba(212,175,110,0.10)',
-              borderRadius: '10px',
-              color: '#3D3D3D',
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#B8924A"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mt-0.5 shrink-0"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p className="flex-1">{eligibilityNotice}</p>
-            <button
-              type="button"
-              onClick={() => {
-                setNotice(null);
-                setStaleNoticeDismissed(true);
-              }}
-              className="shrink-0 text-lg leading-none hover:opacity-70"
-              style={{ color: '#8A8A8A' }}
-              aria-label={te('dismiss')}
-            >
-              ×
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+    <>
+      <div className="space-y-8 md:space-y-12">
         <div>
-          <CalendarPicker
-            selectedDate={effectiveDate}
-            onSelectDate={handleSelectDate}
-            serviceIds={selectedServiceIds}
-            staffId={effectiveStaffId}
-          />
-        </div>
-
-        <div>
-          <TimeSlotGrid
-            state={
-              !effectiveDate ? 'idle' : fetchState.status === 'error' ? 'loaded' : fetchState.status
-            }
-            slots={fetchState.slots}
-            closedDetail={fetchState.closedDetail}
-            selectedTime={effectiveTime}
-            onSelectSlot={handleSelectSlot}
-            showStaffName={effectiveStaffId === 'any'}
+          <StaffPicker
+            staffOptions={staffOptions}
+            selectedStaffId={effectiveStaffId}
+            qualifiedStaffIds={qualifiedStaffIds}
+            onBlockedSelect={handleBlockedSelect}
           />
 
-          {fetchState.status === 'error' && (
-            <p className="text-chi-danger mt-3 text-center text-sm italic">
-              {fetchState.errorMessage}
-            </p>
-          )}
-
-          {/* Confirmação contextual — aparece colada ao horário escolhido */}
-          {canContinue && effectiveDate && effectiveTime && (
+          {/* Aviso de elegibilidade — colado ao picker, anunciado a leitores de ecrã */}
+          {eligibilityNotice && (
             <div
-              className="mt-5 border p-5"
+              role="alert"
+              className="mt-4 flex items-start gap-3 border text-sm leading-[1.6]"
               style={{
-                borderColor: 'rgba(212,175,110,0.5)',
-                backgroundColor: 'rgba(212,175,110,0.08)',
+                padding: '14px 18px',
+                borderColor: 'rgba(212,175,110,0.6)',
+                backgroundColor: 'rgba(212,175,110,0.10)',
                 borderRadius: '10px',
+                color: '#3D3D3D',
               }}
             >
-              <p
-                className="text-[10px] font-semibold tracking-[0.25em] uppercase"
-                style={{ color: '#B8924A' }}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#B8924A"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mt-0.5 shrink-0"
+                aria-hidden="true"
               >
-                {t('yourChoice')}
-              </p>
-              <p className="mt-1.5 font-serif text-lg capitalize" style={{ color: '#1A1A1A' }}>
-                {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'pt-PT', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                }).format(new Date(`${effectiveDate}T12:00:00`))}
-                {' · '}
-                <span style={{ color: '#1F3D2E' }}>{effectiveTime}</span>
-              </p>
-              {assignedStaffName && (
-                <p className="mt-0.5 text-sm" style={{ color: '#5A5A5A' }}>
-                  {t('withStaff', { name: assignedStaffName })}
-                </p>
-              )}
-
-              {/* Sem botão aqui: o único CTA é o "Continuar" da barra
-                  abaixo — dois botões iguais empilhados confundiam. */}
-              <p className="mt-2.5 text-xs italic" style={{ color: '#8A8A8A' }}>
-                {t('changeHint')}
-              </p>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p className="flex-1">{eligibilityNotice}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setNotice(null);
+                  setStaleNoticeDismissed(true);
+                }}
+                className="shrink-0 text-lg leading-none hover:opacity-70"
+                style={{ color: '#8A8A8A' }}
+                aria-label={te('dismiss')}
+              >
+                ×
+              </button>
             </div>
           )}
         </div>
-      </div>
 
-      {/* CTAs — Voltar discreto à esquerda, Continuar destacado à direita */}
-      <div className="border-chi-border mt-4 border-t pt-8">
-        {/* Helper text quando não pode continuar */}
-        {!canContinue && (
-          <p className="mb-6 text-center text-sm italic" style={{ color: '#8A8A8A' }}>
-            {!effectiveDate ? t('chooseDateHint') : t('chooseTimeHint')}
-          </p>
-        )}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+          <div ref={calendarRef} className="bk-anchor">
+            <CalendarPicker
+              selectedDate={effectiveDate}
+              onSelectDate={handleSelectDate}
+              serviceIds={selectedServiceIds}
+              staffId={effectiveStaffId}
+            />
+          </div>
 
-        {/* Linha de botões */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Voltar — link discreto à esquerda (cor inline por segurança) */}
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors hover:opacity-70"
-            style={{ color: '#5A5A5A', padding: '8px 0' }}
-          >
-            <span>←</span>
-            {t('back')}
-          </button>
+          <div ref={slotsRef} className="bk-anchor">
+            <TimeSlotGrid
+              state={
+                !effectiveDate
+                  ? 'idle'
+                  : fetchState.status === 'error'
+                    ? 'loaded'
+                    : fetchState.status
+              }
+              slots={fetchState.slots}
+              closedDetail={fetchState.closedDetail}
+              selectedTime={effectiveTime}
+              onSelectSlot={handleSelectSlot}
+              showStaffName={effectiveStaffId === 'any'}
+            />
 
-          {/* Continuar — padding, radius e cores SEMPRE inline */}
-          {canContinue ? (
-            <button
-              type="button"
-              onClick={handleContinue}
-              className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] hover:opacity-95 sm:flex-none"
-              style={CTA_PRIMARY}
-            >
-              {t('continue')}
-              <span>→</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase opacity-50 sm:flex-none"
-              style={CTA_DISABLED}
-            >
-              {t('continue')}
-              <span>→</span>
-            </button>
+            {fetchState.status === 'error' && (
+              <p className="text-chi-danger mt-3 text-center text-sm italic">
+                {fetchState.errorMessage}
+              </p>
+            )}
+
+            {/* Confirmação contextual — aparece colada ao horário escolhido.
+                Só desktop: em mobile a escolha aparece na barra de ação fixa. */}
+            {canContinue && effectiveDate && effectiveTime && (
+              <div
+                className="bk-desktop-only mt-5 border p-5"
+                style={{
+                  borderColor: 'rgba(212,175,110,0.5)',
+                  backgroundColor: 'rgba(212,175,110,0.08)',
+                  borderRadius: '10px',
+                }}
+              >
+                <p
+                  className="text-[10px] font-semibold tracking-[0.25em] uppercase"
+                  style={{ color: '#B8924A' }}
+                >
+                  {t('yourChoice')}
+                </p>
+                <p className="mt-1.5 font-serif text-lg capitalize" style={{ color: '#1A1A1A' }}>
+                  {formatDate(effectiveDate, 'long')}
+                  {' · '}
+                  <span style={{ color: '#1F3D2E' }}>{effectiveTime}</span>
+                </p>
+                {assignedStaffName && (
+                  <p className="mt-0.5 text-sm" style={{ color: '#5A5A5A' }}>
+                    {t('withStaff', { name: assignedStaffName })}
+                  </p>
+                )}
+
+                {/* Sem botão aqui: o único CTA é o "Continuar" da barra
+                    abaixo — dois botões iguais empilhados confundiam. */}
+                <p className="mt-2.5 text-xs italic" style={{ color: '#8A8A8A' }}>
+                  {t('changeHint')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CTAs — Voltar discreto à esquerda, Continuar destacado à direita.
+            Só desktop: em mobile avançam na barra de ação fixa (abaixo). */}
+        <div className="bk-desktop-only border-chi-border mt-4 border-t pt-8">
+          {/* Helper text quando não pode continuar */}
+          {!canContinue && (
+            <p className="mb-6 text-center text-sm italic" style={{ color: '#8A8A8A' }}>
+              {!effectiveDate ? t('chooseDateHint') : t('chooseTimeHint')}
+            </p>
           )}
+
+          {/* Linha de botões */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Voltar — link discreto à esquerda (cor inline por segurança) */}
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex shrink-0 items-center gap-2 text-xs font-medium tracking-[0.22em] uppercase transition-colors hover:opacity-70"
+              style={{ color: '#5A5A5A', padding: '8px 0' }}
+            >
+              <span>←</span>
+              {t('back')}
+            </button>
+
+            {/* Continuar — padding, radius e cores SEMPRE inline */}
+            {canContinue ? (
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase transition-all hover:-translate-y-[1px] hover:opacity-95 sm:flex-none"
+                style={CTA_PRIMARY}
+              >
+                {t('continue')}
+                <span>→</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase opacity-50 sm:flex-none"
+                style={CTA_DISABLED}
+              >
+                {t('continue')}
+                <span>→</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* MOBILE — barra de ação fixa no fundo */}
+      <BookingBottomBar
+        label={barLabel}
+        ready={canContinue}
+        cta={{ kind: 'link', href: '/marcacoes/confirmar', label: t('continue') }}
+        onBlockedPress={() =>
+          scrollToOnMobile(effectiveDate ? slotsRef.current : calendarRef.current)
+        }
+        details={{
+          staffName: barStaffName,
+          dateTime:
+            effectiveDate && effectiveTime
+              ? `${formatDate(effectiveDate, 'long')} · ${effectiveTime}`
+              : null,
+        }}
+      />
+    </>
   );
 }

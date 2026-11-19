@@ -247,6 +247,21 @@
       "performedBy": "feito por {staff}",
       "noCommonStaffHint": "Volte aos serviços, mantenha apenas os que são feitos pelo mesmo profissional e faça uma segunda marcação para os restantes — pode escolher um horário logo a seguir.",
       "backToServices": "Voltar aos serviços"
+    },
+    "app": {
+      "back": "Voltar ao passo anterior",
+      "exit": "Sair da marcação",
+      "summaryOpen": "Ver resumo da marcação",
+      "summaryClose": "Fechar resumo",
+      "chooseService": "Escolha um serviço",
+      "chooseDate": "Escolha uma data",
+      "chooseTime": "Escolha um horário",
+      "continue": "Continuar",
+      "confirm": "Confirmar",
+      "confirming": "A confirmar…",
+      "editServices": "Alterar serviços",
+      "professional": "Profissional",
+      "dateTime": "Data e hora"
     }
   },
   "contact": {

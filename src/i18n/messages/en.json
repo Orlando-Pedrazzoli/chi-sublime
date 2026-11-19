@@ -247,6 +247,21 @@
       "performedBy": "performed by {staff}",
       "noCommonStaffHint": "Go back to the services, keep only the ones offered by the same professional and make a second booking for the rest — you can pick a time right after.",
       "backToServices": "Back to services"
+    },
+    "app": {
+      "back": "Back to previous step",
+      "exit": "Leave booking",
+      "summaryOpen": "View booking summary",
+      "summaryClose": "Close summary",
+      "chooseService": "Choose a service",
+      "chooseDate": "Choose a date",
+      "chooseTime": "Choose a time",
+      "continue": "Continue",
+      "confirm": "Confirm",
+      "confirming": "Confirming…",
+      "editServices": "Change services",
+      "professional": "Professional",
+      "dateTime": "Date and time"
     }
   },
   "contact": {

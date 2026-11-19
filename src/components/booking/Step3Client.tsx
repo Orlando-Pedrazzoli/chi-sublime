@@ -1,3 +1,4 @@
+// 📄 src/components/booking/Step3Client.tsx
 'use client';
 
 /**
@@ -5,16 +6,27 @@
  *
  * REQUER LOGIN. Se não autenticado, mostra gate de login/registo.
  * Se admin, bloqueia (admin não faz marcações pessoais).
+ *
+ * MOBILE TIPO APP (nov. 2026, < 1024px):
+ *  - O botão de submeter passa para a barra de ação fixa no fundo
+ *    (<BookingBottomBar />, DENTRO do <form> — é um type="submit"
+ *    normal). A linha Voltar/Confirmar fica só em desktop; em
+ *    mobile o "voltar" é o ← da barra de topo.
+ *  - Como o botão deixa de estar ao lado dos campos, um erro de
+ *    validação leva o ecrã até ao primeiro campo em falta e foca-o
+ *    (senão o cliente tocava em "Confirmar" e "nada acontecia").
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useLocale, useTranslations } from 'next-intl';
 import { User, LogIn, UserPlus } from 'lucide-react';
 import { markLeavingFlow, useBookingFlow } from '@/hooks/useBookingFlow';
 import { createBookingAction } from '@/lib/server-actions/bookings';
 import { cn } from '@/lib/utils/cn';
+import { BookingBottomBar } from './BookingBottomBar';
 
 type FormErrors = Record<string, string>;
 
@@ -31,6 +43,28 @@ type FormState = {
   marketingConsent: boolean;
   website: string;
 };
+
+/** Erro (caminho do Zod) → id do campo no DOM, por ordem no ecrã */
+const ERROR_FIELD_IDS: [string, string][] = [
+  ['guestInfo.phone', 'phone'],
+  ['fiscalData.vatNumber', 'vatNumber'],
+  ['acceptsCancellationPolicy', 'acceptsCancellationPolicy'],
+];
+
+/**
+ * Leva o ecrã até ao primeiro campo com erro e foca-o. Sem campo
+ * identificável (ex.: horário entretanto ocupado), mostra a mensagem
+ * de erro geral — que só existe no DOM depois do re-render.
+ */
+function revealFirstError(errors: FormErrors) {
+  const fieldId = ERROR_FIELD_IDS.find(([path]) => errors[path])?.[1];
+  window.setTimeout(() => {
+    const el = document.getElementById(fieldId ?? 'booking-submit-error');
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    if (fieldId) el.focus({ preventScroll: true });
+  }, 60);
+}
 
 const INITIAL_FORM: FormState = {
   phone: '',
@@ -49,7 +83,9 @@ const INITIAL_FORM: FormState = {
 export function Step3Client() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { selectedServiceIds, staffId, date, time } = useBookingFlow();
+  const { selectedServiceIds, staffId, date, time, assignedStaffName } = useBookingFlow();
+  const ta = useTranslations('booking.app');
+  const locale = useLocale();
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -135,6 +171,7 @@ export function Step3Client() {
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
       setSubmitError('Corrige os campos assinalados para continuar.');
+      revealFirstError(clientErrors);
       return;
     }
 
@@ -196,8 +233,8 @@ export function Step3Client() {
         // Mantém o botão em "A confirmar…" até a página descarregar
         return;
       } else {
+        const flatErrors: FormErrors = {};
         if (result.error.fieldErrors) {
-          const flatErrors: FormErrors = {};
           for (const [path, msgs] of Object.entries(result.error.fieldErrors)) {
             flatErrors[path] = msgs[0] ?? 'Inválido';
           }
@@ -208,14 +245,26 @@ export function Step3Client() {
         if (result.error.code === 'slot-taken') {
           setSubmitError('Este horário já não está disponível. Por favor escolha outro.');
         }
+        revealFirstError(flatErrors);
       }
     } catch (err) {
       console.error('Submit failed:', err);
       setSubmitError('Erro ao processar marcação. Tente novamente.');
+      revealFirstError({});
     } finally {
       if (!navigating) setIsSubmitting(false);
     }
   };
+
+  // Barra de ação fixa (mobile): data/hora escolhidas
+  const formatDate = (style: 'short' | 'long') =>
+    date
+      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'pt-PT', {
+          weekday: style,
+          day: 'numeric',
+          month: style,
+        }).format(new Date(`${date}T12:00:00`))
+      : '';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
@@ -360,6 +409,7 @@ export function Step3Client() {
       <div className="border-chi-border space-y-4 border-t pt-6">
         <label className="flex cursor-pointer items-start gap-3">
           <input
+            id="acceptsCancellationPolicy"
             type="checkbox"
             checked={form.acceptsCancellationPolicy}
             onChange={(e) => updateField('acceptsCancellationPolicy', e.target.checked)}
@@ -427,58 +477,81 @@ export function Step3Client() {
 
       {/* Erro de submit */}
       {submitError && (
-        <div className="border-chi-danger/30 bg-chi-danger-bg rounded-md border p-4">
+        <div
+          id="booking-submit-error"
+          role="alert"
+          className="border-chi-danger/30 bg-chi-danger-bg rounded-md border p-4"
+        >
           <p className="text-chi-danger text-sm font-medium">{submitError}</p>
         </div>
       )}
 
-      {/* Botões */}
-      <div className="border-chi-border flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:gap-4">
-        <button
-          type="button"
-          onClick={() => router.push('/marcacoes/horario')}
-          disabled={isSubmitting}
-          className="border-chi-border text-chi-charcoal-soft hover:bg-chi-sand/40 hover:text-chi-charcoal inline-flex items-center justify-center gap-2 border text-xs font-medium tracking-[0.22em] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
-          style={{
-            padding: '14px 28px',
-            borderRadius: '6px',
-          }}
-        >
-          <span>←</span>
-          Voltar
-        </button>
+      {/* Botões — só desktop: em mobile o "Confirmar" está na barra de
+          ação fixa (fim do form) e o "voltar" na barra de topo */}
+      <div className="bk-desktop-only">
+        <div className="border-chi-border flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:gap-4">
+          <button
+            type="button"
+            onClick={() => router.push('/marcacoes/horario')}
+            disabled={isSubmitting}
+            className="border-chi-border text-chi-charcoal-soft hover:bg-chi-sand/40 hover:text-chi-charcoal inline-flex items-center justify-center gap-2 border text-xs font-medium tracking-[0.22em] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            style={{
+              padding: '14px 28px',
+              borderRadius: '6px',
+            }}
+          >
+            <span>←</span>
+            Voltar
+          </button>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
-          style={{
-            backgroundColor: '#1F3D2E',
-            color: '#FAF7F2',
-            padding: '14px 28px',
-            borderRadius: '6px',
-          }}
-        >
-          {isSubmitting ? (
-            <>
-              <span
-                className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
-                style={{
-                  borderColor: '#FAF7F2',
-                  borderTopColor: 'transparent',
-                }}
-              />
-              A processar...
-            </>
-          ) : (
-            <>Confirmar Marcação →</>
-          )}
-        </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex flex-1 items-center justify-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
+            style={{
+              backgroundColor: '#1F3D2E',
+              color: '#FAF7F2',
+              padding: '14px 28px',
+              borderRadius: '6px',
+            }}
+          >
+            {isSubmitting ? (
+              <>
+                <span
+                  className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
+                  style={{
+                    borderColor: '#FAF7F2',
+                    borderTopColor: 'transparent',
+                  }}
+                />
+                A processar...
+              </>
+            ) : (
+              <>Confirmar Marcação →</>
+            )}
+          </button>
+        </div>
       </div>
 
       <p className="text-chi-charcoal-light text-center text-xs italic">
         Os teus dados são tratados com confidencialidade e usados apenas para gerir a tua marcação.
       </p>
+
+      {/* MOBILE — barra de ação fixa no fundo (submete este form) */}
+      <BookingBottomBar
+        label={date && time ? `${formatDate('short')} · ${time}` : ''}
+        ready
+        cta={{
+          kind: 'submit',
+          label: ta('confirm'),
+          loading: isSubmitting,
+          loadingLabel: ta('confirming'),
+        }}
+        details={{
+          staffName: assignedStaffName,
+          dateTime: date && time ? `${formatDate('long')} · ${time}` : null,
+        }}
+      />
     </form>
   );
 }

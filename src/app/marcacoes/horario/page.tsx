@@ -8,9 +8,13 @@
  *
  * Mobile-first: header compacto — o profissional e o
  * calendário são a primeira coisa visível no telemóvel.
+ *
+ * MOBILE TIPO APP (< 1024px): <BookingTopBar /> no topo (voltar ·
+ * passo · sair) em vez da navbar pública/stepper; a barra de ação
+ * fixa no fundo é rendida pelo Step2Client. Sem rodapé em mobile.
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
@@ -19,6 +23,7 @@ import { Service, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingStepper } from '@/components/booking/BookingStepper';
+import { BookingTopBar } from '@/components/booking/BookingTopBar';
 import { BookingFlowGuard } from '@/components/booking/BookingFlowGuard';
 import { Step2Client } from '@/components/booking/Step2Client';
 import type { StaffOption } from '@/components/booking/StaffPicker';
@@ -26,6 +31,15 @@ import type { StaffOption } from '@/components/booking/StaffPicker';
 export const metadata: Metadata = {
   title: 'Escolher horário | Chi Sublime',
   description: 'Escolha a data e o profissional para a sua marcação no Chi Sublime.',
+};
+
+/**
+ * viewport-fit=cover (junta-se ao viewport do layout raiz): ativa os
+ * `env(safe-area-inset-*)` para a barra de ação fixa do funil mobile
+ * não ficar por baixo da barra de gesto do iPhone.
+ */
+export const viewport: Viewport = {
+  viewportFit: 'cover',
 };
 
 // ============================================================
@@ -72,10 +86,14 @@ export default async function MarcacoesHorarioPage() {
   ]);
 
   return (
-    <>
-      <PublicNavbar />
+    <div className="bk-shell">
+      {/* Desktop: navbar pública · Mobile: barra de topo tipo app */}
+      <div className="bk-desktop-only">
+        <PublicNavbar />
+      </div>
+      <BookingTopBar step="time" />
 
-      <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
+      <main className="bk-main">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12">
           {/* Header compacto */}
           <header className="mb-6 md:mb-10">
@@ -92,8 +110,8 @@ export default async function MarcacoesHorarioPage() {
             </p>
           </header>
 
-          {/* Stepper */}
-          <div className="mb-8 md:mb-12">
+          {/* Stepper — só desktop (em mobile o progresso está na barra de topo) */}
+          <div className="bk-desktop-only mb-8 md:mb-12">
             <BookingStepper currentStep="time" />
           </div>
 
@@ -104,7 +122,10 @@ export default async function MarcacoesHorarioPage() {
         </div>
       </main>
 
-      <PublicFooter />
-    </>
+      {/* Rodapé só em desktop — em mobile o ecrã termina na barra de ação */}
+      <div className="bk-desktop-only">
+        <PublicFooter />
+      </div>
+    </div>
   );
 }

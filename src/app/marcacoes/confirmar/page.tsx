@@ -9,12 +9,18 @@
  * Mobile-first: header compacto; no mobile o resumo read-only
  * aparece ANTES do formulário (o utilizador confirma o que vai
  * pagar antes de preencher dados — preço total visível cedo).
+ *
+ * MOBILE TIPO APP (< 1024px): <BookingTopBar /> no topo (voltar ·
+ * passo · sair) em vez da navbar pública/stepper; o botão
+ * "Confirmar" vive na barra de ação fixa no fundo, rendida pelo
+ * Step3Client (dentro do <form>). Sem rodapé em mobile.
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingStepper } from '@/components/booking/BookingStepper';
+import { BookingTopBar } from '@/components/booking/BookingTopBar';
 import { BookingFlowGuard } from '@/components/booking/BookingFlowGuard';
 import { BookingSummaryReadOnly } from '@/components/booking/BookingSummaryReadOnly';
 import { Step3Client } from '@/components/booking/Step3Client';
@@ -24,12 +30,25 @@ export const metadata: Metadata = {
   description: 'Os seus dados para finalizar a marcação no Chi Sublime.',
 };
 
+/**
+ * viewport-fit=cover (junta-se ao viewport do layout raiz): ativa os
+ * `env(safe-area-inset-*)` para a barra de ação fixa do funil mobile
+ * não ficar por baixo da barra de gesto do iPhone.
+ */
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+};
+
 export default function MarcacoesConfirmarPage() {
   return (
-    <>
-      <PublicNavbar />
+    <div className="bk-shell">
+      {/* Desktop: navbar pública · Mobile: barra de topo tipo app */}
+      <div className="bk-desktop-only">
+        <PublicNavbar />
+      </div>
+      <BookingTopBar step="confirm" />
 
-      <main className="bg-chi-cream min-h-screen pt-24 pb-24 md:pt-32 md:pb-20">
+      <main className="bk-main">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 md:px-12">
           {/* Header compacto */}
           <header className="mb-6 md:mb-10">
@@ -46,8 +65,8 @@ export default function MarcacoesConfirmarPage() {
             </p>
           </header>
 
-          {/* Stepper */}
-          <div className="mb-8 md:mb-12">
+          {/* Stepper — só desktop (em mobile o progresso está na barra de topo) */}
+          <div className="bk-desktop-only mb-8 md:mb-12">
             <BookingStepper currentStep="confirm" />
           </div>
 
@@ -67,7 +86,10 @@ export default function MarcacoesConfirmarPage() {
         </div>
       </main>
 
-      <PublicFooter />
-    </>
+      {/* Rodapé só em desktop — em mobile o ecrã termina na barra de ação */}
+      <div className="bk-desktop-only">
+        <PublicFooter />
+      </div>
+    </div>
   );
 }

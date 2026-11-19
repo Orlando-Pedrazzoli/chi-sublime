@@ -19,6 +19,15 @@
  *  EXPLICAÇÃO (badge "Marcação separada" + clique mostra o aviso),
  *  em vez de escondidos ou de rebentarem mais à frente.
  *  Padrão: Nielsen, "Inactive controls: show, disable or hide".
+ *
+ * MOBILE (nov. 2026):
+ *  - Paddings das linhas em globals.css (.bk-cat-head / .bk-svc-row):
+ *    16px nas laterais em telemóvel (eram 32px fixos inline — o nome
+ *    da categoria ficava truncado), 32px em desktop como antes.
+ *  - Cabeçalho da categoria: em telemóvel o n.º de serviços passa
+ *    para baixo do título e a etiqueta "N selecionados" vira um
+ *    contador redondo — o título deixa de ser cortado.
+ *  - Linhas de serviço com 68px de altura mínima (alvo de toque).
  */
 
 import { useState } from 'react';
@@ -189,10 +198,9 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
               onClick={() => toggleCategory(category.slug)}
               className={cn(
                 'group flex w-full items-center justify-between gap-4 text-left transition-colors',
-                'hover:bg-chi-sand/30',
+                'bk-cat-head hover:bg-chi-sand/30',
                 isOpen && 'bg-chi-sand/20',
               )}
-              style={{ padding: '24px 32px' }}
               aria-expanded={isOpen}
               aria-controls={`category-${category.slug}`}
             >
@@ -206,12 +214,20 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
                   style={{ width: '3px', height: '32px' }}
                   aria-hidden="true"
                 />
-                <h3 className="text-chi-charcoal truncate font-serif text-2xl md:text-3xl">
-                  {category.name}
-                </h3>
+                <div className="min-w-0">
+                  <h3 className="text-chi-charcoal truncate font-serif text-xl sm:text-2xl md:text-3xl">
+                    {category.name}
+                  </h3>
+                  {/* Telemóvel: n.º de serviços por baixo do título */}
+                  <span className="text-chi-charcoal-light mt-0.5 block text-xs sm:hidden">
+                    {category.services.length}{' '}
+                    {category.services.length === 1 ? 'serviço' : 'serviços'}
+                  </span>
+                </div>
+                {/* Tablet/desktop: etiqueta por extenso */}
                 {selectedInCategory > 0 && (
                   <span
-                    className="bg-chi-gold text-chi-green-deep shrink-0 rounded-full text-[10px] font-semibold tracking-[0.18em] uppercase"
+                    className="bg-chi-gold text-chi-green-deep hidden shrink-0 rounded-full text-[10px] font-semibold tracking-[0.18em] uppercase sm:inline-block"
                     style={{ padding: '4px 12px' }}
                   >
                     {selectedInCategory} selecionado
@@ -220,9 +236,17 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-4">
-                <span className="text-chi-charcoal-light text-[11px] tracking-[0.22em] uppercase">
-                  {category.services.length} serviços
+              <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                {/* Telemóvel: contador compacto de selecionados */}
+                {selectedInCategory > 0 && (
+                  <span className="bk-cat-count">
+                    <span className="sr-only">Selecionados: </span>
+                    {selectedInCategory}
+                  </span>
+                )}
+                <span className="text-chi-charcoal-light hidden text-[11px] tracking-[0.22em] uppercase sm:inline">
+                  {category.services.length}{' '}
+                  {category.services.length === 1 ? 'serviço' : 'serviços'}
                 </span>
                 <svg
                   width="14"
@@ -268,7 +292,7 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
                         onClick={() => handleServiceToggle(service)}
                         disabled={isDisabled}
                         className={cn(
-                          'flex w-full items-center justify-between text-left transition-all',
+                          'bk-svc-row flex w-full items-center justify-between text-left transition-all',
                           isSelected
                             ? 'bg-chi-sand/60 hover:bg-chi-sand/80'
                             : 'hover:bg-chi-sand/30',
@@ -277,10 +301,6 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
                           // continua a funcionar para mostrar a explicação
                           isIncompatible && 'opacity-60',
                         )}
-                        style={{
-                          padding: '20px 32px',
-                          gap: '20px',
-                        }}
                         aria-pressed={isSelected}
                         aria-disabled={isIncompatible || undefined}
                         aria-describedby={showNotice ? `notice-${service.id}` : undefined}
@@ -369,9 +389,8 @@ export function ServicePicker({ categories, staff, initialOpenSlug }: Props) {
                         <div
                           id={`notice-${service.id}`}
                           role="alert"
-                          className="border-t text-sm leading-relaxed"
+                          className="bk-svc-notice border-t text-sm leading-relaxed"
                           style={{
-                            padding: '14px 32px 18px',
                             backgroundColor: 'rgba(212,175,110,0.10)',
                             borderColor: 'rgba(212,175,110,0.5)',
                             color: '#3D3D3D',

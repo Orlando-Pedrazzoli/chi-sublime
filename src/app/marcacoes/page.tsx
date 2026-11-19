@@ -9,9 +9,16 @@
  * Mobile-first: header compacto (uma linha) para que a lista
  * de serviços apareça above the fold — o caminho até ao
  * primeiro toque útil é o mais curto possível.
+ *
+ * MOBILE TIPO APP (< 1024px): a navbar pública, o stepper de
+ * círculos e o rodapé dão lugar à <BookingTopBar /> (voltar ·
+ * passo · sair + progresso) e à barra de ação fixa no fundo
+ * (<BookingBottomBar />, rendida pelo BookingSummary). Em desktop
+ * nada muda. Ver globals.css → "MARCAÇÕES — funil do cliente em
+ * mobile".
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
@@ -20,6 +27,7 @@ import { Category, Service, Staff } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { BookingStepper } from '@/components/booking/BookingStepper';
+import { BookingTopBar } from '@/components/booking/BookingTopBar';
 import { BookingSummary } from '@/components/booking/BookingSummary';
 import {
   ServicePicker,
@@ -32,6 +40,15 @@ export const metadata: Metadata = {
   description:
     'Faça a sua marcação online no Chi Sublime — Hair Style & Beauty. Cabeleireiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais. Escolha o serviço, o profissional e o horário em menos de um minuto.',
   alternates: { canonical: '/marcacoes' },
+};
+
+/**
+ * viewport-fit=cover (junta-se ao viewport do layout raiz): ativa os
+ * `env(safe-area-inset-*)` para a barra de ação fixa do funil mobile
+ * não ficar por baixo da barra de gesto do iPhone.
+ */
+export const viewport: Viewport = {
+  viewportFit: 'cover',
 };
 
 // ============================================================
@@ -98,10 +115,14 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
   ]);
 
   return (
-    <>
-      <PublicNavbar />
+    <div className="bk-shell">
+      {/* Desktop: navbar pública · Mobile: barra de topo tipo app */}
+      <div className="bk-desktop-only">
+        <PublicNavbar />
+      </div>
+      <BookingTopBar step="service" />
 
-      <main className="bg-chi-cream min-h-screen pt-24 pb-36 md:pt-32 md:pb-20">
+      <main className="bk-main">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
           {/* Header compacto — título e ajuda numa linha só */}
           <header className="mb-6 md:mb-10">
@@ -118,20 +139,20 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
             </p>
           </header>
 
-          {/* Stepper */}
-          <div className="mb-8 md:mb-12">
+          {/* Stepper — só desktop (em mobile o progresso está na barra de topo) */}
+          <div className="bk-desktop-only mb-8 md:mb-12">
             <BookingStepper currentStep="service" />
           </div>
 
           {/* Layout: lista de servicos + sidebar (desktop) */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-12">
             {/* Coluna principal — categorias e servicos */}
-            <div>
+            <div id="booking-services" className="bk-anchor">
               <ServicePicker categories={categories} staff={staff} initialOpenSlug={categoria} />
             </div>
 
             {/* Coluna lateral — resumo (sticky em desktop; no mobile o
-                BookingSummary rende a barra fixa inferior) */}
+                BookingSummary rende a barra de ação fixa inferior) */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <BookingSummary
                 ctaLabel={t('step1Cta')}
@@ -143,7 +164,10 @@ export default async function MarcacoesPage({ searchParams }: { searchParams: Se
         </div>
       </main>
 
-      <PublicFooter />
-    </>
+      {/* Rodapé só em desktop — em mobile o ecrã termina na barra de ação */}
+      <div className="bk-desktop-only">
+        <PublicFooter />
+      </div>
+    </div>
   );
 }

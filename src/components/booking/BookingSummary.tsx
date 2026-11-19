@@ -1,16 +1,20 @@
+// 📄 src/components/booking/BookingSummary.tsx
 'use client';
 
 /**
- * Chi Sublime — Booking Summary
+ * Chi Sublime — Booking Summary (Step 1)
  * ============================================================
  *
  * Resumo do que o cliente esta a marcar.
  *
  * Comportamento responsive:
- *  - Desktop: sticky sidebar a direita
- *  - Mobile: bottom bar fixa (so aparece se houver servicos)
+ *  - Desktop (>= 1024px): sticky sidebar a direita
+ *  - Mobile/tablet: barra de ação fixa no fundo, tipo app
+ *    (<BookingBottomBar />) — SEMPRE visível; sem serviços diz
+ *    "Escolha um serviço" e o botão fica cinzento. Toque no resumo
+ *    abre a folha com os serviços escolhidos (com remover).
  *
- * Mostra:
+ * Mostra (desktop):
  *  - Servicos selecionados (com remover X)
  *  - Duracao total
  *  - Preco total
@@ -20,7 +24,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useBookingFlow, useIsHydrated } from '@/hooks/useBookingFlow';
-import { cn } from '@/lib/utils/cn';
+import { BookingBottomBar } from './BookingBottomBar';
 
 function formatPrice(cents: number): string {
   return `${(cents / 100).toFixed(2).replace('.', ',')} €`;
@@ -44,24 +48,49 @@ type Props = {
   ctaHelper?: string;
 };
 
+/** Mobile: toque no botão sem serviços → leva o cliente de volta à lista */
+function scrollToServices() {
+  document.getElementById('booking-services')?.scrollIntoView({ block: 'start' });
+}
+
 export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
   const t = useTranslations('booking.summary');
+  const ta = useTranslations('booking.app');
   const isHydrated = useIsHydrated();
   const { selectedServices, totals, removeService, canProceedFromStep1 } = useBookingFlow();
+
+  const hasServices = selectedServices.length > 0;
+  const ctaEnabled = canProceedFromStep1;
+
+  // MOBILE — barra de ação fixa (a própria barra trata da hidratação:
+  // mostra um esqueleto até o carrinho ser lido do sessionStorage)
+  const mobileBar = (
+    <BookingBottomBar
+      label={
+        hasServices
+          ? `${t('servicesCount', { count: totals.count })} · ${formatDuration(totals.duration)}`
+          : ta('chooseService')
+      }
+      ready={ctaEnabled}
+      cta={{ kind: 'link', href: ctaHref, label: ctaLabel }}
+      onBlockedPress={scrollToServices}
+      allowRemove
+    />
+  );
 
   // Antes da hidratacao, mostra placeholder vazio (evita SSR mismatch)
   if (!isHydrated) {
     return (
-      <aside className="hidden w-full lg:block">
-        <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-8">
-          <div className="bg-chi-sand/40 h-32 animate-pulse rounded" />
-        </div>
-      </aside>
+      <>
+        <aside className="hidden w-full lg:block">
+          <div className="border-chi-border bg-chi-cream shadow-soft sticky top-24 rounded-lg border p-8">
+            <div className="bg-chi-sand/40 h-32 animate-pulse rounded" />
+          </div>
+        </aside>
+        {mobileBar}
+      </>
     );
   }
-
-  const hasServices = selectedServices.length > 0;
-  const ctaEnabled = canProceedFromStep1;
 
   return (
     <>
@@ -157,45 +186,7 @@ export function BookingSummary({ ctaLabel, ctaHref, ctaHelper }: Props) {
         </div>
       </aside>
 
-      {/* MOBILE — bottom bar fixa (so aparece se houver servicos).
-          pb com safe-area: em iPhones com home indicator o CTA
-          nao fica colado a barra do sistema. */}
-      <div
-        className={cn(
-          'bg-chi-cream border-chi-border shadow-strong fixed inset-x-0 bottom-0 z-40 border-t px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-transform duration-300 lg:hidden',
-          hasServices ? 'translate-y-0' : 'translate-y-full',
-        )}
-      >
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-chi-charcoal-light text-[10px] tracking-[0.2em] uppercase">
-              {t('servicesCount', { count: totals.count })} · {formatDuration(totals.duration)}
-            </span>
-            <span className="text-chi-green-deep font-mono text-lg font-medium">
-              {formatPrice(totals.price)}
-            </span>
-          </div>
-
-          {ctaEnabled ? (
-            <Link
-              href={ctaHref}
-              className="bg-chi-green-deep rounded-md px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase transition-all"
-              style={{ color: '#FAF7F2' }}
-            >
-              {ctaLabel}
-              <span className="ml-1">→</span>
-            </Link>
-          ) : (
-            <button
-              disabled
-              className="bg-chi-charcoal-light/40 rounded-md px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase"
-              style={{ color: '#FAF7F2' }}
-            >
-              {ctaLabel}
-            </button>
-          )}
-        </div>
-      </div>
+      {mobileBar}
     </>
   );
 }
