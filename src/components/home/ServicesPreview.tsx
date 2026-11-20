@@ -27,14 +27,7 @@ import { Category, Service } from '@/lib/models';
 import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
 import { Reveal } from '@/components/shared/Reveal';
-
-const CATEGORY_IMAGES: Record<string, string> = {
-  cabelereiro: '/images/services/detalhe6.jpg',
-  sobrancelhas: '/images/services/sobrancelhas.jpg',
-  maquilhagem: '/images/services/maquilhagem.jpg',
-  unhas: '/images/services/unhas.jpg',
-  depilacao: '/images/services/depilacao.jpg',
-};
+import { categoryImage } from '@/lib/content/category-images';
 
 type CategoryCard = {
   slug: string;
@@ -59,7 +52,7 @@ async function getCategoriesWithCount(locale: Locale): Promise<CategoryCard[]> {
         slug: cat.slug,
         title: localizedField(cat.name, locale),
         count,
-        image: CATEGORY_IMAGES[cat.slug] ?? '/images/services/cabelereiro.jpg',
+        image: categoryImage(cat.slug),
       } satisfies CategoryCard;
     }),
   );
@@ -149,13 +142,26 @@ export async function ServicesPreview() {
 
         {/* CTA de rodapé da secção */}
         <Reveal delay={0.1}>
-          <div className="mt-16 flex justify-center md:mt-20">
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-y-6 md:mt-20">
             <Link
               href="/marcacoes"
               className="bg-chi-gold hover:bg-chi-gold-soft inline-flex items-center justify-center px-10 py-4 text-xs font-semibold tracking-[0.22em] uppercase transition-colors duration-300"
               style={{ color: '#1F3D2E' }}
             >
               {t('cta')}
+            </Link>
+            {/* SEO: link de texto para o índice /servicos (todos os serviços e preços) */}
+            <Link
+              href="/servicos"
+              className="group ml-8 inline-flex items-center gap-3 text-xs font-medium tracking-[0.22em] uppercase"
+              style={{ color: '#FAF7F2' }}
+            >
+              <span className="border-chi-cream/40 group-hover:border-chi-gold border-b pb-1 transition-colors duration-300">
+                {t('allPrices')}
+              </span>
+              <span className="text-chi-gold transition-transform duration-300 group-hover:translate-x-1">
+                →
+              </span>
             </Link>
           </div>
         </Reveal>

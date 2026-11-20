@@ -36,7 +36,8 @@ import {
 } from '@/components/booking/ServicePicker';
 
 export const metadata: Metadata = {
-  title: 'Marcações Online em Cascais | Chi Sublime',
+  // Sem " | Chi Sublime": o template do layout raiz já o acrescenta
+  title: 'Marcações Online — Cabeleireiro e Beleza em Cascais',
   description:
     'Faça a sua marcação online no Chi Sublime — Hair Style & Beauty. Cabeleireiro, sobrancelhas, maquilhagem, unhas e depilação em Cascais. Escolha o serviço, o profissional e o horário em menos de um minuto.',
   alternates: { canonical: '/marcacoes' },

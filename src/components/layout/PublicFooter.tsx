@@ -7,17 +7,26 @@
  *  - Marca sem itálico (coerente com navbar)
  *  - "Marcar Online" agora aponta para /marcacoes (era #contact)
  *  - Socials quadrados de cantos retos (linguagem do site)
+ *
+ * SEO:
+ *  - Os links de navegação são ABSOLUTOS ("/#services"). Com "#services"
+ *    relativo, numa página interna (ex.: /servicos/unhas) o link apontava
+ *    para uma âncora que não existe nessa página.
+ *  - "Serviços e Preços" leva ao índice /servicos (página real, indexável).
+ *  - Morada e telefone completos em todas as páginas (NAP), iguais aos do
+ *    JSON-LD e da ficha Google Business Profile.
  */
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { SALON } from '@/lib/seo/site';
 
 const NAV_LINKS = [
-  { label: 'Início', href: '#home' },
-  { label: 'Serviços', href: '#services' },
-  { label: 'Equipa', href: '#team' },
-  { label: 'Galeria', href: '#gallery' },
-  { label: 'Contacto', href: '#contact' },
+  { label: 'Início', href: '/' },
+  { label: 'Serviços e Preços', href: '/servicos' },
+  { label: 'Equipa', href: '/#team' },
+  { label: 'Galeria', href: '/#gallery' },
+  { label: 'Contacto', href: '/#contact' },
 ];
 
 const BOOKING_LINKS = [
@@ -46,7 +55,7 @@ export function PublicFooter() {
               em HTML). No fundo areia, o texto usa gold-deep. */}
           <div>
             <Link
-              href="#home"
+              href="/"
               className="mb-6 inline-flex flex-col items-center transition-opacity hover:opacity-80"
             >
               <Image
@@ -67,11 +76,24 @@ export function PublicFooter() {
                 Sublime
               </span>
             </Link>
-            <p className="text-chi-charcoal-soft mb-8 max-w-xs text-sm leading-[1.9]">
-              Hair Style &amp; Beauty
+            <p className="text-chi-charcoal-soft mb-4 max-w-xs text-sm leading-[1.9]">
+              Cabeleireiro e salão de beleza
               <br />
               Um refúgio sensorial em Cascais.
             </p>
+
+            <address className="text-chi-charcoal-soft mb-8 max-w-xs text-sm leading-[1.9] not-italic">
+              {SALON.street}, {SALON.neighbourhood}
+              <br />
+              {SALON.postalCode} {SALON.city}
+              <br />
+              <a
+                href={`tel:${SALON.phoneE164}`}
+                className="hover:text-chi-green-deep transition-colors"
+              >
+                {SALON.phoneDisplay}
+              </a>
+            </address>
 
             {/* Socials — quadrados retos */}
             <div className="flex gap-3">

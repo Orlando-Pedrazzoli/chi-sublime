@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
 import { CookieBanner } from '@/components/layout/CookieBanner';
 import { WhatsAppFab } from '@/components/layout/WhatsAppFab';
+import { SITE_URL } from '@/lib/seo/site';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 
@@ -34,16 +35,27 @@ const manrope = Manrope({
 
 /* ============================================================
    METADATA SEO + Open Graph
+   ------------------------------------------------------------
+   - O title da home leva a pesquisa principal ("cabeleireiro" +
+     "salão de beleza" + "Cascais"), não só a marca.
+   - O template acrescenta " | Chi Sublime" às páginas internas:
+     os titles das páginas NÃO devem repetir a marca.
+   - Sem `alternateLocale`: o inglês é servido por cookie, não tem
+     URL própria — anunciar en_US apontava para uma versão que o
+     Google não consegue abrir.
    ============================================================ */
 
+const HOME_TITLE = 'Chi Sublime | Cabeleireiro e Salão de Beleza em Cascais';
+const HOME_DESCRIPTION =
+  'Cabeleireiro e salão de beleza em Cascais, na Quinta da Bicuda. Cortes, coloração, madeixas, extensões, sobrancelhas, maquilhagem, unhas e depilação. Veja os preços e marque online.';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.chisublime.pt'),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Chi Sublime — Hair Style & Beauty | Cascais',
+    default: HOME_TITLE,
     template: '%s | Chi Sublime',
   },
-  description:
-    'Salão de beleza premium em Quinta da Bicuda, Cascais. Cabeleireiro, maquilhagem, sobrancelhas, unhas e depilação. Marcações online com a equipa de Jean Pierre, Matias e Ana Rita.',
+  description: HOME_DESCRIPTION,
   keywords: [
     'salão de beleza Cascais',
     'cabeleireiro Cascais',
@@ -64,25 +76,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_PT',
-    alternateLocale: 'en_US',
-    url: 'https://www.chisublime.pt',
+    url: SITE_URL,
     siteName: 'Chi Sublime',
-    title: 'Chi Sublime — Hair Style & Beauty | Cascais',
-    description: 'Um refúgio de beleza premium em Quinta da Bicuda, Cascais.',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     images: [
       {
         url: '/images/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Chi Sublime — Hair Style & Beauty, Cascais',
+        alt: 'Chi Sublime — cabeleireiro e salão de beleza em Cascais',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Chi Sublime — Hair Style & Beauty | Cascais',
-    description: 'Um refúgio de beleza premium em Cascais.',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     images: ['/images/og-image.jpg'],
   },
 
@@ -97,26 +108,9 @@ export const metadata: Metadata = {
     },
   },
 
-  /* ── Verificação de propriedade — Search Console / Webmaster Tools ──
-     DESATIVADO até teres os códigos reais (os placeholders estavam a
-     renderizar meta tags inválidas em produção).
-
-     Quando tiveres os códigos, descomenta e preenche:
-     Google Search Console → método "Meta tag HTML" → copiar APENAS o
-     valor do atributo content (não a tag inteira).
-     Bing Webmaster Tools → "Meta tag" → valor do content de msvalidate.01
-     (ou usa "Importar do Google Search Console" e nem precisas).
-
-     Se verificares via DNS na Hostinger (recomendado), podes apagar
-     este bloco de vez.
-
-  verification: {
-    google: 'CODIGO_GOOGLE',
-    other: {
-      'msvalidate.01': 'CODIGO_BING',
-    },
-  },
-  */
+  /* Verificação do Google Search Console: feita por DNS (propriedade
+     de domínio chisublime.pt) — não é precisa meta tag aqui.
+     Bing Webmaster Tools: usar "Importar do Google Search Console". */
 
   category: 'beauty',
 };

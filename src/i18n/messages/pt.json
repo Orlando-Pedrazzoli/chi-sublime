@@ -36,6 +36,7 @@
   "home": {
     "hero": {
       "eyebrow": "Hair Style & Beauty · Cascais",
+      "h1": "Cabeleireiro e salão de beleza em Cascais",
       "title": "Beleza que <em>respira</em><br></br>o tempo",
       "subtitle": "Um espaço de cuidado refinado na Quinta da Bicuda, onde cada gesto é pensado para revelar a sua essência.",
       "ctaPrimary": "Marcar",
@@ -66,7 +67,9 @@
       "count": "{count, plural, one {# serviço} other {# serviços}}",
       "viewServices": "Ver serviços",
       "cta": "Marcar online",
+      "allPrices": "Todos os serviços e preços",
       "descriptions": {
+        "cabeleireiro": "Cortes, coloração, madeixas, alisamentos, tratamentos vegan, extensões fio a fio.",
         "cabelereiro": "Cortes, coloração, madeixas, alisamentos, tratamentos vegan, extensões fio a fio.",
         "sobrancelhas": "Design personalizado, brow lamination, pigmentação e limpeza.",
         "maquilhagem": "Maquilhagem premium e de noiva — para os momentos em que cada detalhe importa.",
@@ -114,6 +117,7 @@
   "services": {
     "title": "Serviços",
     "categories": {
+      "cabeleireiro": "Cabeleireiro",
       "cabelereiro": "Cabeleireiro",
       "sobrancelhas": "Sobrancelhas",
       "maquilhagem": "Maquilhagem",
@@ -129,7 +133,24 @@
       "popular": "Popular",
       "bookCta": "Marcar {category}",
       "bookHint": "Marcação online em menos de um minuto — escolhe o serviço, o profissional e o horário que te convém.",
-      "explore": "Explorar também"
+      "explore": "Explorar também",
+      "viewService": "Ver detalhes",
+      "inCity": "em Cascais",
+      "indexEyebrow": "Serviços e preços",
+      "indexTitle": "Cabeleireiro e beleza em Cascais",
+      "indexIntro": "A carta completa do Chi Sublime, na Quinta da Bicuda: todos os serviços, com duração e preço. Escolha o que procura e marque online.",
+      "viewCategory": "Ver {category}",
+      "bookService": "Marcar este serviço",
+      "duration": "Duração",
+      "price": "Preço",
+      "where": "Onde",
+      "with": "Com quem",
+      "anyStaff": "Toda a equipa",
+      "about": "Sobre o serviço",
+      "autoDescription": "{service} no Chi Sublime, {category} em Cascais (Quinta da Bicuda). Duração aproximada de {duration}, por {price}. Marcação online em menos de um minuto, com o profissional e o horário que preferir.",
+      "moreIn": "Mais em {category}",
+      "allServices": "Todos os serviços",
+      "hoursLine": "Terça a sábado, 09:00 – 18:00"
     }
   },
   "booking": {

@@ -1,5 +1,5 @@
+// 📄 src/proxy.ts
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 
 // ============================================================================
@@ -97,14 +97,28 @@ export default auth((req) => {
 // Matcher — em que rotas o middleware corre
 // ============================================================================
 
+/**
+ * O proxy (Auth.js) só corre onde há REGRAS de acesso: admin, área de
+ * cliente e páginas de autenticação.
+ *
+ * Antes corria em todas as páginas públicas (home, /servicos, /equipa,
+ * sitemap.xml, robots.txt…), onde a única coisa que fazia era
+ * `NextResponse.next()` — mas obrigava cada pedido de um visitante ou
+ * do Googlebot a passar pela validação de sessão do Auth.js, somando
+ * latência (TTFB) sem proteger nada.
+ *
+ * A sessão continua a funcionar nas páginas públicas: a navbar lê-a no
+ * servidor com `auth()` e o SessionProvider renova-a via /api/auth.
+ *
+ * ⚠️ Rota nova que exija login → acrescentar aqui E nas funções acima.
+ */
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * - api (handled by route handlers)
-     * - _next/static, _next/image (assets)
-     * - favicon, manifest, images
-     */
-    '/((?!api|_next/static|_next/image|favicon|images|manifest).*)',
+    '/admin/:path*',
+    '/conta/:path*',
+    '/entrar/:path*',
+    '/registar/:path*',
+    '/recuperar-password/:path*',
+    '/redefinir-password/:path*',
   ],
 };

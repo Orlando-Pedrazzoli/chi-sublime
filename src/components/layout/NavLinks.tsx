@@ -177,7 +177,7 @@ export function NavLinks({ categories, session }: NavLinksProps) {
                       </ul>
                       <div className="border-chi-gold/15 border-t">
                         <Link
-                          href={getHref('#services')}
+                          href="/servicos"
                           className="hover:text-chi-gold block px-5 py-3 text-center text-[10px] tracking-[0.25em] uppercase transition-colors duration-300"
                           style={{ color: GOLD }}
                         >

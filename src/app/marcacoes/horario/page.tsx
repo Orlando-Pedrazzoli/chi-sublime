@@ -29,8 +29,10 @@ import { Step2Client } from '@/components/booking/Step2Client';
 import type { StaffOption } from '@/components/booking/StaffPicker';
 
 export const metadata: Metadata = {
-  title: 'Escolher horário | Chi Sublime',
+  title: 'Escolher horário',
   description: 'Escolha a data e o profissional para a sua marcação no Chi Sublime.',
+  // Passo do funil: depende do carrinho do cliente, não é página de pesquisa
+  robots: { index: false, follow: true },
 };
 
 /**

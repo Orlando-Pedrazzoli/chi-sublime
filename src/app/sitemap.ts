@@ -5,128 +5,122 @@
  *
  * Gerado em: https://www.chisublime.pt/sitemap.xml
  *
- * Estratégia:
- * - Rotas estáticas com prioridades calibradas para SEO local
- *   (home e serviços no topo; legais no fundo).
- * - Rotas dinâmicas (/servicos/[slug] e /equipa/[slug]) lidas
- *   diretamente do MongoDB — apenas documentos `active: true`,
- *   com `lastModified` real vindo de `updatedAt` (timestamps
- *   do Mongoose). Google/Bing usam este campo para priorizar
- *   re-crawl de páginas alteradas.
- * - ISR de 1 hora (`revalidate = 3600`): o sitemap reflete
- *   novos serviços/staff sem redeploy, sem custo por request.
- * - Fail-safe: se a DB falhar (build sem env, cold start com
- *   timeout), devolve as rotas estáticas em vez de rebentar
- *   o build ou servir um 500 aos bots.
+ * REGRA: só entra aqui um URL que responda 200 e seja indexável.
+ *
+ * - /servicos/{categoria}            ← coleção Category
+ * - /servicos/{categoria}/{serviço}  ← coleção Service (com a
+ *   categoria populada — o slug do serviço sozinho NÃO é um URL)
+ * - /equipa/{slug}                   ← coleção Staff
+ *
+ * (A versão anterior publicava /servicos/{slug-do-serviço}, que a
+ * rota resolvia como categoria → 35 URLs a dar 404 e as 5
+ * categorias reais fora do sitemap.)
+ *
+ * `lastModified` vem sempre de `updatedAt` real. Nunca `new Date()`:
+ * isso diz ao Google que a página muda a cada leitura e ele deixa
+ * de confiar no campo.
+ *
+ * ISR de 1 hora. Fail-safe: se a BD falhar, devolve o núcleo
+ * estático em vez de servir um 500 aos bots.
  */
 
 import type { MetadataRoute } from 'next';
 import { connectDB } from '@/lib/db/connect';
-import { Service, Staff } from '@/lib/models';
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chisublime.pt';
+import { Category, Service, Staff } from '@/lib/models';
+import { absoluteUrl, categoryPath, servicePath, staffPath } from '@/lib/seo/site';
 
 /** Revalida o sitemap a cada hora (ISR) */
 export const revalidate = 3600;
 
-/* ============================================================
-   Rotas estáticas — prioridade e frequência calibradas
-   ============================================================ */
+const LEGAL_ROUTES: MetadataRoute.Sitemap = [
+  '/privacidade',
+  '/termos',
+  '/cookies',
+  '/rgpd',
+  '/cancelamento',
+].map((path) => ({ url: absoluteUrl(path), changeFrequency: 'yearly', priority: 0.2 }));
 
-const STATIC_ROUTES: MetadataRoute.Sitemap = [
-  {
-    url: `${BASE_URL}/`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 1.0,
-  },
-  {
-    url: `${BASE_URL}/marcacoes`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly',
-    priority: 0.9,
-  },
-  {
-    url: `${BASE_URL}/privacidade`,
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${BASE_URL}/termos`,
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${BASE_URL}/cookies`,
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${BASE_URL}/rgpd`,
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${BASE_URL}/cancelamento`,
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-];
-
-/* ============================================================
-   Rotas dinâmicas — MongoDB
-   ============================================================ */
-
-type SlugDoc = { slug: string; updatedAt: Date };
-
-async function getServiceEntries(): Promise<MetadataRoute.Sitemap> {
-  const services = await Service.find({ active: true }).select('slug updatedAt').lean<SlugDoc[]>();
-
-  return services
-    .filter((s) => Boolean(s.slug))
-    .map((s) => ({
-      url: `${BASE_URL}/servicos/${s.slug}`,
-      lastModified: s.updatedAt,
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    }));
+function staticRoutes(lastModified?: Date): MetadataRoute.Sitemap {
+  return [
+    { url: absoluteUrl('/'), lastModified, changeFrequency: 'weekly', priority: 1.0 },
+    { url: absoluteUrl('/servicos'), lastModified, changeFrequency: 'weekly', priority: 0.9 },
+    { url: absoluteUrl('/marcacoes'), changeFrequency: 'monthly', priority: 0.8 },
+    ...LEGAL_ROUTES,
+  ];
 }
 
-async function getStaffEntries(): Promise<MetadataRoute.Sitemap> {
-  const staff = await Staff.find({ active: true, showOnWebsite: { $ne: false } })
-    .select('slug updatedAt')
-    .lean<SlugDoc[]>();
-
-  return staff
-    .filter((s) => Boolean(s.slug))
-    .map((s) => ({
-      url: `${BASE_URL}/equipa/${s.slug}`,
-      lastModified: s.updatedAt,
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    }));
-}
-
-/* ============================================================
-   Sitemap
-   ============================================================ */
+const latest = (dates: (Date | undefined)[]): Date | undefined => {
+  const times = dates.filter((d): d is Date => Boolean(d)).map((d) => new Date(d).getTime());
+  return times.length ? new Date(Math.max(...times)) : undefined;
+};
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const conn = await connectDB();
-
     // connectDB devolve null se MONGODB_URI não estiver definido
-    if (!conn) return STATIC_ROUTES;
+    if (!conn) return staticRoutes();
 
-    const [serviceEntries, staffEntries] = await Promise.all([
-      getServiceEntries(),
-      getStaffEntries(),
+    const [categories, services, staff] = await Promise.all([
+      Category.find({ active: true }).sort({ order: 1 }).select('slug updatedAt').lean(),
+      Service.find({ active: true }).sort({ order: 1 }).select('slug categoryId updatedAt').lean(),
+      Staff.find({ active: true, showOnWebsite: { $ne: false } })
+        .sort({ order: 1 })
+        .select('slug updatedAt')
+        .lean(),
     ]);
 
-    return [...STATIC_ROUTES, ...serviceEntries, ...staffEntries];
+    const categoryById = new Map(categories.map((c) => [String(c._id), c]));
+
+    const categoryEntries: MetadataRoute.Sitemap = categories
+      .filter((c) => Boolean(c.slug))
+      .map((c) => {
+        // A carta da categoria muda quando qualquer serviço dela muda
+        const own = services.filter((s) => String(s.categoryId) === String(c._id));
+        return {
+          url: absoluteUrl(categoryPath(c.slug)),
+          lastModified: latest([c.updatedAt, ...own.map((s) => s.updatedAt)]),
+          changeFrequency: 'weekly' as const,
+          priority: 0.9,
+        };
+      });
+
+    const serviceEntries: MetadataRoute.Sitemap = services.flatMap((s) => {
+      // Serviço sem categoria ativa não tem página → fica de fora
+      const category = categoryById.get(String(s.categoryId));
+      if (!s.slug || !category?.slug) return [];
+      return [
+        {
+          url: absoluteUrl(servicePath(category.slug, s.slug)),
+          lastModified: s.updatedAt,
+          changeFrequency: 'monthly' as const,
+          priority: 0.7,
+        },
+      ];
+    });
+
+    const staffEntries: MetadataRoute.Sitemap = staff
+      .filter((s) => Boolean(s.slug))
+      .map((s) => ({
+        url: absoluteUrl(staffPath(s.slug)),
+        lastModified: s.updatedAt,
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }));
+
+    const catalogUpdatedAt = latest([
+      ...categories.map((c) => c.updatedAt),
+      ...services.map((s) => s.updatedAt),
+    ]);
+
+    return [
+      ...staticRoutes(catalogUpdatedAt),
+      ...categoryEntries,
+      ...serviceEntries,
+      ...staffEntries,
+    ];
   } catch (error) {
     // Fail-safe: nunca servir 500 a um bot — devolve o núcleo estático
     console.error('[sitemap] Falha ao gerar entradas dinâmicas:', error);
-    return STATIC_ROUTES;
+    return staticRoutes();
   }
 }

@@ -1,68 +1,38 @@
+// 📄 src/app/robots.ts
 /**
  * Chi Sublime — robots.txt dinâmico (Next.js Metadata Route)
  * ============================================================
  *
  * Gerado em: https://www.chisublime.pt/robots.txt
  *
- * Estratégia:
- * - Regras explícitas para Googlebot e Bingbot (os dois motores
- *   relevantes para o mercado PT) + regra genérica para os restantes.
- * - Bloqueia tudo o que é privado, transacional ou stateful:
- *   admin, API, área de cliente, autenticação e passos do funil
- *   de marcação (dependem de sessão — crawl geraria soft-404s).
- * - /marcacoes (passo 1) fica INDEXÁVEL — é landing page valiosa
- *   para "marcar cabeleireiro Cascais". Apenas os sub-passos
- *   (/marcacoes/horario, /marcacoes/confirmar, /marcacoes/[nº])
- *   são bloqueados via "Disallow: /marcacoes/" (trailing slash
- *   bloqueia sub-rotas mas não a rota exata).
+ * Duas ferramentas diferentes, que não se podem misturar:
+ *
+ * - robots.txt (este ficheiro) → impede o RASTREIO. Usado só para
+ *   o que nenhum bot tem de pedir: admin, API e área de cliente
+ *   (que de qualquer forma redirecionam para o login).
+ *
+ * - meta robots "noindex" (na metadata de cada página) → impede a
+ *   INDEXAÇÃO. Usado em /entrar, /registar, recuperação de password
+ *   e nos passos do funil (/marcacoes/horario, /confirmar, /[nº]).
+ *
+ * Estas páginas "noindex" NÃO podem estar no Disallow: se o Google
+ * não as puder rastrear, nunca lê o noindex e pode listá-las como
+ * "Indexada, mas bloqueada pelo robots.txt" (o /entrar está no menu
+ * de todas as páginas, por isso o Google descobre-o sempre).
  */
 
 import type { MetadataRoute } from 'next';
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chisublime.pt';
-
-/** Rotas que nenhum bot deve rastrear */
-const DISALLOWED_PATHS = [
-  '/admin/',
-  '/admin',
-  '/api/',
-  '/conta/',
-  '/conta',
-  '/entrar',
-  '/registar',
-  '/recuperar-password',
-  '/redefinir-password',
-  '/marcacoes/', // bloqueia sub-passos do funil; /marcacoes (exato) continua permitido
-];
+import { SITE_URL } from '@/lib/seo/site';
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: 'Googlebot',
-        allow: '/',
-        disallow: DISALLOWED_PATHS,
-      },
-      {
-        userAgent: 'Googlebot-Image',
-        allow: ['/images/', '/_next/image'],
-        disallow: DISALLOWED_PATHS,
-      },
-      {
-        userAgent: 'Bingbot',
-        allow: '/',
-        disallow: DISALLOWED_PATHS,
-        // Bing respeita crawl-delay — 1s evita picos nas serverless functions
-        crawlDelay: 1,
-      },
-      {
-        // Todos os restantes bots (DuckDuckBot, Applebot, etc.)
         userAgent: '*',
         allow: '/',
-        disallow: DISALLOWED_PATHS,
+        disallow: ['/admin', '/api/', '/conta'],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

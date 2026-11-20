@@ -11,7 +11,15 @@
  * profissional o presta). CTA → /marcacoes.
  *
  * ISR de 10 min (as actions da equipa revalidam o path ao gravar).
- * Profissionais com showOnWebsite=false dão 404. JSON-LD Person para SEO.
+ * Profissionais com showOnWebsite=false dão 404.
+ *
+ * SEO:
+ * - Title com a pesquisa local ("{Nome} — {função} em Cascais").
+ * - JSON-LD Person com @id/url/imagem próprios e `worksFor` a
+ *   apontar para a entidade do salão (#salon) por @id — é isto
+ *   que liga o profissional ao Chi Sublime no grafo do Google.
+ * - Cada serviço é um link para a sua página
+ *   (/servicos/{categoria}/{serviço}).
  */
 
 import type { Metadata } from 'next';
@@ -24,6 +32,16 @@ import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { Reveal } from '@/components/shared/Reveal';
 import { isOptimizableImage } from '@/lib/utils/image';
+import {
+  SALON_ID,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  formatDuration,
+  formatPrice,
+  jsonLdScript,
+  servicePath,
+  staffPath,
+} from '@/lib/seo/site';
 
 export const revalidate = 600;
 
@@ -57,11 +75,14 @@ async function getStaffData(slug: string) {
     },
     services: services.map((s) => ({
       id: String(s._id),
+      slug: s.slug,
       name: s.name.pt,
       duration: s.duration,
       price: s.price,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       categoryName: (s.categoryId as any)?.name?.pt ?? '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      categorySlug: ((s.categoryId as any)?.slug as string | undefined) ?? '',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       categoryOrder: (s.categoryId as any)?.order ?? 0,
     })),
@@ -79,28 +100,23 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const data = await getStaffData(slug);
   if (!data) return { title: 'Equipa' };
 
+  const title = `${data.staff.name} — ${data.staff.role} em Cascais`;
+  const description =
+    data.staff.bio ??
+    `${data.staff.name}, ${data.staff.role} no Chi Sublime, cabeleireiro e salão de beleza em Cascais. Veja os serviços e marque online.`;
+
   return {
-    title: `${data.staff.name} — ${data.staff.role}`,
-    description:
-      data.staff.bio ??
-      `${data.staff.name}, ${data.staff.role} no Chi Sublime — Hair Style & Beauty, Cascais.`,
-    alternates: { canonical: `/equipa/${slug}` },
+    title,
+    description,
+    alternates: { canonical: staffPath(slug) },
+    openGraph: {
+      type: 'profile',
+      title: `${title} | Chi Sublime`,
+      description,
+      url: staffPath(slug),
+      ...(data.staff.photo ? { images: [{ url: data.staff.photo, alt: data.staff.name }] } : {}),
+    },
   };
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function formatPrice(cents: number): string {
-  return `${(cents / 100).toFixed(2).replace('.', ',')} €`;
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}min`;
 }
 
 // ============================================================
@@ -129,25 +145,46 @@ export default async function EquipaPerfilPage({ params }: { params: Params }) {
   }
   const groups = [...byCategory.entries()].sort((a, b) => a[1].order - b[1].order);
 
+  const profileUrl = absoluteUrl(staffPath(slug));
+  const photoUrl = staff.photo
+    ? staff.photo.startsWith('http')
+      ? staff.photo
+      : absoluteUrl(staff.photo)
+    : undefined;
+
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Person',
-    name: staff.name,
-    jobTitle: staff.role,
-    ...(staff.bio ? { description: staff.bio } : {}),
-    worksFor: {
-      '@type': 'HairSalon',
-      name: 'Chi Sublime',
-      address: { '@type': 'PostalAddress', addressLocality: 'Cascais', addressCountry: 'PT' },
-    },
+    '@graph': [
+      breadcrumbJsonLd([
+        { name: 'Início', path: '/' },
+        { name: 'Equipa', path: '/#team' },
+        { name: staff.name, path: staffPath(slug) },
+      ]),
+      {
+        '@type': 'ProfilePage',
+        '@id': `${profileUrl}#profile`,
+        url: profileUrl,
+        mainEntity: { '@id': `${profileUrl}#person` },
+      },
+      {
+        '@type': 'Person',
+        '@id': `${profileUrl}#person`,
+        name: staff.name,
+        url: profileUrl,
+        jobTitle: staff.role,
+        ...(photoUrl ? { image: photoUrl } : {}),
+        ...(staff.bio ? { description: staff.bio } : {}),
+        ...(staff.specialty ? { knowsAbout: staff.specialty } : {}),
+        // Mesma entidade que o JSON-LD do layout raiz (HairSalon #salon)
+        worksFor: { '@id': SALON_ID },
+        workLocation: { '@id': SALON_ID },
+      },
+    ],
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(jsonLd)} />
       <PublicNavbar />
 
       <main className="bg-chi-cream min-h-screen pt-32 pb-24 md:pt-40">
@@ -223,7 +260,18 @@ export default async function EquipaPerfilPage({ params }: { params: Params }) {
                             className="border-chi-border flex items-baseline justify-between gap-6 border-b py-4"
                           >
                             <div className="min-w-0">
-                              <p className="text-chi-charcoal truncate text-base">{s.name}</p>
+                              <p className="text-chi-charcoal truncate text-base">
+                                {s.categorySlug ? (
+                                  <Link
+                                    href={servicePath(s.categorySlug, s.slug)}
+                                    className="hover:text-chi-gold-deep transition-colors duration-300"
+                                  >
+                                    {s.name}
+                                  </Link>
+                                ) : (
+                                  s.name
+                                )}
+                              </p>
                               <p className="text-chi-charcoal-light mt-0.5 text-xs tracking-[0.12em] uppercase">
                                 {formatDuration(s.duration)}
                               </p>

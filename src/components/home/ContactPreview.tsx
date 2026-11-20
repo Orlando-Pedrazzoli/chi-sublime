@@ -24,11 +24,12 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Reveal } from '@/components/shared/Reveal';
 import { groupSalonHours, type WeekDayIndex } from '@/lib/constants/business';
+import { SALON } from '@/lib/seo/site';
 
-const PHONE_DISPLAY = '+351 932 932 691';
-const PHONE_TEL = 'tel:+351932932691';
+const PHONE_DISPLAY = SALON.phoneDisplay;
+const PHONE_TEL = `tel:${SALON.phoneE164}`;
 const WHATSAPP = 'https://wa.me/351932932691';
-const MAPS_URL = 'https://maps.google.com/?q=38.709560,-9.446915';
+const MAPS_URL = SALON.mapsUrl;
 
 /** WeekDayIndex → chave de tradução em home.contact.hours.days.* */
 const DAY_KEYS: Record<WeekDayIndex, string> = {
@@ -122,11 +123,15 @@ export async function ContactPreview() {
             <h3 className="text-chi-gold mb-6 text-[11px] font-semibold tracking-[0.28em] uppercase">
               {t('addressTitle')}
             </h3>
-            <p className="text-chi-cream/80 text-base leading-[1.9]">
-              Quinta da Bicuda
+            {/* Morada COMPLETA e visível (SEO local): tem de ser igual à do
+                JSON-LD e à da ficha Google Business Profile. */}
+            <address className="text-chi-cream/80 text-base leading-[1.9] not-italic">
+              {SALON.street}
               <br />
-              Cascais, Portugal
-            </p>
+              {SALON.neighbourhood}
+              <br />
+              {SALON.postalCode} {SALON.city}, Portugal
+            </address>
             <Link
               href={MAPS_URL}
               target="_blank"

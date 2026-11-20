@@ -36,6 +36,7 @@
   "home": {
     "hero": {
       "eyebrow": "Hair Style & Beauty · Cascais",
+      "h1": "Hair salon & beauty in Cascais",
       "title": "Beauty that <em>breathes</em><br></br>with time",
       "subtitle": "A refined sanctuary of care at Quinta da Bicuda, where every gesture is designed to reveal your essence.",
       "ctaPrimary": "Book now",
@@ -66,7 +67,9 @@
       "count": "{count, plural, one {# service} other {# services}}",
       "viewServices": "View services",
       "cta": "Book online",
+      "allPrices": "All services & prices",
       "descriptions": {
+        "cabeleireiro": "Cuts, colouring, highlights, straightening, vegan treatments, strand-by-strand extensions.",
         "cabelereiro": "Cuts, colouring, highlights, straightening, vegan treatments, strand-by-strand extensions.",
         "sobrancelhas": "Personalised design, brow lamination, pigmentation and cleanup.",
         "maquilhagem": "Premium and bridal make-up — for the moments when every detail matters.",
@@ -114,6 +117,7 @@
   "services": {
     "title": "Services",
     "categories": {
+      "cabeleireiro": "Hair",
       "cabelereiro": "Hair",
       "sobrancelhas": "Brows",
       "maquilhagem": "Makeup",
@@ -129,7 +133,24 @@
       "popular": "Popular",
       "bookCta": "Book {category}",
       "bookHint": "Book online in under a minute — choose the service, the professional and the time that suits you.",
-      "explore": "Also explore"
+      "explore": "Also explore",
+      "viewService": "View details",
+      "inCity": "in Cascais",
+      "indexEyebrow": "Services & prices",
+      "indexTitle": "Hair salon & beauty in Cascais",
+      "indexIntro": "The full Chi Sublime menu at Quinta da Bicuda: every service, with duration and price. Pick what you need and book online.",
+      "viewCategory": "View {category}",
+      "bookService": "Book this service",
+      "duration": "Duration",
+      "price": "Price",
+      "where": "Where",
+      "with": "With",
+      "anyStaff": "The whole team",
+      "about": "About this service",
+      "autoDescription": "{service} at Chi Sublime, {category} in Cascais (Quinta da Bicuda). Takes about {duration}, for {price}. Book online in under a minute, with the professional and time that suit you.",
+      "moreIn": "More in {category}",
+      "allServices": "All services",
+      "hoursLine": "Tuesday to Saturday, 09:00 – 18:00"
     }
   },
   "booking": {

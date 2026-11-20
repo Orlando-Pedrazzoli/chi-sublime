@@ -59,7 +59,7 @@ async function clearCollection(name: string, model: mongoose.Model<any>) {
 async function seedCategories() {
   log('📂', 'A criar categorias de serviço...');
   const categories = [
-    { name: { pt: 'Cabelereiro', en: 'Hair' }, slug: 'cabelereiro', color: '#1F3D2E', order: 1 },
+    { name: { pt: 'Cabeleireiro', en: 'Hair' }, slug: 'cabeleireiro', color: '#1F3D2E', order: 1 },
     { name: { pt: 'Sobrancelhas', en: 'Brows' }, slug: 'sobrancelhas', color: '#D4AF6E', order: 2 },
     { name: { pt: 'Maquilhagem', en: 'Makeup' }, slug: 'maquilhagem', color: '#97C459', order: 3 },
     { name: { pt: 'Unhas', en: 'Nails' }, slug: 'unhas', color: '#5DCAA5', order: 4 },
@@ -107,7 +107,7 @@ async function seedServices(categories: Awaited<ReturnType<typeof seedCategories
     { name: 'Limpeza Sobrancelhas', duration: 60, price: 1500 },
   ];
 
-  const cab = catMap.get('cabelereiro')!;
+  const cab = catMap.get('cabeleireiro')!;
   const cabServices = [
     { name: 'Escova/Brushing', duration: 60, price: 2500 },
     { name: 'Madeixas/Highlights', duration: 225, price: 15000, popular: true },
@@ -266,7 +266,7 @@ async function linkServicesToStaff(
 
   // categoria (slug) → profissionais que a executam
   const map: { slug: string; ids: (typeof jean)[] }[] = [
-    { slug: 'cabelereiro', ids: [jean, matias] },
+    { slug: 'cabeleireiro', ids: [jean, matias] },
     { slug: 'sobrancelhas', ids: [anaRita] },
     { slug: 'maquilhagem', ids: [anaRita] },
     { slug: 'unhas', ids: [anaRita] },

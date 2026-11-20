@@ -12,6 +12,9 @@
  * mensagem, permitindo que a palavra em itálico mude de
  * posição entre idiomas ("respira" / "breathes").
  *
+ * SEO: o H1 da página é o eyebrow (home.hero.h1); o título
+ * display é um <p> com o mesmo estilo.
+ *
  * OpenStatusBadge (client) acima do eyebrow: estado
  * aberto/fechado em tempo real, fuso Europe/Lisbon.
  *
@@ -60,16 +63,35 @@ export async function Hero() {
             <OpenStatusBadge />
           </div>
 
-          <p
-            className="animate-fade-up animate-fade-up-delay-1 eyebrow mb-8"
-            style={{ color: '#D4AF6E', textShadow: '0 1px 12px rgba(0,0,0,0.4)' }}
-          >
-            {t('eyebrow')}
-          </p>
-
+          {/* SEO: o H1 é a linha "eyebrow" — diz o que o salão É e ONDE
+              ("Cabeleireiro e salão de beleza em Cascais"). A frase de
+              marca abaixo mantém exatamente o mesmo visual, mas passa a
+              <p>: um H1 sem "cabeleireiro" nem "Cascais" não dizia ao
+              Google para que pesquisa a home devia aparecer.
+              fontWeight/lineHeight/letterSpacing em inline: anulam o
+              estilo global de h1 para o eyebrow ficar igual ao anterior. */}
           <h1
+            className="animate-fade-up animate-fade-up-delay-1 eyebrow mb-8"
+            style={{
+              color: '#D4AF6E',
+              textShadow: '0 1px 12px rgba(0,0,0,0.4)',
+              fontWeight: 600,
+              lineHeight: 1.5,
+              letterSpacing: '0.28em',
+            }}
+          >
+            {t('h1')}
+          </h1>
+
+          <p
             className="animate-fade-up animate-fade-up-delay-2 text-display-xl mb-8 font-serif text-balance"
-            style={{ color: '#FAF7F2', textShadow: '0 4px 40px rgba(0,0,0,0.45)' }}
+            style={{
+              color: '#FAF7F2',
+              textShadow: '0 4px 40px rgba(0,0,0,0.45)',
+              // iguais ao estilo global de h1 (globals.css)
+              fontWeight: 450,
+              fontVariationSettings: "'opsz' 144, 'SOFT' 40",
+            }}
           >
             {t.rich('title', {
               em: (chunks) => (
@@ -79,7 +101,7 @@ export async function Hero() {
               ),
               br: () => <br />,
             })}
-          </h1>
+          </p>
 
           <p
             className="animate-fade-up animate-fade-up-delay-3 mb-12 max-w-md text-base leading-[1.8] md:text-lg"

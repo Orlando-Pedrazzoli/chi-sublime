@@ -6,12 +6,20 @@
  * A "carta" completa de uma categoria: lista editorial de
  * serviços com descrição, duração, preço e badge Popular.
  *
- * - CTA → /marcacoes?categoria={slug} (o ServicePicker já abre
- *   essa categoria via initialOpenSlug — sinergia existente)
- * - ISR de 10 min (catálogo muda raramente)
- * - JSON-LD: ItemList de serviços + BreadcrumbList (SEO local)
- * - Página autocontida de propósito: sem componentes soltos
- *   até haver segunda utilização.
+ * SEO:
+ * - Title/H1 com a pesquisa local: "{Categoria} em Cascais".
+ * - Cada serviço é um LINK para a sua página própria
+ *   (/servicos/{categoria}/{serviço}) — é assim que o Google
+ *   descobre e dá peso às páginas de serviço.
+ * - JSON-LD válido: ItemList → ListItem → item: Service + Offer,
+ *   com provider ligado ao salão por @id. (Antes os Service
+ *   estavam diretamente no itemListElement com `position`, o que
+ *   é inválido e era ignorado.)
+ * - Slugs antigos (ex.: "cabelereiro") fazem 301 para o slug
+ *   correto assim que este existir na base de dados.
+ *
+ * CTA → /marcacoes?categoria={slug} (o ServicePicker abre essa
+ * categoria via initialOpenSlug).
  */
 
 import type { Metadata } from 'next';
@@ -20,23 +28,26 @@ import type { Locale } from '@/i18n/config';
 import { localizedField } from '@/lib/utils/localized';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { connectDB } from '@/lib/db/connect';
 import { Category, Service } from '@/lib/models';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { Reveal } from '@/components/shared/Reveal';
+import { categoryImage } from '@/lib/content/category-images';
+import {
+  LEGACY_CATEGORY_SLUGS,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  categoryPath,
+  formatDuration,
+  formatPrice,
+  jsonLdScript,
+  serviceJsonLd,
+  servicePath,
+} from '@/lib/seo/site';
 
 export const revalidate = 600;
-
-// Imagens de header por categoria (mesmo mapa do ServicesPreview)
-const CATEGORY_IMAGES: Record<string, string> = {
-  cabelereiro: '/images/services/detalhe6.jpg',
-  sobrancelhas: '/images/services/sobrancelhas.jpg',
-  maquilhagem: '/images/services/maquilhagem.jpg',
-  unhas: '/images/services/unhas.jpg',
-  depilacao: '/images/services/depilacao.jpg',
-};
 
 // ============================================================
 // DATA
@@ -44,6 +55,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
 
 type ServiceRow = {
   id: string;
+  slug: string;
   name: string;
   description?: string;
   duration: number;
@@ -73,6 +85,7 @@ async function getCategoryData(slug: string, locale: Locale) {
     services: services.map(
       (s): ServiceRow => ({
         id: String(s._id),
+        slug: s.slug,
         name: localizedField(s.name, locale),
         description: localizedField(s.description, locale) || undefined,
         duration: s.duration,
@@ -86,6 +99,15 @@ async function getCategoryData(slug: string, locale: Locale) {
   };
 }
 
+/** Slug antigo cujo slug novo já existe na BD → destino do 301 (senão null) */
+async function resolveLegacySlug(slug: string): Promise<string | null> {
+  const target = LEGACY_CATEGORY_SLUGS[slug];
+  if (!target) return null;
+  await connectDB();
+  const exists = await Category.exists({ slug: target, active: true });
+  return exists ? target : null;
+}
+
 // ============================================================
 // METADATA
 // ============================================================
@@ -95,35 +117,40 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const locale = (await getLocale()) as Locale;
-  const data = await getCategoryData(slug, locale);
-  if (!data) return { title: 'Serviços' };
+  const [t, data] = await Promise.all([
+    getTranslations('services.page'),
+    getCategoryData(slug, locale),
+  ]);
+  if (!data) return { title: 'Serviços', robots: { index: false, follow: true } };
 
-  const title = `${data.category.name} em Cascais`;
+  const { category, services } = data;
+  const title =
+    locale === 'en'
+      ? `${category.name} ${t('inCity')} — Services & Prices`
+      : `${category.name} ${t('inCity')} — Serviços e Preços`;
+
+  // Descrição com os serviços reais da carta (única por categoria)
+  const sample = services
+    .slice(0, 5)
+    .map((s) => s.name)
+    .join(', ');
   const description =
-    data.category.description ??
-    `Serviços de ${data.category.name.toLowerCase()} no Chi Sublime — Hair Style & Beauty, Quinta da Bicuda, Cascais. Preços e marcação online.`;
+    category.description ??
+    (locale === 'en'
+      ? `${category.name} at Chi Sublime, Quinta da Bicuda, Cascais${sample ? `: ${sample}` : ''}. Prices, durations and online booking.`
+      : `${category.name} no Chi Sublime, na Quinta da Bicuda, em Cascais${sample ? `: ${sample}` : ''}. Preços, duração e marcação online.`);
 
   return {
     title,
     description,
-    alternates: { canonical: `/servicos/${slug}` },
-    openGraph: { title: `${title} | Chi Sublime`, description },
+    alternates: { canonical: categoryPath(category.slug) },
+    openGraph: {
+      title: `${title} | Chi Sublime`,
+      description,
+      url: categoryPath(category.slug),
+      images: [{ url: categoryImage(category.slug), alt: `${category.name} — Chi Sublime` }],
+    },
   };
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function formatPrice(cents: number): string {
-  return `${(cents / 100).toFixed(2).replace('.', ',')} €`;
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}min`;
 }
 
 // ============================================================
@@ -138,42 +165,41 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
     getTranslations('nav'),
     getCategoryData(slug, locale),
   ]);
-  if (!data) notFound();
+
+  if (!data) {
+    const target = await resolveLegacySlug(slug);
+    if (target) permanentRedirect(categoryPath(target));
+    notFound();
+  }
 
   const { category, services, otherCategories } = data;
-  const headerImage = CATEGORY_IMAGES[slug] ?? '/images/hero.jpg';
+  const headerImage = categoryImage(category.slug);
+  const heading = `${category.name} ${t('inCity')}`;
 
-  // JSON-LD: lista de serviços com preços + breadcrumb
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Início', item: 'https://www.chisublime.pt' },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: category.name,
-            item: `https://www.chisublime.pt/servicos/${category.slug}`,
-          },
-        ],
-      },
+      breadcrumbJsonLd([
+        { name: tNav('home'), path: '/' },
+        { name: tNav('services'), path: '/servicos' },
+        { name: category.name, path: categoryPath(category.slug) },
+      ]),
       {
         '@type': 'ItemList',
-        name: `${category.name} — Chi Sublime`,
+        '@id': `${absoluteUrl(categoryPath(category.slug))}#services`,
+        name: `${heading} — Chi Sublime`,
+        numberOfItems: services.length,
         itemListElement: services.map((s, i) => ({
-          '@type': 'Service',
+          '@type': 'ListItem',
           position: i + 1,
-          name: s.name,
-          ...(s.description ? { description: s.description } : {}),
-          provider: { '@type': 'HairSalon', name: 'Chi Sublime' },
-          areaServed: 'Cascais, Portugal',
-          offers: {
-            '@type': 'Offer',
-            price: (s.price / 100).toFixed(2),
-            priceCurrency: 'EUR',
-          },
+          item: serviceJsonLd({
+            name: s.name,
+            description: s.description,
+            categoryName: category.name,
+            categorySlug: category.slug,
+            slug: s.slug,
+            price: s.price,
+          }),
         })),
       },
     ],
@@ -181,10 +207,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(jsonLd)} />
       <PublicNavbar />
 
       {/* Header com imagem da categoria */}
@@ -192,7 +215,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
         <div className="absolute inset-0 z-0">
           <Image
             src={headerImage}
-            alt={category.name}
+            alt={`${heading} — Chi Sublime`}
             fill
             priority
             quality={85}
@@ -214,6 +237,12 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
             <span className="mx-2" style={{ color: '#D4AF6E' }}>
               /
             </span>
+            <Link href="/servicos" className="hover:text-chi-gold transition-colors">
+              {tNav('services')}
+            </Link>
+            <span className="mx-2" style={{ color: '#D4AF6E' }}>
+              /
+            </span>
             <span style={{ color: '#FAF7F2' }}>{category.name}</span>
           </nav>
 
@@ -221,7 +250,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
             className="text-display-lg max-w-3xl font-serif text-balance"
             style={{ color: '#FAF7F2', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}
           >
-            {category.name}
+            {heading}
           </h1>
           {category.description && (
             <p
@@ -249,7 +278,12 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <h2 className="text-chi-charcoal font-serif text-xl leading-snug md:text-2xl">
-                          {service.name}
+                          <Link
+                            href={servicePath(category.slug, service.slug)}
+                            className="hover:text-chi-gold-deep transition-colors duration-300"
+                          >
+                            {service.name}
+                          </Link>
                         </h2>
                         {service.popular && (
                           <span className="text-chi-gold-deep border-chi-gold/40 rounded border px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em] uppercase">
@@ -264,6 +298,16 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
                       )}
                       <p className="text-chi-charcoal-light mt-2 text-xs tracking-[0.15em] uppercase">
                         {formatDuration(service.duration)}
+                        <span className="mx-2" aria-hidden>
+                          ·
+                        </span>
+                        <Link
+                          href={servicePath(category.slug, service.slug)}
+                          className="text-chi-gold-deep hover:text-chi-green-deep transition-colors duration-300"
+                          aria-label={`${t('viewService')}: ${service.name}`}
+                        >
+                          {t('viewService')} →
+                        </Link>
                       </p>
                     </div>
 
@@ -301,7 +345,7 @@ export default async function ServicoCategoriaPage({ params }: { params: Params 
               {otherCategories.map((cat) => (
                 <li key={cat.slug}>
                   <Link
-                    href={`/servicos/${cat.slug}`}
+                    href={categoryPath(cat.slug)}
                     className="group border-chi-border flex items-center justify-between border-b py-5 transition-colors"
                   >
                     <span className="text-chi-charcoal group-hover:text-chi-gold-deep font-serif text-xl transition-colors duration-300 md:text-2xl">
